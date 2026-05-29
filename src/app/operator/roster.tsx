@@ -1,0 +1,74 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { GemDot } from "@/components/gem-dot";
+import { authedFetch, type OperatorParticipant } from "@/app/operator/api";
+
+export function Roster({ token }: { token: string }) {
+  const [people, setPeople] = useState<OperatorParticipant[]>([]);
+  const [open, setOpen] = useState(false);
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await authedFetch(token, "/api/operator/participants");
+      if (!res.ok) return;
+      const data = (await res.json()) as { participants: OperatorParticipant[] };
+      setPeople(data.participants);
+    } catch {
+      // transient; next poll retries
+    }
+  }, [token]);
+
+  useEffect(() => {
+    refresh();
+    const t = setInterval(refresh, 6000);
+    return () => clearInterval(t);
+  }, [refresh]);
+
+  return (
+    <section className="reticle border border-nyx-line bg-nyx-soft p-5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between"
+      >
+        <h2 className="text-sm uppercase tracking-[0.25em] text-helio">roster</h2>
+        <span className="tabular-nums text-xs text-ash">
+          {people.length} · {open ? "hide" : "show"}
+        </span>
+      </button>
+
+      {open ? (
+        <div className="mt-4 max-h-80 overflow-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-[10px] uppercase tracking-widest text-ash">
+              <tr>
+                <th className="pb-2">id</th>
+                <th className="pb-2">name</th>
+                <th className="pb-2">gem</th>
+                <th className="pb-2">word</th>
+                <th className="pb-2 text-right">score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {people.map((p) => (
+                <tr key={p.gameId} className="border-t border-nyx-line/60">
+                  <td className="py-2 tabular-nums tracking-[0.12em] text-helio">{p.gameId}</td>
+                  <td className="py-2 text-cloud">{p.displayName ?? "—"}</td>
+                  <td className="py-2">
+                    <span className="flex items-center gap-2">
+                      <GemDot hex={p.gemHex} size={10} label={p.gemLabel} />
+                      <span className="text-ash">{p.gemLabel}</span>
+                    </span>
+                  </td>
+                  <td className="py-2 tracking-wide text-ash">{p.secretWord}</td>
+                  <td className="py-2 text-right tabular-nums text-cloud">{p.score}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </section>
+  );
+}

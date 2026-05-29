@@ -1,0 +1,247 @@
+@import "tailwindcss";
+
+/* ---- Dedalus brand type: Nacelle (no monospace anywhere) ---- */
+@font-face {
+  font-family: "Nacelle";
+  src: url("/fonts/Nacelle-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nacelle";
+  src: url("/fonts/Nacelle-SemiBold.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nacelle";
+  src: url("/fonts/Nacelle-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Special editorial display face, used only for the Ariadne wordmark. */
+@font-face {
+  font-family: "PP Editorial New";
+  src: url("/fonts/PPEditorialNew-Ultralight.woff") format("woff");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Dedalus "Nyx" palette + Run(way)time gem colors, exposed as Tailwind utilities. */
+@theme {
+  --color-nyx: #0f0f0f;
+  --color-nyx-soft: #161616;
+  --color-nyx-line: #242424;
+  --color-helio: #d2beff;
+  --color-helio-dim: #aaa5e6;
+  --color-cloud: #f5f5f5;
+  --color-ash: #8a8a8a;
+
+  --color-gem-amethyst: #d2beff;
+  --color-gem-garnet: #a20000;
+  --color-gem-moonstone: #f5f5f5;
+  --color-gem-peridot: #c3d95a;
+  --color-gem-aquamarine: #add8e6;
+  --color-gem-topaz: #ffab57;
+
+  /* Nacelle everywhere; --font-mono points at the same family so no monospace renders. */
+  --font-sans: "Nacelle", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-sans);
+  /* Special wordmark face. */
+  --font-display: "PP Editorial New", Georgia, "Times New Roman", serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--color-nyx);
+  color: var(--color-cloud);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Thin, quiet scrollbars (single global definition). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---- Reticle / HUD aesthetic ---- */
+
+/* Hairline corner brackets drawn on one overlay (all four corners). */
+.reticle {
+  position: relative;
+}
+.reticle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  --rc: color-mix(in srgb, var(--color-ash) 55%, transparent);
+  --rl: 10px;
+  --rt: 1px;
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--rc), var(--rc)), linear-gradient(var(--rc), var(--rc)),
+    linear-gradient(var(--rc), var(--rc)), linear-gradient(var(--rc), var(--rc)),
+    linear-gradient(var(--rc), var(--rc)), linear-gradient(var(--rc), var(--rc)),
+    linear-gradient(var(--rc), var(--rc)), linear-gradient(var(--rc), var(--rc));
+  background-size:
+    var(--rl) var(--rt), var(--rt) var(--rl), var(--rl) var(--rt), var(--rt) var(--rl),
+    var(--rl) var(--rt), var(--rt) var(--rl), var(--rl) var(--rt), var(--rt) var(--rl);
+  background-position:
+    left top, left top, right top, right top, left bottom, left bottom, right bottom, right bottom;
+}
+.reticle-strong::before {
+  --rc: var(--color-helio);
+  --rl: 14px;
+}
+
+/* Faint targeting grid behind the room board. */
+.hud-grid {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-nyx-line) 70%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-nyx-line) 70%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 44px 44px;
+}
+
+/* Scanline veil for the cinematic surveillance feel. */
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.02) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+/* Small crosshair tick used as a label accent. */
+.crosshair {
+  position: relative;
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+}
+.crosshair::before,
+.crosshair::after {
+  content: "";
+  position: absolute;
+  background: var(--color-helio);
+}
+.crosshair::before {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+}
+.crosshair::after {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+/* ---- Dedalus brand background fills (image assets Tailwind cannot own) ---- */
+.bgimg-nyx-waves,
+.bgimg-nyx-lines,
+.bgimg-cloud-lines,
+.bgimg-cloud-sky,
+.bgimg-hero-sky,
+.bgimg-hero-smoke {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.bgimg-nyx-waves {
+  background-image: url("/brand/nyx-waves.png");
+}
+.bgimg-nyx-lines {
+  background-image: url("/brand/nyx-lines.png");
+}
+.bgimg-cloud-lines {
+  background-image: url("/brand/cloud-lines.png");
+}
+.bgimg-cloud-sky {
+  background-image: url("/brand/cloud-sky.png");
+}
+.bgimg-hero-sky {
+  background-image: url("/brand/hero-sky.png");
+}
+.bgimg-hero-smoke {
+  background-image: url("/brand/hero-smoke.webp");
+}
+
+@keyframes ariadne-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ariadne-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes ariadne-fade {
+  to {
+    opacity: 0.18;
+    filter: grayscale(1);
+  }
+}
+
+.animate-rise {
+  animation: ariadne-rise 0.5s ease both;
+}
+.animate-pulse-slow {
+  animation: ariadne-pulse 2.6s ease-in-out infinite;
+}
+
+/* Tile elimination: theatrical fade, not literal disqualification. */
+.tile-eliminated {
+  animation: ariadne-fade 0.9s ease forwards;
+}

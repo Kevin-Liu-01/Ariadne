@@ -1,0 +1,130 @@
+/**
+ * Schema for the shared event backbone. Applied idempotently on every connect,
+ * so a fresh laptop or an in-memory test DB both come up ready. SQLite keeps the
+ * room alive when the network blips; booleans are INTEGER, JSON is TEXT.
+ */
+export const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS participants (
+  id            TEXT PRIMARY KEY,
+  event_id      TEXT NOT NULL,
+  game_id       TEXT NOT NULL,
+  display_name  TEXT,
+  phone         TEXT,
+  gem           TEXT NOT NULL,
+  secret_word   TEXT NOT NULL,
+  station_id    TEXT,
+  score         INTEGER NOT NULL DEFAULT 0,
+  eliminated    INTEGER NOT NULL DEFAULT 0,
+  photo_url     TEXT,
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_participants_event_game ON participants(event_id, game_id);
+CREATE INDEX IF NOT EXISTS idx_participants_phone ON participants(event_id, phone);
+
+CREATE TABLE IF NOT EXISTS conversations (
+  id                 TEXT PRIMARY KEY,
+  event_id           TEXT NOT NULL,
+  participant_id     TEXT,
+  external_id        TEXT,
+  phone              TEXT,
+  channel            TEXT,
+  current_flow       TEXT NOT NULL DEFAULT 'idle',
+  current_mission_id TEXT,
+  created_at         TEXT NOT NULL,
+  updated_at         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_conversations_external ON conversations(external_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_phone ON conversations(event_id, phone);
+CREATE INDEX IF NOT EXISTS idx_conversations_participant ON conversations(participant_id);
+
+CREATE TABLE IF NOT EXISTS partner_events (
+  id          TEXT PRIMARY KEY,
+  event_id    TEXT NOT NULL,
+  provider    TEXT NOT NULL,
+  webhook_id  TEXT NOT NULL,
+  event_type  TEXT NOT NULL,
+  channel     TEXT,
+  payload     TEXT NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'received',
+  created_at  TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_partner_events_webhook ON partner_events(provider, webhook_id);
+
+CREATE TABLE IF NOT EXISTS participant_missions (
+  id             TEXT PRIMARY KEY,
+  event_id       TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  mission_id     TEXT NOT NULL,
+  status         TEXT NOT NULL DEFAULT 'assigned',
+  points_awarded INTEGER NOT NULL DEFAULT 0,
+  assigned_at    TEXT NOT NULL,
+  submitted_at   TEXT,
+  completed_at   TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pm_participant_mission ON participant_missions(participant_id, mission_id);
+
+CREATE TABLE IF NOT EXISTS mission_events (
+  id                TEXT PRIMARY KEY,
+  event_id          TEXT NOT NULL,
+  participant_id    TEXT NOT NULL,
+  mission_id        TEXT NOT NULL,
+  raw_answer        TEXT NOT NULL,
+  normalized_answer TEXT NOT NULL,
+  partner_game_ids  TEXT NOT NULL DEFAULT '[]',
+  result            TEXT NOT NULL,
+  points_awarded    INTEGER NOT NULL DEFAULT 0,
+  created_at        TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_mission_events_participant ON mission_events(participant_id);
+
+CREATE TABLE IF NOT EXISTS drink_orders (
+  id              TEXT PRIMARY KEY,
+  event_id        TEXT NOT NULL,
+  participant_id  TEXT NOT NULL,
+  conversation_id TEXT,
+  raw_text        TEXT NOT NULL,
+  menu_item_id    TEXT NOT NULL,
+  label           TEXT NOT NULL,
+  modifiers       TEXT NOT NULL DEFAULT '[]',
+  status          TEXT NOT NULL DEFAULT 'queued',
+  operator_notes  TEXT,
+  created_at      TEXT NOT NULL,
+  ready_at        TEXT,
+  picked_up_at    TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_drink_orders_status ON drink_orders(event_id, status);
+CREATE INDEX IF NOT EXISTS idx_drink_orders_participant ON drink_orders(participant_id);
+
+CREATE TABLE IF NOT EXISTS drink_order_events (
+  id         TEXT PRIMARY KEY,
+  order_id   TEXT NOT NULL,
+  status     TEXT NOT NULL,
+  note       TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_drink_order_events_order ON drink_order_events(order_id);
+
+CREATE TABLE IF NOT EXISTS projection_events (
+  seq        INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_id   TEXT NOT NULL,
+  type       TEXT NOT NULL,
+  data       TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_projection_events_event ON projection_events(event_id, seq);
+
+CREATE TABLE IF NOT EXISTS fuser_assets (
+  id             TEXT PRIMARY KEY,
+  event_id       TEXT NOT NULL,
+  asset_type     TEXT NOT NULL,
+  source_url     TEXT,
+  local_url      TEXT,
+  projection_slot TEXT,
+  creator_name   TEXT,
+  credit_line    TEXT,
+  license_notes  TEXT,
+  status         TEXT NOT NULL DEFAULT 'received',
+  created_at     TEXT NOT NULL
+);
+`;
