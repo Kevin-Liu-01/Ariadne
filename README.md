@@ -37,24 +37,71 @@ tested**, including a live signed round-trip against the AgentPhone API.
 
 ## Architecture
 
-One Next.js app (self-hosted, behind a tunnel so AgentPhone can reach the
-webhook) over durable local SQLite. One shared backbone; partners and the agent
-plug into it.
+The whole thing is **one long-lived Next.js process** plus a **local SQLite
+file**, exposed through a tunnel so AgentPhone can reach the webhook. It is not
+serverless and not a managed cloud DB — a single instance by design, so the room
+survives Wi-Fi blips and the board always recovers full state from disk.
 
 ```mermaid
 flowchart TD
-  guest["Guest phone (SMS / iMessage / voice)"] --> ap["AgentPhone"]
-  ap -- "signed agent.message webhook" --> wh["/api/webhooks/agentphone"]
-  wh --> brain["Agent brain (deterministic intent router)"]
-  brain --> svc["Services: registration · missions · drinks · projection"]
-  svc --> db[("SQLite backbone")]
-  brain -- "reply text" --> out["AgentPhone outbound (POST /v1/messages)"] --> ap
+  guest["Guest phone (SMS / iMessage / voice)"]
+  join["Guest /join (QR / NFC)"]
+  ap["AgentPhone — partner cloud"]
+  op["Operator console /operator (bartender + run-of-show)"]
 
-  agent["Running agent (Claude Code / OpenClaw)"] -- "MCP tools" --> svc
-  op["Operator console /operator"] -- "auth'd REST" --> svc
-  db --> proj["Projection board /projection (SSE)"]
-  join["Guest /join (QR/NFC)"] --> wh
+  subgraph host["Ariadne host · one Next.js process + local SQLite file, behind a tunnel"]
+    wh["/api/webhooks/agentphone"]
+    brain["Agent brain · deterministic intent router (ours, in-process — not an LLM, not on Dedalus)"]
+    svc["Services · registration / missions / drinks / projection"]
+    db[("SQLite backbone · durable state, idempotency, append-only projection log")]
+    out["AgentPhone outbound · POST /v1/messages"]
+    proj["Projection board /projection · SSE (snapshot + live events)"]
+  end
+
+  subgraph dm["Dedalus Machine (optional) · the agent you strap Ariadne onto"]
+    agent["Running agent (Claude Code / OpenClaw)"]
+  end
+
+  guest --> ap
+  join --> wh
+  ap -- "signed agent.message" --> wh
+  wh --> brain
+  brain --> svc
+  svc --> db
+  brain -- "guest reply" --> out
+  svc -- "drink ready → guest text" --> out
+  out -- "SMS / iMessage" --> ap
+  op -- "auth'd REST" --> svc
+  agent -- "MCP tools (+ send guest msg)" --> svc
+  db --> proj
 ```
+
+**What each piece is**
+
+- **SQLite backbone** — the single source of truth for all event state
+  (participants, conversations, the idempotency log, missions, drink orders, and
+  the append-only projection event log). A local file (`./data/ariadne.db`) read
+  synchronously via better-sqlite3 — no network dependency, chosen for event-day
+  resilience.
+- **Agent brain** — *ours*, an in-process deterministic intent router (not an LLM,
+  not hosted on Dedalus). It owns the fast sub-3s reply path: classify the inbound
+  message, drive the services, hand back reply text.
+- **Running agent (Dedalus Machine)** — the *optional* LLM agent (Claude Code,
+  OpenClaw) you strap Ariadne onto via MCP. This is the piece that would run on a
+  Dedalus Machine; it supervises/drives the room through the same services and
+  sends guest messages through the same outbound path.
+- **Operator console `/operator`** — the token-gated staff surface: a **bar queue**
+  (move drinks queued → in_progress → ready → picked_up; marking *ready* texts the
+  guest via AgentPhone outbound), **run-of-show** (change projection scene,
+  fade/restore a guest), and the **roster** (every participant + secret word for
+  force-completes). Live overrides, because event systems fail in boring ways.
+- **Projection board `/projection` (SSE)** — the big-screen client opens an
+  `EventSource` to `/api/projection/stream`: on connect it gets a full **snapshot**,
+  then **live events** (check-in, score, elimination, scene). The stream pushes
+  from an in-process bus (sub-second) *and* polls the SQLite log every 2s (so
+  writes from the operator or a strap-on agent in another process still arrive),
+  de-duped by sequence number, and refetches the snapshot every 15s to self-heal.
+  Reload-safe.
 
 **Layers** (`src/`): `constants/` (event content: gems, drinks, missions,
 prompts), `domain/` (pure logic: intent, parsers, assignment, types),
