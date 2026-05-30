@@ -3,9 +3,10 @@ import type { InteractionEvent } from "@/domain/types";
 import { Backbone } from "@/server/backbone";
 import { createDb } from "@/server/db/connection";
 import { EventBus } from "@/server/services/event-bus";
+import type { ChatFn } from "@/server/partners/dedalus/types";
 
-export function freshBackbone(): Backbone {
-  return new Backbone(createDb(":memory:"), { eventId: "test-event", bus: new EventBus() });
+export function freshBackbone(chat?: ChatFn): Backbone {
+  return new Backbone(createDb(":memory:"), { eventId: "test-event", bus: new EventBus(), chat });
 }
 
 let counter = 0;

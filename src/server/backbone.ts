@@ -3,16 +3,22 @@ import { getDb } from "@/server/db/client";
 import type { DB } from "@/server/db/connection";
 import { Repositories } from "@/server/db/repositories";
 import { AgentBrain } from "@/server/agent/brain";
+import { AgentRunner } from "@/server/agent/runner";
 import { ConversationService } from "@/server/services/conversations";
 import { DrinkService } from "@/server/services/drinks";
 import { EventBus, getEventBus } from "@/server/services/event-bus";
 import { MissionService } from "@/server/services/missions";
 import { ProjectionService } from "@/server/services/projection";
 import { RegistrationService } from "@/server/services/registration";
+import { getDedalusChat } from "@/server/partners/dedalus/client";
+import type { ChatFn } from "@/server/partners/dedalus/types";
 
 export interface BackboneOptions {
   eventId?: string;
   bus?: EventBus;
+  /** Inject the model call (tests). Defaults to the Dedalus gateway, resolved lazily. */
+  chat?: ChatFn;
+  model?: string;
 }
 
 /** Wires the shared event backbone: repositories + services + the default brain. */
@@ -25,6 +31,7 @@ export class Backbone {
   readonly registration: RegistrationService;
   readonly drinks: DrinkService;
   readonly missions: MissionService;
+  readonly runner: AgentRunner;
   readonly brain: AgentBrain;
 
   constructor(db: DB, options: BackboneOptions = {}) {
@@ -46,13 +53,29 @@ export class Backbone {
       this.conversations,
       this.projection,
     );
+
+    // Default model call hits the Dedalus gateway, resolved lazily so constructing
+    // a Backbone never requires DEDALUS_API_KEY (tests inject their own `chat`).
+    const chat: ChatFn = options.chat ?? ((req) => getDedalusChat()(req));
+    this.runner = new AgentRunner(
+      {
+        eventId: this.eventId,
+        repos: this.repos,
+        registration: this.registration,
+        drinks: this.drinks,
+        missions: this.missions,
+        conversations: this.conversations,
+      },
+      chat,
+      options.model ?? env.model,
+      env.agentMaxSteps,
+    );
     this.brain = new AgentBrain(
       this.eventId,
       this.repos,
-      this.registration,
-      this.drinks,
-      this.missions,
       this.conversations,
+      this.missions,
+      this.runner,
     );
   }
 }

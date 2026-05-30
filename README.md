@@ -47,11 +47,12 @@ flowchart TD
   guest["Guest phone (SMS / iMessage / voice)"]
   join["Guest /join (QR / NFC)"]
   ap["AgentPhone — partner cloud"]
-  op["Operator console /operator (bartender + run-of-show)"]
+  op["Operator console /operator (alerts + bar + run-of-show)"]
+  gw["Dedalus gateway — LLM (OpenAI-compatible)"]
 
   subgraph host["Ariadne host · one Next.js process + local SQLite file, behind a tunnel"]
     wh["/api/webhooks/agentphone"]
-    brain["Agent brain · deterministic intent router (ours, in-process — not an LLM, not on Dedalus)"]
+    brain["Conversational agent · LLM tool-calling (deterministic tools)"]
     svc["Services · registration / missions / drinks / projection"]
     db[("SQLite backbone · durable state, idempotency, append-only projection log")]
     out["AgentPhone outbound · POST /v1/messages"]
@@ -66,6 +67,7 @@ flowchart TD
   join --> wh
   ap -- "signed agent.message" --> wh
   wh --> brain
+  brain -- "tool-calling + chat" --> gw
   brain --> svc
   svc --> db
   brain -- "guest reply" --> out
@@ -83,9 +85,12 @@ flowchart TD
   the append-only projection event log). A local file (`./data/ariadne.db`) read
   synchronously via better-sqlite3 — no network dependency, chosen for event-day
   resilience.
-- **Agent brain** — *ours*, an in-process deterministic intent router (not an LLM,
-  not hosted on Dedalus). It owns the fast sub-3s reply path: classify the inbound
-  message, drive the services, hand back reply text.
+- **Conversational agent** — *ours*, an in-process LLM tool-calling loop over the
+  **Dedalus gateway**. It routes and chats; the bounded **tools** (`check_in`,
+  `order_drink`, `answer_mission`, `get_status`, `flag_operator`) run the
+  deterministic services, so pass/fail and menu-matching can't be talked around.
+  The system prompt + lore (Dedalus / venue / run-of-show / menu) + the guest's
+  grounded state are injected each turn.
 - **Running agent (Dedalus Machine)** — the *optional* LLM agent (Claude Code,
   OpenClaw) you strap Ariadne onto via MCP. This is the piece that would run on a
   Dedalus Machine; it supervises/drives the room through the same services and
@@ -159,9 +164,10 @@ outbound works without it**, and the operator queue + board run regardless.
 - **Outbound** (the PRD's open question, resolved): `POST /v1/messages`
   (`{ agent_id, to_number, body, media_urls? }`). SMS webhooks only `200`; replies
   go out via this endpoint.
-- **Voice**: webhook returns `{ "text": ... }` inline. Web/iPad voice mints a
-  30-second token via `POST /v1/calls/web`. Free plan = **1 concurrent call**, so
-  voice is the premium/optional path and text is primary.
+- **Voice**: guests can **call the number** — AgentPhone transcribes and posts a
+  `voice` turn to the webhook; we reply with `{ "text": ... }` inline. Free plan =
+  **1 concurrent call**, so text stays primary (voice isn't latency-hardened yet —
+  the brain's tool loop can approach the 30s turn limit; interim streaming is the fix).
 - **State mirror**: `PATCH /v1/conversations/{id}` reflects `participant_id` /
   flow / mission back onto the AgentPhone conversation.
 
@@ -188,7 +194,6 @@ fast <3s SMS path on its own; a strap-on agent supervises and drives the room.
 |---|---|
 | `POST /api/webhooks/agentphone` | inbound messages/voice (signed) |
 | `POST /api/participants/register` | web/QR check-in |
-| `POST /api/agentphone/web-call-token` | mint web-voice token |
 | `GET /api/projection/state` | full board snapshot |
 | `GET /api/projection/stream` | SSE projection events |
 | `GET /api/operator/drink-orders` · `PATCH …/{id}` | bar queue (auth) |

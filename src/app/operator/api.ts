@@ -20,6 +20,13 @@ export interface OperatorOrder {
   guest: { gameId: string; displayName: string | null } | null;
 }
 
+export interface OperatorAlert {
+  id: string;
+  gameId: string | null;
+  reason: string;
+  createdAt: string;
+}
+
 export interface OperatorParticipant {
   gameId: string;
   displayName: string | null;

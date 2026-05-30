@@ -19,11 +19,7 @@ export default async function JoinPage({
         <h1 className="mt-3 text-center text-4xl font-semibold tracking-tight">{PRODUCT_NAME}</h1>
         <p className="mt-2 text-center text-sm text-helio">{PRODUCT_TAGLINE}</p>
 
-        <CheckInPanel
-          phoneNumber={env.agentphone.phoneNumber}
-          stationId={sp.station_id ?? null}
-          voiceConfigured={Boolean(env.agentphone.agentId)}
-        />
+        <CheckInPanel phoneNumber={env.agentphone.phoneNumber} stationId={sp.station_id ?? null} />
       </div>
     </main>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PRODUCT_NAME } from "@/constants/event";
+import { AlertsPanel } from "@/app/operator/alerts-panel";
 import { DrinkQueue } from "@/app/operator/drink-queue";
 import { ProjectionControls } from "@/app/operator/projection-controls";
 import { Roster } from "@/app/operator/roster";
@@ -64,7 +65,10 @@ export default function OperatorPage() {
           lock
         </button>
       </header>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
+      <div className="mt-6">
+        <AlertsPanel token={token} />
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
         <DrinkQueue token={token} />
         <ProjectionControls token={token} />
       </div>

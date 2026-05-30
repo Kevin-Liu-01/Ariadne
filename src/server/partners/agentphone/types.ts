@@ -53,8 +53,3 @@ export interface WebhookResponse {
   secret: string;
   status?: string;
 }
-
-export interface WebCallResponse {
-  accessToken: string;
-  callId: string;
-}

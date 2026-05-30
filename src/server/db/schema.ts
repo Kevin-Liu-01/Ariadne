@@ -114,6 +114,18 @@ CREATE TABLE IF NOT EXISTS projection_events (
 );
 CREATE INDEX IF NOT EXISTS idx_projection_events_event ON projection_events(event_id, seq);
 
+CREATE TABLE IF NOT EXISTS operator_alerts (
+  id             TEXT PRIMARY KEY,
+  event_id       TEXT NOT NULL,
+  participant_id TEXT,
+  game_id        TEXT,
+  reason         TEXT NOT NULL,
+  status         TEXT NOT NULL DEFAULT 'open',
+  created_at     TEXT NOT NULL,
+  resolved_at    TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_operator_alerts_event ON operator_alerts(event_id, status);
+
 CREATE TABLE IF NOT EXISTS fuser_assets (
   id             TEXT PRIMARY KEY,
   event_id       TEXT NOT NULL,

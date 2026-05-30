@@ -5,6 +5,7 @@ import {
   MissionEventsRepository,
   ParticipantMissionsRepository,
 } from "@/server/db/repositories/missions";
+import { OperatorAlertsRepository } from "@/server/db/repositories/operator-alerts";
 import { ParticipantsRepository } from "@/server/db/repositories/participants";
 import { PartnerEventsRepository } from "@/server/db/repositories/partner-events";
 import { ProjectionEventsRepository } from "@/server/db/repositories/projection";
@@ -19,6 +20,7 @@ export class Repositories {
   readonly drinkOrders: DrinkOrdersRepository;
   readonly drinkOrderEvents: DrinkOrderEventsRepository;
   readonly projection: ProjectionEventsRepository;
+  readonly operatorAlerts: OperatorAlertsRepository;
 
   constructor(private readonly db: DB) {
     this.participants = new ParticipantsRepository(db);
@@ -29,6 +31,7 @@ export class Repositories {
     this.drinkOrders = new DrinkOrdersRepository(db);
     this.drinkOrderEvents = new DrinkOrderEventsRepository(db);
     this.projection = new ProjectionEventsRepository(db);
+    this.operatorAlerts = new OperatorAlertsRepository(db);
   }
 
   /** Run a synchronous unit of work atomically. Side effects (bus emits) go after. */

@@ -37,6 +37,28 @@ export type MenuItemId = (typeof DRINK_MENU)[number]["id"];
 export const DRINK_STATUSES = ["queued", "in_progress", "ready", "picked_up", "cancelled"] as const;
 export type DrinkStatus = (typeof DRINK_STATUSES)[number];
 
+const CATEGORY_LABELS: Record<MenuItem["category"], string> = {
+  cocktail: "Cocktails",
+  wine: "Wine",
+  beer: "Beer",
+  zero_proof: "Zero-proof",
+};
+
+/** One-line menu of available items, grouped by category. Injected into the agent's context. */
+export function menuSummary(): string {
+  const grouped = new Map<MenuItem["category"], string[]>();
+  for (const item of DRINK_MENU) {
+    if (!item.available) continue;
+    const list = grouped.get(item.category) ?? [];
+    list.push(item.label);
+    grouped.set(item.category, list);
+  }
+  return (["cocktail", "wine", "beer", "zero_proof"] as const)
+    .filter((c) => grouped.has(c))
+    .map((c) => `${CATEGORY_LABELS[c]}: ${grouped.get(c)?.join(", ")}`)
+    .join(" · ");
+}
+
 /** Common modifiers we recognize in free text and echo back to the bar. */
 export const DRINK_MODIFIERS: readonly string[] = [
   "double",

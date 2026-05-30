@@ -43,6 +43,15 @@ export const env = {
   get disableOutbound(): boolean {
     return process.env.ARIADNE_DISABLE_OUTBOUND === "1";
   },
+  /** Model id for the conversational brain (Dedalus gateway, `provider/model`). */
+  get model(): string {
+    return process.env.ARIADNE_MODEL ?? "openai/gpt-5-mini";
+  },
+  /** Max agent tool-calling iterations per inbound message. */
+  get agentMaxSteps(): number {
+    const n = Number(process.env.ARIADNE_AGENT_MAX_STEPS);
+    return Number.isFinite(n) && n > 0 ? n : 5;
+  },
   agentphone: {
     get apiKey(): string {
       return process.env.AGENTPHONE_API_KEY ?? "";
@@ -63,10 +72,24 @@ export const env = {
       return process.env.AGENTPHONE_WEBHOOK_SECRET ?? "";
     },
   },
+  dedalus: {
+    get apiKey(): string {
+      return process.env.DEDALUS_API_KEY ?? "";
+    },
+    get baseUrl(): string {
+      return (process.env.DEDALUS_BASE_URL ?? "https://api.dedaluslabs.ai/v1").replace(/\/$/, "");
+    },
+  },
 };
 
 /** AgentPhone API credentials required for any live call. Throws if unset. */
 export function requireAgentphoneApi(): { apiKey: string; baseUrl: string } {
   if (!env.agentphone.apiKey) throw new ConfigError("AGENTPHONE_API_KEY");
   return { apiKey: env.agentphone.apiKey, baseUrl: env.agentphone.baseUrl };
+}
+
+/** Dedalus gateway credentials required for the conversational brain. Throws if unset. */
+export function requireDedalusApi(): { apiKey: string; baseUrl: string } {
+  if (!env.dedalus.apiKey) throw new ConfigError("DEDALUS_API_KEY");
+  return { apiKey: env.dedalus.apiKey, baseUrl: env.dedalus.baseUrl };
 }

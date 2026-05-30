@@ -19,17 +19,15 @@ interface RegisterResult {
 interface Props {
   phoneNumber: string;
   stationId: string | null;
-  voiceConfigured: boolean;
 }
 
-export function CheckInPanel({ phoneNumber, stationId, voiceConfigured }: Props) {
+export function CheckInPanel({ phoneNumber, stationId }: Props) {
   const [mode, setMode] = useState<"home" | "web">("home");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<RegisterResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [voice, setVoice] = useState<string | null>(null);
 
   const smsHref = phoneNumber ? `sms:${phoneNumber}?&body=JOIN` : null;
 
@@ -53,18 +51,6 @@ export function CheckInPanel({ phoneNumber, stationId, voiceConfigured }: Props)
       setError("check-in failed — try texting the number instead.");
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function startVoice() {
-    setVoice("opening a line…");
-    try {
-      const res = await fetch("/api/agentphone/web-call-token", { method: "POST" });
-      if (!res.ok) throw new Error();
-      const data = (await res.json()) as { callId?: string };
-      setVoice(`voice line ready (${data.callId ?? "session"}). connect a mic to talk to Ariadne.`);
-    } catch {
-      setVoice("voice unavailable right now — text the number instead.");
     }
   }
 
@@ -161,17 +147,6 @@ export function CheckInPanel({ phoneNumber, stationId, voiceConfigured }: Props)
         </form>
       ) : null}
 
-      {voiceConfigured ? (
-        <button
-          type="button"
-          onClick={startVoice}
-          className="mt-3 w-full border border-nyx-line px-4 py-3 text-sm text-ash hover:border-helio/40 hover:text-cloud"
-        >
-          try voice (beta)
-        </button>
-      ) : null}
-
-      {voice ? <p className="mt-3 text-center text-xs text-helio">{voice}</p> : null}
       {error ? <p className="mt-3 text-center text-xs text-red-400">{error}</p> : null}
     </div>
   );

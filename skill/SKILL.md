@@ -61,3 +61,19 @@ contract for how you talk to guests.
 - One clarifying question max. Push social motion ("find a green gem, text me both IDs").
 - If voice or outbound fails, fall back to text. The room must keep running.
 - Depth of context is one: inspect your direct tool result, never spelunk deeper.
+
+## Venue & run of show (Lume Studios)
+
+Floor plans (source of truth): [`docs/venue/first-floor.png`](../docs/venue/first-floor.png),
+[`docs/venue/basement.png`](../docs/venue/basement.png). The layout is encoded as text
+in `src/constants/lore.ts` so the agent can give directions at runtime.
+
+- **Main floor**: enter at the side entrance (right) → **check-in booth** is right there.
+  Runway down the center with **projection screens** (the live board). **Bar** on the left;
+  **bathroom** far left; **stairs to the basement** on the left.
+- **7:45** — the fashion show starts. Before that, the runway floor is open game/mingle space.
+- **After the show** — guests head **downstairs**: merch popup, a "backstage" photo zone,
+  couches, and screens.
+
+Give directions spatially and short ("check-in's by the entrance", "bar's down the left",
+"merch is downstairs after the show"); never send a guest to a space that isn't open yet.

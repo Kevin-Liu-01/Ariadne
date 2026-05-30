@@ -3,7 +3,6 @@ import type {
   AgentResponse,
   PhoneNumberResponse,
   SendMessageResponse,
-  WebCallResponse,
   WebhookResponse,
 } from "@/server/partners/agentphone/types";
 
@@ -73,17 +72,6 @@ export class AgentphoneClient {
     metadata: Record<string, unknown>,
   ): Promise<unknown> {
     return this.request("PATCH", `/conversations/${conversationId}`, { metadata });
-  }
-
-  // --- web voice token (iPad / browser check-in) ---
-  createWebCall(params: {
-    agentId: string;
-    variables?: Record<string, string>;
-  }): Promise<WebCallResponse> {
-    return this.request<WebCallResponse>("POST", "/calls/web", {
-      agentId: params.agentId,
-      ...(params.variables ? { variables: params.variables } : {}),
-    });
   }
 
   // --- provisioning (used by scripts/provision.ts) ---
