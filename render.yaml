@@ -1,0 +1,47 @@
+# Render Blueprint — always-on Ariadne (single Node process + SQLite on a disk).
+# Deploy: https://render.com/deploy?repo=https://github.com/Kevin-Liu-01/Ariadne
+# Then fill the `sync: false` secrets in the dashboard (values from .env.local).
+services:
+  - type: web
+    name: ariadne
+    runtime: node
+    plan: starter # persistent disk + always-on (free tier has neither)
+    region: oregon
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /api/projection/state
+    autoDeploy: true
+    disk:
+      name: ariadne-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ARIADNE_EVENT_ID
+        value: nytw-runwaytime
+      - key: ARIADNE_DB_PATH
+        value: /var/data/ariadne.db
+      - key: ARIADNE_DISABLE_OUTBOUND
+        value: "0"
+      - key: ARIADNE_MODEL
+        value: openai/gpt-5-mini
+      - key: DEDALUS_BASE_URL
+        value: https://api.dedaluslabs.ai/v1
+      - key: AGENTPHONE_BASE_URL
+        value: https://api.agentphone.ai/v1
+      # secrets — set in the Render dashboard (same values as .env.local)
+      - key: ARIADNE_OPERATOR_TOKEN
+        sync: false
+      - key: ARIADNE_AGENT_TOKEN
+        sync: false
+      - key: DEDALUS_API_KEY
+        sync: false
+      - key: AGENTPHONE_API_KEY
+        sync: false
+      - key: AGENTPHONE_AGENT_ID
+        sync: false
+      - key: AGENTPHONE_WEBHOOK_SECRET
+        sync: false
+      - key: AGENTPHONE_PHONE_NUMBER
+        sync: false

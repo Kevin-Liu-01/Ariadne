@@ -29,7 +29,13 @@ export const env = {
     return process.env.ARIADNE_EVENT_ID ?? "nytw-runwaytime";
   },
   get publicBaseUrl(): string {
-    return (process.env.ARIADNE_PUBLIC_BASE_URL ?? "http://localhost:3939").replace(/\/$/, "");
+    // RENDER_EXTERNAL_URL is injected automatically on Render, so the deployed
+    // URL needs no manual config.
+    const base =
+      process.env.ARIADNE_PUBLIC_BASE_URL ??
+      process.env.RENDER_EXTERNAL_URL ??
+      "http://localhost:3939";
+    return base.replace(/\/$/, "");
   },
   get dbPath(): string {
     return process.env.ARIADNE_DB_PATH ?? "./data/ariadne.db";
