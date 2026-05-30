@@ -1,13 +1,34 @@
+import { LayoutGrid, QrCode, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { EVENT_NAME, PRODUCT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/event";
 import { BentoCell } from "@/components/bento-cell";
 import { DedalusMark } from "@/components/dedalus-mark";
 
 const LINKS = [
-  { href: "/join", label: "Join", note: "guest check-in" },
-  { href: "/projection", label: "Projection", note: "the room board" },
-  { href: "/operator", label: "Operator", note: "bar + run-of-show" },
-];
+  {
+    href: "/join",
+    label: "Join",
+    note: "start here · check in",
+    Icon: QrCode,
+    primary: true,
+    hint: "Text or web check-in — get your gem and first mission.",
+  },
+  {
+    href: "/projection",
+    label: "Live board",
+    note: "room display",
+    Icon: LayoutGrid,
+    hint: "Scores and gems for everyone in the room.",
+  },
+  {
+    href: "/operator",
+    label: "Staff",
+    note: "bar + show control",
+    Icon: SlidersHorizontal,
+    hint: "Bartenders and run-of-show — token required.",
+  },
+] as const;
 
 export default function Home() {
   return (
@@ -34,9 +55,8 @@ export default function Home() {
           <p className="mt-3 text-sm uppercase tracking-[0.35em] text-helio">{PRODUCT_TAGLINE}</p>
 
           <p className="mt-6 max-w-md text-sm leading-relaxed text-ash">
-            The phone-first event backbone for <span className="text-cloud">{EVENT_NAME}</span> at{" "}
-            {VENUE}. Strap it onto a running agent; it threads guests through the labyrinth —
-            check-in, gems, missions, drinks, and a live room board.
+            Phone-first game for <span className="text-cloud">{EVENT_NAME}</span> at {VENUE}. Check
+            in, get a gem and secret word, solve missions and order drinks — all by text.
           </p>
 
           <nav className="mt-10 grid w-full gap-2">
@@ -44,12 +64,32 @@ export default function Home() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="reticle group flex items-center justify-between border border-nyx-line/70 bg-nyx/60 px-5 py-3 backdrop-blur-sm transition-colors hover:border-helio/50 hover:bg-nyx/40"
+                className={cn(
+                  "reticle group block border px-5 py-3 backdrop-blur-sm transition-colors",
+                  "primary" in l && l.primary
+                    ? "reticle-strong border-helio/50 bg-helio/10 hover:bg-helio/15"
+                    : "border-nyx-line/70 bg-nyx/60 hover:border-helio/50 hover:bg-nyx/40",
+                )}
               >
-                <span className="text-base text-cloud">{l.label}</span>
-                <span className="text-[10px] uppercase tracking-[0.25em] text-ash group-hover:text-helio">
-                  {l.note}
+                <span className="flex items-center justify-between">
+                  <span className="flex items-center gap-3">
+                    <l.Icon
+                      className={cn(
+                        "h-4 w-4 transition-colors",
+                        "primary" in l && l.primary
+                          ? "text-helio"
+                          : "text-ash group-hover:text-helio",
+                      )}
+                      strokeWidth={1.5}
+                      aria-hidden
+                    />
+                    <span className="text-base text-cloud">{l.label}</span>
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-ash group-hover:text-helio">
+                    {l.note}
+                  </span>
                 </span>
+                <p className="mt-1.5 text-xs text-ash group-hover:text-cloud/80">{l.hint}</p>
               </Link>
             ))}
           </nav>

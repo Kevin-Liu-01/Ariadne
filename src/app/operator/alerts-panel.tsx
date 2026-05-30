@@ -1,5 +1,6 @@
 "use client";
 
+import { BellRing, Check } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { authedFetch, type OperatorAlert } from "@/app/operator/api";
 
@@ -33,7 +34,10 @@ export function AlertsPanel({ token }: { token: string }) {
       className={`reticle border bg-nyx-soft p-5 ${alerts.length > 0 ? "border-gem-garnet/60" : "border-nyx-line"}`}
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-sm uppercase tracking-[0.25em] text-helio">guest alerts</h2>
+        <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-helio">
+          <BellRing className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+          guest alerts
+        </h2>
         <span className="tabular-nums text-xs text-ash">{alerts.length} open</span>
       </div>
       <ul className="mt-4 space-y-2">
@@ -53,8 +57,9 @@ export function AlertsPanel({ token }: { token: string }) {
               <button
                 type="button"
                 onClick={() => resolve(a.id)}
-                className="rounded-md border border-nyx-line px-3 py-1 text-xs text-cloud hover:border-helio/50"
+                className="flex items-center gap-1.5 rounded-md border border-nyx-line px-3 py-1 text-xs text-cloud hover:border-helio/50"
               >
+                <Check className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
                 resolve
               </button>
             </li>

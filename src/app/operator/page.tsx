@@ -1,5 +1,6 @@
 "use client";
 
+import { Lock, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PRODUCT_NAME } from "@/constants/event";
 import { AlertsPanel } from "@/app/operator/alerts-panel";
@@ -35,8 +36,14 @@ export default function OperatorPage() {
     return (
       <main className="flex flex-1 items-center justify-center px-6">
         <div className="reticle reticle-strong w-full max-w-sm border border-nyx-line bg-nyx-soft p-6 animate-rise">
-          <h1 className="text-lg font-semibold">{PRODUCT_NAME} · operator</h1>
-          <p className="mt-1 text-xs text-ash">enter the operator token to open the console.</p>
+          <h1 className="flex items-center gap-2 text-lg font-semibold">
+            <Lock className="h-4 w-4 text-helio" strokeWidth={1.5} aria-hidden />
+            {PRODUCT_NAME} · operator
+          </h1>
+          <p className="mt-1 text-xs leading-relaxed text-ash">
+            Staff console: bar queue, run-of-show, roster, and guest alerts. Enter the operator
+            token (<span className="text-cloud">ARIADNE_OPERATOR_TOKEN</span>) to open it.
+          </p>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -61,7 +68,12 @@ export default function OperatorPage() {
     <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-semibold tracking-tight">{PRODUCT_NAME} · operator</h1>
-        <button type="button" onClick={lock} className="text-xs uppercase tracking-widest text-ash hover:text-cloud">
+        <button
+          type="button"
+          onClick={lock}
+          className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-ash hover:text-cloud"
+        >
+          <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
           lock
         </button>
       </header>

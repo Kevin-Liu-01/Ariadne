@@ -1,20 +1,22 @@
 "use client";
 
+import { Check, Hand, Play, Wine, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import { DRINK_STATUSES } from "@/constants/drinks";
 import { authedFetch, type OperatorOrder } from "@/app/operator/api";
 import { cn } from "@/lib/utils";
 
-const NEXT_ACTIONS: Record<string, { label: string; status: string }[]> = {
+const NEXT_ACTIONS: Record<string, { label: string; status: string; Icon: LucideIcon }[]> = {
   queued: [
-    { label: "start", status: "in_progress" },
-    { label: "cancel", status: "cancelled" },
+    { label: "start", status: "in_progress", Icon: Play },
+    { label: "cancel", status: "cancelled", Icon: X },
   ],
   in_progress: [
-    { label: "ready", status: "ready" },
-    { label: "cancel", status: "cancelled" },
+    { label: "ready", status: "ready", Icon: Check },
+    { label: "cancel", status: "cancelled", Icon: X },
   ],
-  ready: [{ label: "picked up", status: "picked_up" }],
+  ready: [{ label: "picked up", status: "picked_up", Icon: Hand }],
 };
 
 export function DrinkQueue({ token }: { token: string }) {
@@ -50,7 +52,10 @@ export function DrinkQueue({ token }: { token: string }) {
   return (
     <section className="reticle border border-nyx-line bg-nyx-soft p-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm uppercase tracking-[0.25em] text-helio">bar queue</h2>
+        <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-helio">
+          <Wine className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+          bar queue
+        </h2>
         <span className="tabular-nums text-xs text-ash">{active.length} open</span>
       </div>
       {error ? <p className="mt-3 text-xs text-red-400">can't reach the queue — check the token.</p> : null}
@@ -88,8 +93,9 @@ export function DrinkQueue({ token }: { token: string }) {
                     key={a.status}
                     type="button"
                     onClick={() => update(o.id, a.status)}
-                    className="rounded-md border border-nyx-line px-3 py-1 text-xs text-cloud hover:border-helio/50"
+                    className="flex items-center gap-1.5 rounded-md border border-nyx-line px-3 py-1 text-xs text-cloud hover:border-helio/50"
                   >
+                    <a.Icon className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
                     {a.label}
                   </button>
                 ))}
@@ -98,7 +104,11 @@ export function DrinkQueue({ token }: { token: string }) {
           ))
         )}
       </ul>
-      <p className="mt-3 text-[10px] text-ash/60">statuses: {DRINK_STATUSES.join(" → ")}</p>
+      <p className="mt-3 text-xs leading-relaxed text-ash">
+        Tap <span className="text-cloud">start</span> when you begin making a drink,{" "}
+        <span className="text-cloud">ready</span> when it&apos;s at the bar — the guest gets a text.
+        Flow: {DRINK_STATUSES.join(" → ")}.
+      </p>
     </section>
   );
 }

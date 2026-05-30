@@ -1,6 +1,8 @@
 "use client";
 
+import { Crown, Hourglass, Target, Users, Wine } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import { PRODUCT_NAME } from "@/constants/event";
 import { GemDot } from "@/components/gem-dot";
 import type { ProjectionSnapshot, TileState } from "@/domain/projection";
@@ -136,9 +138,9 @@ export default function ProjectionPage() {
           </div>
         </div>
         <div className="flex gap-8 text-right">
-          <Stat label="checked in" value={stats.checkedIn} />
-          <Stat label="missions solved" value={stats.missionsCompleted} />
-          <Stat label="drinks pouring" value={stats.drinksActive} />
+          <Stat label="checked in" value={stats.checkedIn} Icon={Users} />
+          <Stat label="missions solved" value={stats.missionsCompleted} Icon={Target} />
+          <Stat label="drinks pouring" value={stats.drinksActive} Icon={Wine} />
           <span
             className={cn(
               "self-center h-2 w-2 rounded-full",
@@ -150,12 +152,14 @@ export default function ProjectionPage() {
       </header>
 
       {ordered.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center text-ash">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-ash">
+          <Hourglass className="h-8 w-8 animate-pulse-slow" strokeWidth={1} aria-hidden />
           <p className="animate-pulse-slow text-sm uppercase tracking-[0.4em]">
             waiting for the first thread…
           </p>
         </div>
       ) : (
+        <>
         <div className="mt-8 grid flex-1 content-start gap-3 [grid-template-columns:repeat(auto-fill,minmax(120px,1fr))]">
           {ordered.map((tile, i) => (
             <div
@@ -168,8 +172,9 @@ export default function ProjectionPage() {
               )}
             >
               {i < 3 && !tile.eliminated ? (
-                <span className="absolute left-2 top-2 text-[10px] tabular-nums text-helio">
-                  #{i + 1}
+                <span className="absolute left-2 top-2 flex items-center gap-0.5 text-[10px] tabular-nums text-helio">
+                  {i === 0 ? <Crown className="h-3 w-3" strokeWidth={1.5} aria-hidden /> : null}#
+                  {i + 1}
                 </span>
               ) : null}
               <GemDot hex={tile.gemHex} size={26} label={tile.gem} />
@@ -179,16 +184,26 @@ export default function ProjectionPage() {
             </div>
           ))}
         </div>
+        <footer className="mt-6 flex flex-wrap gap-x-6 gap-y-1 border-t border-nyx-line/60 pt-4 text-[10px] uppercase tracking-[0.18em] text-ash">
+          <span>gem · your team color</span>
+          <span>score · missions solved</span>
+          <span># rank · leaderboard</span>
+          <span>faded · guest removed from board</span>
+        </footer>
+        </>
       )}
     </main>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value, Icon }: { label: string; value: number; Icon: LucideIcon }) {
   return (
     <div>
       <p className="text-2xl tabular-nums text-cloud">{value}</p>
-      <p className="text-[10px] uppercase tracking-[0.2em] text-ash">{label}</p>
+      <p className="flex items-center justify-end gap-1 text-[10px] uppercase tracking-[0.2em] text-ash">
+        <Icon className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+        {label}
+      </p>
     </div>
   );
 }

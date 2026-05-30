@@ -1,8 +1,10 @@
 "use client";
 
+import { ChevronDown, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { GemDot } from "@/components/gem-dot";
 import { authedFetch, type OperatorParticipant } from "@/app/operator/api";
+import { cn } from "@/lib/utils";
 
 export function Roster({ token }: { token: string }) {
   const [people, setPeople] = useState<OperatorParticipant[]>([]);
@@ -32,9 +34,17 @@ export function Roster({ token }: { token: string }) {
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between"
       >
-        <h2 className="text-sm uppercase tracking-[0.25em] text-helio">roster</h2>
-        <span className="tabular-nums text-xs text-ash">
-          {people.length} · {open ? "hide" : "show"}
+        <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-helio">
+          <Users className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+          roster
+        </h2>
+        <span className="flex items-center gap-1.5 tabular-nums text-xs text-ash">
+          {people.length} checked in
+          <ChevronDown
+            className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")}
+            strokeWidth={1.5}
+            aria-hidden
+          />
         </span>
       </button>
 

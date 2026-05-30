@@ -1,5 +1,6 @@
 "use client";
 
+import { Clapperboard, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { authedFetch } from "@/app/operator/api";
 
@@ -21,9 +22,12 @@ export function ProjectionControls({ token }: { token: string }) {
 
   return (
     <section className="reticle border border-nyx-line bg-nyx-soft p-5">
-      <h2 className="text-sm uppercase tracking-[0.25em] text-helio">run of show</h2>
+      <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-helio">
+        <Clapperboard className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+        run of show
+      </h2>
 
-      <p className="mt-4 text-xs text-ash">scene</p>
+      <p className="mt-4 text-xs text-ash">scene — sets the mood label on the projection board</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {SCENES.map((s) => (
           <button
@@ -42,7 +46,10 @@ export function ProjectionControls({ token }: { token: string }) {
         ))}
       </div>
 
-      <p className="mt-5 text-xs text-ash">fade / restore a guest (game id)</p>
+      <p className="mt-5 text-xs leading-relaxed text-ash">
+        Fade hides a guest&apos;s tile on the projection board (tech issue or left early). Restore
+        brings it back. Enter their game id:
+      </p>
       <div className="mt-2 flex gap-2">
         <input
           value={gameId}
@@ -53,15 +60,17 @@ export function ProjectionControls({ token }: { token: string }) {
         <button
           type="button"
           onClick={() => post({ action: "eliminate", gameId }, `faded ${gameId}`)}
-          className="rounded-md border border-nyx-line px-3 py-1 text-xs text-cloud hover:border-gem-garnet"
+          className="flex items-center gap-1.5 rounded-md border border-nyx-line px-3 py-1 text-xs text-cloud hover:border-gem-garnet"
         >
+          <EyeOff className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
           fade
         </button>
         <button
           type="button"
           onClick={() => post({ action: "restore", gameId }, `restored ${gameId}`)}
-          className="rounded-md border border-nyx-line px-3 py-1 text-xs text-cloud hover:border-gem-peridot"
+          className="flex items-center gap-1.5 rounded-md border border-nyx-line px-3 py-1 text-xs text-cloud hover:border-gem-peridot"
         >
+          <Eye className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
           restore
         </button>
       </div>
