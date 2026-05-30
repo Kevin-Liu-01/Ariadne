@@ -55,9 +55,9 @@ const fakeChat: ChatFn = async (req) => {
 
 describe("conversational agent (mocked model)", () => {
   it("checks a guest in via the check_in tool and relays the canonical reply", async () => {
-    const bb = freshBackbone(fakeChat);
+    const bb = await freshBackbone(fakeChat);
     const reply = await bb.brain.process(inbound("+1700000001", "I'm Zoe"));
-    const zoe = bb.repos.participants.findByPhone("test-event", "+1700000001");
+    const zoe = await bb.repos.participants.findByPhone("test-event", "+1700000001");
     expect(zoe).toBeTruthy();
     expect(reply.participantId).toBe(zoe?.id);
     expect(reply.text.toLowerCase()).toContain("you're in");
@@ -65,24 +65,24 @@ describe("conversational agent (mocked model)", () => {
   });
 
   it("routes a drink request through the order_drink tool", async () => {
-    const bb = freshBackbone(fakeChat);
+    const bb = await freshBackbone(fakeChat);
     await bb.brain.process(inbound("+1700000002", "I'm Max"));
     const reply = await bb.brain.process(inbound("+1700000002", "can I get a vodka soda"));
-    expect(bb.drinks.listActive()).toHaveLength(1);
+    expect(await bb.drinks.listActive()).toHaveLength(1);
     expect(reply.text.toLowerCase()).toContain("locked");
   });
 
   it("just chats when no tool applies", async () => {
-    const bb = freshBackbone(fakeChat);
+    const bb = await freshBackbone(fakeChat);
     await bb.brain.process(inbound("+1700000003", "I'm Ivy"));
     const reply = await bb.brain.process(inbound("+1700000003", "what is this place?"));
     expect(reply.text).toBe("tell me more.");
   });
 
   it("escalates a real-world problem to the operator via flag_operator", async () => {
-    const bb = freshBackbone(fakeChat);
+    const bb = await freshBackbone(fakeChat);
     await bb.brain.process(inbound("+1700000004", "I'm Sam"));
     await bb.brain.process(inbound("+1700000004", "I lost my coat somewhere"));
-    expect(bb.repos.operatorAlerts.listOpen("test-event")).toHaveLength(1);
+    expect(await bb.repos.operatorAlerts.listOpen("test-event")).toHaveLength(1);
   });
 });

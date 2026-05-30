@@ -1,6 +1,6 @@
 import { now } from "@/lib/time";
 import { newId } from "@/domain/ids";
-import type { DB } from "@/server/db/connection";
+import type { Db } from "@/server/db/connection";
 import { BaseRepository } from "@/server/db/repositories/base";
 
 export interface OperatorAlert {
@@ -39,11 +39,16 @@ function toAlert(row: OperatorAlertRow): OperatorAlert {
 }
 
 export class OperatorAlertsRepository extends BaseRepository {
-  constructor(db: DB) {
+  constructor(db: Db) {
     super(db, "operator_alerts");
   }
 
-  create(eventId: string, participantId: string | null, gameId: string | null, reason: string): OperatorAlert {
+  async create(
+    eventId: string,
+    participantId: string | null,
+    gameId: string | null,
+    reason: string,
+  ): Promise<OperatorAlert> {
     const alert: OperatorAlert = {
       id: newId("alert"),
       eventId,
@@ -54,33 +59,35 @@ export class OperatorAlertsRepository extends BaseRepository {
       createdAt: now(),
       resolvedAt: null,
     };
-    this.stmt(
+    await this.db.query(
       `INSERT INTO operator_alerts (id, event_id, participant_id, game_id, reason, status, created_at, resolved_at)
-       VALUES (@id, @event_id, @participant_id, @game_id, @reason, @status, @created_at, @resolved_at)`,
-    ).run({
-      id: alert.id,
-      event_id: alert.eventId,
-      participant_id: alert.participantId,
-      game_id: alert.gameId,
-      reason: alert.reason,
-      status: alert.status,
-      created_at: alert.createdAt,
-      resolved_at: alert.resolvedAt,
-    });
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        alert.id,
+        alert.eventId,
+        alert.participantId,
+        alert.gameId,
+        alert.reason,
+        alert.status,
+        alert.createdAt,
+        alert.resolvedAt,
+      ],
+    );
     return alert;
   }
 
-  listOpen(eventId: string): OperatorAlert[] {
-    const rows = this.stmt(
-      `SELECT * FROM operator_alerts WHERE event_id = ? AND status = 'open' ORDER BY created_at ASC`,
-    ).all(eventId) as OperatorAlertRow[];
+  async listOpen(eventId: string): Promise<OperatorAlert[]> {
+    const rows = await this.db.query<OperatorAlertRow>(
+      `SELECT * FROM operator_alerts WHERE event_id = $1 AND status = 'open' ORDER BY created_at ASC`,
+      [eventId],
+    );
     return rows.map(toAlert);
   }
 
-  resolve(id: string): void {
-    this.stmt(`UPDATE operator_alerts SET status = 'resolved', resolved_at = ? WHERE id = ?`).run(
+  async resolve(id: string): Promise<void> {
+    await this.db.query(`UPDATE operator_alerts SET status = 'resolved', resolved_at = $1 WHERE id = $2`, [
       now(),
       id,
-    );
+    ]);
   }
 }

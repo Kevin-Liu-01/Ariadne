@@ -1,6 +1,7 @@
 /**
  * Seed the local DB with demo participants/missions/drinks so /projection and
- * /operator have something to show without a phone. Writes to ARIADNE_DB_PATH.
+ * /operator have something to show without a phone. Writes to the Supabase
+ * Postgres pointed at by SUPABASE_DB_URL via the live conversational brain.
  */
 import { loadScriptEnv } from "@/lib/env";
 
@@ -29,27 +30,36 @@ function inbound(from: string, text: string): InteractionEvent {
 
 const NAMES = ["Alice", "Bao", "Cleo", "Diego", "Esme", "Finn", "Gwen", "Hiro"];
 
-function main(): void {
+async function main(): Promise<void> {
   const bb = getBackbone();
   const phones = NAMES.map((_, i) => `+1999000${1000 + i}`);
 
-  NAMES.forEach((name, i) => bb.brain.process(inbound(phones[i], `I'm ${name}`)));
+  for (let i = 0; i < NAMES.length; i += 1) {
+    await bb.brain.process(inbound(phones[i], `I'm ${NAMES[i]}`));
+  }
 
-  const ids = phones.map((p) => bb.repos.participants.findByPhone(bb.eventId, p)?.gameId ?? "");
+  const ids: string[] = [];
+  for (const phone of phones) {
+    const p = await bb.repos.participants.findByPhone(bb.eventId, phone);
+    ids.push(p?.gameId ?? "");
+  }
 
   // two trios solve the color constellation
-  bb.brain.process(inbound(phones[0], `${ids[0]} ${ids[1]} ${ids[2]}`));
-  bb.brain.process(inbound(phones[3], `${ids[3]} ${ids[4]} ${ids[5]}`));
+  await bb.brain.process(inbound(phones[0], `${ids[0]} ${ids[1]} ${ids[2]}`));
+  await bb.brain.process(inbound(phones[3], `${ids[3]} ${ids[4]} ${ids[5]}`));
 
   // a couple of drinks
-  bb.brain.process(inbound(phones[1], "espresso martini"));
-  bb.brain.process(inbound(phones[2], "vodka soda, double"));
+  await bb.brain.process(inbound(phones[1], "espresso martini"));
+  await bb.brain.process(inbound(phones[2], "vodka soda, double"));
 
-  bb.projection.emit("scene.changed", { scene: "runway" });
+  await bb.projection.emit("scene.changed", { scene: "runway" });
 
-  const snap = bb.projection.snapshot();
+  const snap = await bb.projection.snapshot();
   console.log(`✓ seeded ${snap.stats.checkedIn} guests, ${snap.stats.missionsCompleted} missions solved, ${snap.stats.drinksActive} drinks open`);
   console.log("  open /projection and /operator to see the board.");
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

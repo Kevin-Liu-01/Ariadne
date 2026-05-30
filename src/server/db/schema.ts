@@ -1,7 +1,9 @@
 /**
- * Schema for the shared event backbone. Applied idempotently on every connect,
- * so a fresh laptop or an in-memory test DB both come up ready. SQLite keeps the
- * room alive when the network blips; booleans are INTEGER, JSON is TEXT.
+ * Schema for the shared event backbone (Postgres dialect). Applied idempotently
+ * via `CREATE TABLE IF NOT EXISTS`, so a fresh Supabase project, a pglite test
+ * DB, and local dev all converge on the same shape. Booleans are real BOOLEAN,
+ * JSON payloads are TEXT (we own the (de)serialization), timestamps are ISO-8601
+ * TEXT, and `seq` is an identity column so the projection log is monotonic.
  */
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS participants (
@@ -14,7 +16,7 @@ CREATE TABLE IF NOT EXISTS participants (
   secret_word   TEXT NOT NULL,
   station_id    TEXT,
   score         INTEGER NOT NULL DEFAULT 0,
-  eliminated    INTEGER NOT NULL DEFAULT 0,
+  eliminated    BOOLEAN NOT NULL DEFAULT FALSE,
   photo_url     TEXT,
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
@@ -106,7 +108,7 @@ CREATE TABLE IF NOT EXISTS drink_order_events (
 CREATE INDEX IF NOT EXISTS idx_drink_order_events_order ON drink_order_events(order_id);
 
 CREATE TABLE IF NOT EXISTS projection_events (
-  seq        INTEGER PRIMARY KEY AUTOINCREMENT,
+  seq        INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   event_id   TEXT NOT NULL,
   type       TEXT NOT NULL,
   data       TEXT NOT NULL DEFAULT '{}',
@@ -127,16 +129,16 @@ CREATE TABLE IF NOT EXISTS operator_alerts (
 CREATE INDEX IF NOT EXISTS idx_operator_alerts_event ON operator_alerts(event_id, status);
 
 CREATE TABLE IF NOT EXISTS fuser_assets (
-  id             TEXT PRIMARY KEY,
-  event_id       TEXT NOT NULL,
-  asset_type     TEXT NOT NULL,
-  source_url     TEXT,
-  local_url      TEXT,
+  id              TEXT PRIMARY KEY,
+  event_id        TEXT NOT NULL,
+  asset_type      TEXT NOT NULL,
+  source_url      TEXT,
+  local_url       TEXT,
   projection_slot TEXT,
-  creator_name   TEXT,
-  credit_line    TEXT,
-  license_notes  TEXT,
-  status         TEXT NOT NULL DEFAULT 'received',
-  created_at     TEXT NOT NULL
+  creator_name    TEXT,
+  credit_line     TEXT,
+  license_notes   TEXT,
+  status          TEXT NOT NULL DEFAULT 'received',
+  created_at      TEXT NOT NULL
 );
 `;

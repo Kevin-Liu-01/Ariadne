@@ -1,6 +1,6 @@
 import type { GemId } from "@/constants/gems";
 import { now } from "@/lib/time";
-import type { DB } from "@/server/db/connection";
+import type { Db } from "@/server/db/connection";
 import { BaseRepository } from "@/server/db/repositories/base";
 import type { Participant } from "@/domain/types";
 
@@ -14,7 +14,7 @@ interface ParticipantRow {
   secret_word: string;
   station_id: string | null;
   score: number;
-  eliminated: number;
+  eliminated: boolean;
   photo_url: string | null;
   created_at: string;
   updated_at: string;
@@ -31,7 +31,7 @@ function toParticipant(row: ParticipantRow): Participant {
     secretWord: row.secret_word,
     stationId: row.station_id,
     score: row.score,
-    eliminated: row.eliminated === 1,
+    eliminated: row.eliminated,
     photoUrl: row.photo_url,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -39,114 +39,114 @@ function toParticipant(row: ParticipantRow): Participant {
 }
 
 export class ParticipantsRepository extends BaseRepository {
-  constructor(db: DB) {
+  constructor(db: Db) {
     super(db, "participants");
   }
 
-  insert(p: Participant): void {
-    this.stmt(
+  async insert(p: Participant): Promise<void> {
+    await this.db.query(
       `INSERT INTO participants
         (id, event_id, game_id, display_name, phone, gem, secret_word, station_id, score, eliminated, photo_url, created_at, updated_at)
-       VALUES (@id, @event_id, @game_id, @display_name, @phone, @gem, @secret_word, @station_id, @score, @eliminated, @photo_url, @created_at, @updated_at)`,
-    ).run({
-      id: p.id,
-      event_id: p.eventId,
-      game_id: p.gameId,
-      display_name: p.displayName,
-      phone: p.phone,
-      gem: p.gem,
-      secret_word: p.secretWord,
-      station_id: p.stationId,
-      score: p.score,
-      eliminated: p.eliminated ? 1 : 0,
-      photo_url: p.photoUrl,
-      created_at: p.createdAt,
-      updated_at: p.updatedAt,
-    });
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+      [
+        p.id,
+        p.eventId,
+        p.gameId,
+        p.displayName,
+        p.phone,
+        p.gem,
+        p.secretWord,
+        p.stationId,
+        p.score,
+        p.eliminated,
+        p.photoUrl,
+        p.createdAt,
+        p.updatedAt,
+      ],
+    );
   }
 
-  findById(id: string): Participant | null {
-    const row = this.stmt(`SELECT * FROM participants WHERE id = ?`).get(id) as
-      | ParticipantRow
-      | undefined;
-    return row ? toParticipant(row) : null;
+  async findById(id: string): Promise<Participant | null> {
+    const rows = await this.db.query<ParticipantRow>(`SELECT * FROM participants WHERE id = $1`, [id]);
+    return rows[0] ? toParticipant(rows[0]) : null;
   }
 
-  findByGameId(eventId: string, gameId: string): Participant | null {
-    const row = this.stmt(
-      `SELECT * FROM participants WHERE event_id = ? AND game_id = ?`,
-    ).get(eventId, gameId.toUpperCase()) as ParticipantRow | undefined;
-    return row ? toParticipant(row) : null;
+  async findByGameId(eventId: string, gameId: string): Promise<Participant | null> {
+    const rows = await this.db.query<ParticipantRow>(
+      `SELECT * FROM participants WHERE event_id = $1 AND game_id = $2`,
+      [eventId, gameId.toUpperCase()],
+    );
+    return rows[0] ? toParticipant(rows[0]) : null;
   }
 
-  findByPhone(eventId: string, phone: string): Participant | null {
-    const row = this.stmt(
-      `SELECT * FROM participants WHERE event_id = ? AND phone = ?`,
-    ).get(eventId, phone) as ParticipantRow | undefined;
-    return row ? toParticipant(row) : null;
+  async findByPhone(eventId: string, phone: string): Promise<Participant | null> {
+    const rows = await this.db.query<ParticipantRow>(
+      `SELECT * FROM participants WHERE event_id = $1 AND phone = $2`,
+      [eventId, phone],
+    );
+    return rows[0] ? toParticipant(rows[0]) : null;
   }
 
-  gameIdExists(eventId: string, gameId: string): boolean {
-    const row = this.stmt(
-      `SELECT 1 FROM participants WHERE event_id = ? AND game_id = ?`,
-    ).get(eventId, gameId.toUpperCase());
-    return row !== undefined;
+  async gameIdExists(eventId: string, gameId: string): Promise<boolean> {
+    const rows = await this.db.query(
+      `SELECT 1 FROM participants WHERE event_id = $1 AND game_id = $2`,
+      [eventId, gameId.toUpperCase()],
+    );
+    return rows.length > 0;
   }
 
-  listByEvent(eventId: string): Participant[] {
-    const rows = this.stmt(
-      `SELECT * FROM participants WHERE event_id = ? ORDER BY score DESC, created_at ASC`,
-    ).all(eventId) as ParticipantRow[];
+  async listByEvent(eventId: string): Promise<Participant[]> {
+    const rows = await this.db.query<ParticipantRow>(
+      `SELECT * FROM participants WHERE event_id = $1 ORDER BY score DESC, created_at ASC`,
+      [eventId],
+    );
     return rows.map(toParticipant);
   }
 
   /** Gem -> count, for balanced assignment when RSVP category is unknown. */
-  gemCounts(eventId: string): Record<string, number> {
-    const rows = this.stmt(
-      `SELECT gem, COUNT(*) AS c FROM participants WHERE event_id = ? GROUP BY gem`,
-    ).all(eventId) as { gem: string; c: number }[];
+  async gemCounts(eventId: string): Promise<Record<string, number>> {
+    const rows = await this.db.query<{ gem: string; c: number }>(
+      `SELECT gem, COUNT(*)::int AS c FROM participants WHERE event_id = $1 GROUP BY gem`,
+      [eventId],
+    );
     const out: Record<string, number> = {};
     for (const r of rows) out[r.gem] = r.c;
     return out;
   }
 
   /** secret_word -> count, so word assignment keeps phrase halves balanced. */
-  secretWordCounts(eventId: string): Record<string, number> {
-    const rows = this.stmt(
-      `SELECT secret_word, COUNT(*) AS c FROM participants WHERE event_id = ? GROUP BY secret_word`,
-    ).all(eventId) as { secret_word: string; c: number }[];
+  async secretWordCounts(eventId: string): Promise<Record<string, number>> {
+    const rows = await this.db.query<{ secret_word: string; c: number }>(
+      `SELECT secret_word, COUNT(*)::int AS c FROM participants WHERE event_id = $1 GROUP BY secret_word`,
+      [eventId],
+    );
     const out: Record<string, number> = {};
     for (const r of rows) out[r.secret_word] = r.c;
     return out;
   }
 
   /** Add to score and return the new total. */
-  addScore(id: string, delta: number): number {
-    const ts = now();
-    this.stmt(`UPDATE participants SET score = score + ?, updated_at = ? WHERE id = ?`).run(
-      delta,
-      ts,
-      id,
+  async addScore(id: string, delta: number): Promise<number> {
+    const rows = await this.db.query<{ score: number }>(
+      `UPDATE participants SET score = score + $1, updated_at = $2 WHERE id = $3 RETURNING score`,
+      [delta, now(), id],
     );
-    const row = this.stmt(`SELECT score FROM participants WHERE id = ?`).get(id) as
-      | { score: number }
-      | undefined;
-    return row?.score ?? 0;
+    return rows[0]?.score ?? 0;
   }
 
-  setEliminated(id: string, eliminated: boolean): void {
-    this.stmt(`UPDATE participants SET eliminated = ?, updated_at = ? WHERE id = ?`).run(
-      eliminated ? 1 : 0,
+  async setEliminated(id: string, eliminated: boolean): Promise<void> {
+    await this.db.query(`UPDATE participants SET eliminated = $1, updated_at = $2 WHERE id = $3`, [
+      eliminated,
       now(),
       id,
-    );
+    ]);
   }
 
-  setPhoto(id: string, photoUrl: string | null): void {
-    this.stmt(`UPDATE participants SET photo_url = ?, updated_at = ? WHERE id = ?`).run(
+  async setPhoto(id: string, photoUrl: string | null): Promise<void> {
+    await this.db.query(`UPDATE participants SET photo_url = $1, updated_at = $2 WHERE id = $3`, [
       photoUrl,
       now(),
       id,
-    );
+    ]);
   }
 }

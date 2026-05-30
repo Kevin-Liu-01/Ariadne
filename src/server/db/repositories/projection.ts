@@ -1,5 +1,5 @@
 import { now } from "@/lib/time";
-import type { DB } from "@/server/db/connection";
+import type { Db } from "@/server/db/connection";
 import { BaseRepository } from "@/server/db/repositories/base";
 import type { ProjectionEvent, ProjectionEventType } from "@/domain/types";
 
@@ -22,49 +22,47 @@ function toProjectionEvent(row: ProjectionEventRow): ProjectionEvent {
 }
 
 export class ProjectionEventsRepository extends BaseRepository {
-  constructor(db: DB) {
+  constructor(db: Db) {
     super(db, "projection_events");
   }
 
   /** Append an event and return it (with its assigned sequence number). */
-  append(
+  async append(
     eventId: string,
     type: ProjectionEventType,
     data: Record<string, unknown>,
-  ): ProjectionEvent {
+  ): Promise<ProjectionEvent> {
     const createdAt = now();
-    const result = this.stmt(
-      `INSERT INTO projection_events (event_id, type, data, created_at) VALUES (?, ?, ?, ?)`,
-    ).run(eventId, type, JSON.stringify(data), createdAt);
-    return {
-      seq: Number(result.lastInsertRowid),
-      eventId,
-      type,
-      data,
-      createdAt,
-    };
+    const rows = await this.db.query<{ seq: number }>(
+      `INSERT INTO projection_events (event_id, type, data, created_at) VALUES ($1, $2, $3, $4) RETURNING seq`,
+      [eventId, type, JSON.stringify(data), createdAt],
+    );
+    return { seq: rows[0]?.seq ?? 0, eventId, type, data, createdAt };
   }
 
-  /** Events strictly after `sinceSeq`, for SSE catch-up after a reconnect. */
-  listSince(eventId: string, sinceSeq: number, limit = 500): ProjectionEvent[] {
-    const rows = this.stmt(
-      `SELECT * FROM projection_events WHERE event_id = ? AND seq > ? ORDER BY seq ASC LIMIT ?`,
-    ).all(eventId, sinceSeq, limit) as ProjectionEventRow[];
+  /** Events strictly after `sinceSeq`, for the board's incremental poll. */
+  async listSince(eventId: string, sinceSeq: number, limit = 500): Promise<ProjectionEvent[]> {
+    const rows = await this.db.query<ProjectionEventRow>(
+      `SELECT * FROM projection_events WHERE event_id = $1 AND seq > $2 ORDER BY seq ASC LIMIT $3`,
+      [eventId, sinceSeq, limit],
+    );
     return rows.map(toProjectionEvent);
   }
 
-  latestSeq(eventId: string): number {
-    const row = this.stmt(
-      `SELECT COALESCE(MAX(seq), 0) AS seq FROM projection_events WHERE event_id = ?`,
-    ).get(eventId) as { seq: number };
-    return row.seq;
+  async latestSeq(eventId: string): Promise<number> {
+    const rows = await this.db.query<{ seq: number }>(
+      `SELECT COALESCE(MAX(seq), 0)::int AS seq FROM projection_events WHERE event_id = $1`,
+      [eventId],
+    );
+    return rows[0]?.seq ?? 0;
   }
 
   /** Most recent event of a given type, or null. Used to derive current scene. */
-  lastOfType(eventId: string, type: ProjectionEventType): ProjectionEvent | null {
-    const row = this.stmt(
-      `SELECT * FROM projection_events WHERE event_id = ? AND type = ? ORDER BY seq DESC LIMIT 1`,
-    ).get(eventId, type) as ProjectionEventRow | undefined;
-    return row ? toProjectionEvent(row) : null;
+  async lastOfType(eventId: string, type: ProjectionEventType): Promise<ProjectionEvent | null> {
+    const rows = await this.db.query<ProjectionEventRow>(
+      `SELECT * FROM projection_events WHERE event_id = $1 AND type = $2 ORDER BY seq DESC LIMIT 1`,
+      [eventId, type],
+    );
+    return rows[0] ? toProjectionEvent(rows[0]) : null;
   }
 }

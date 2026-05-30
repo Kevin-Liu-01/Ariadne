@@ -51,22 +51,29 @@ export class MissionService {
   }
 
   /** The current mission for a participant, assigning the next one if none is active. */
-  deliverCurrent(participant: Participant, conversation: Conversation): DeliveredMission | null {
+  async deliverCurrent(
+    participant: Participant,
+    conversation: Conversation,
+  ): Promise<DeliveredMission | null> {
     const active = this.current(conversation);
     if (active) return { mission: active, prompt: this.renderPrompt(active, participant) };
-    const next = this.advance(participant, conversation);
+    const next = await this.advance(participant, conversation);
     return next ? { mission: next, prompt: this.renderPrompt(next, participant) } : null;
   }
 
-  submit(participant: Participant, conversation: Conversation, rawText: string): MissionOutcome {
+  async submit(
+    participant: Participant,
+    conversation: Conversation,
+    rawText: string,
+  ): Promise<MissionOutcome> {
     const mission = this.current(conversation);
     if (!mission) return { kind: "no_mission" };
 
     const partnerGameIds = extractGameIds(rawText);
-    const result = this.validate(mission.validation, participant, rawText, partnerGameIds);
+    const result = await this.validate(mission.validation, participant, rawText, partnerGameIds);
 
-    this.repos.participantMissions.markSubmitted(participant.id, mission.id);
-    this.repos.missionEvents.insert({
+    await this.repos.participantMissions.markSubmitted(participant.id, mission.id);
+    await this.repos.missionEvents.insert({
       id: newId("me"),
       eventId: this.eventId,
       participantId: participant.id,
@@ -82,23 +89,23 @@ export class MissionService {
     if (result === "invalid") return { kind: "partner_invalid" };
     if (result === "incorrect") return { kind: "incorrect", hint: mission.hint };
 
-    const transitioned = this.repos.participantMissions.markCompleted(
+    const transitioned = await this.repos.participantMissions.markCompleted(
       participant.id,
       mission.id,
       mission.points,
     );
     if (!transitioned) return { kind: "already" };
 
-    const newScore = this.repos.participants.addScore(participant.id, mission.points);
-    this.projection.emit("mission.completed", {
+    const newScore = await this.repos.participants.addScore(participant.id, mission.points);
+    await this.projection.emit("mission.completed", {
       gameId: participant.gameId,
       missionId: mission.id,
       title: mission.title,
       effect: mission.projectionEffect,
     });
-    this.projection.emit("score.updated", { gameId: participant.gameId, score: newScore });
+    await this.projection.emit("score.updated", { gameId: participant.gameId, score: newScore });
 
-    const next = this.advance(participant, conversation);
+    const next = await this.advance(participant, conversation);
     return {
       kind: "correct",
       points: mission.points,
@@ -107,12 +114,12 @@ export class MissionService {
   }
 
   /** Deterministic pass/fail. The agent never decides this. */
-  private validate(
+  private async validate(
     rule: ValidationRule,
     participant: Participant,
     rawText: string,
     partnerGameIds: string[],
-  ): MissionResult {
+  ): Promise<MissionResult> {
     switch (rule.kind) {
       case "answer_key": {
         const haystack = normalize(rawText);
@@ -120,13 +127,15 @@ export class MissionService {
         return ok ? "correct" : "incorrect";
       }
       case "distinct_gems": {
-        const partners = this.resolvePartners(partnerGameIds);
+        const partners = await this.resolvePartners(partnerGameIds);
         if (partners.length === 0) return "incorrect";
         const gems = new Set<string>([participant.gem, ...partners.map((p) => p.gem)]);
         return gems.size >= rule.count ? "correct" : "incorrect";
       }
       case "word_pair": {
-        const partners = this.resolvePartners(partnerGameIds).filter((p) => p.id !== participant.id);
+        const partners = (await this.resolvePartners(partnerGameIds)).filter(
+          (p) => p.id !== participant.id,
+        );
         if (partners.length === 0) return "invalid";
         const ok = partners.some((p) => wordsPair(participant.secretWord, p.secretWord));
         return ok ? "correct" : "incorrect";
@@ -136,25 +145,23 @@ export class MissionService {
     }
   }
 
-  private resolvePartners(gameIds: string[]): Participant[] {
-    const out: Participant[] = [];
-    for (const gid of gameIds) {
-      const p = this.repos.participants.findByGameId(this.eventId, gid);
-      if (p && !p.eliminated) out.push(p);
-    }
-    return out;
+  private async resolvePartners(gameIds: string[]): Promise<Participant[]> {
+    const found = await Promise.all(
+      gameIds.map((gid) => this.repos.participants.findByGameId(this.eventId, gid)),
+    );
+    return found.filter((p): p is Participant => p !== null && !p.eliminated);
   }
 
   /** Assign the next uncompleted mission in sequence; idle when the labyrinth is solved. */
-  advance(participant: Participant, conversation: Conversation): MissionTemplate | null {
-    const completed = new Set(this.repos.participantMissions.completedMissionIds(participant.id));
+  async advance(participant: Participant, conversation: Conversation): Promise<MissionTemplate | null> {
+    const completed = new Set(await this.repos.participantMissions.completedMissionIds(participant.id));
     const nextId = MISSION_SEQUENCE.find((id) => !completed.has(id)) ?? null;
     if (!nextId) {
-      this.conversations.setFlow(conversation.id, FLOWS.IDLE, null);
+      await this.conversations.setFlow(conversation.id, FLOWS.IDLE, null);
       return null;
     }
-    this.repos.participantMissions.assign(this.eventId, participant.id, nextId);
-    this.conversations.setFlow(conversation.id, FLOWS.MISSION, nextId);
+    await this.repos.participantMissions.assign(this.eventId, participant.id, nextId);
+    await this.conversations.setFlow(conversation.id, FLOWS.MISSION, nextId);
     return MISSION_BY_ID.get(nextId) ?? null;
   }
 }

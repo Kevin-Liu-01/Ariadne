@@ -1,6 +1,6 @@
 import type { InboundChannel, Flow } from "@/constants/event";
 import { now } from "@/lib/time";
-import type { DB } from "@/server/db/connection";
+import type { Db } from "@/server/db/connection";
 import { BaseRepository } from "@/server/db/repositories/base";
 import type { Conversation } from "@/domain/types";
 
@@ -33,69 +33,71 @@ function toConversation(row: ConversationRow): Conversation {
 }
 
 export class ConversationsRepository extends BaseRepository {
-  constructor(db: DB) {
+  constructor(db: Db) {
     super(db, "conversations");
   }
 
-  insert(c: Conversation): void {
-    this.stmt(
+  async insert(c: Conversation): Promise<void> {
+    await this.db.query(
       `INSERT INTO conversations
         (id, event_id, participant_id, external_id, phone, channel, current_flow, current_mission_id, created_at, updated_at)
-       VALUES (@id, @event_id, @participant_id, @external_id, @phone, @channel, @current_flow, @current_mission_id, @created_at, @updated_at)`,
-    ).run({
-      id: c.id,
-      event_id: c.eventId,
-      participant_id: c.participantId,
-      external_id: c.externalId,
-      phone: c.phone,
-      channel: c.channel,
-      current_flow: c.currentFlow,
-      current_mission_id: c.currentMissionId,
-      created_at: c.createdAt,
-      updated_at: c.updatedAt,
-    });
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [
+        c.id,
+        c.eventId,
+        c.participantId,
+        c.externalId,
+        c.phone,
+        c.channel,
+        c.currentFlow,
+        c.currentMissionId,
+        c.createdAt,
+        c.updatedAt,
+      ],
+    );
   }
 
-  findById(id: string): Conversation | null {
-    const row = this.stmt(`SELECT * FROM conversations WHERE id = ?`).get(id) as
-      | ConversationRow
-      | undefined;
-    return row ? toConversation(row) : null;
+  async findById(id: string): Promise<Conversation | null> {
+    const rows = await this.db.query<ConversationRow>(`SELECT * FROM conversations WHERE id = $1`, [id]);
+    return rows[0] ? toConversation(rows[0]) : null;
   }
 
-  findByExternalId(externalId: string): Conversation | null {
-    const row = this.stmt(`SELECT * FROM conversations WHERE external_id = ?`).get(externalId) as
-      | ConversationRow
-      | undefined;
-    return row ? toConversation(row) : null;
+  async findByExternalId(externalId: string): Promise<Conversation | null> {
+    const rows = await this.db.query<ConversationRow>(
+      `SELECT * FROM conversations WHERE external_id = $1`,
+      [externalId],
+    );
+    return rows[0] ? toConversation(rows[0]) : null;
   }
 
-  findByPhone(eventId: string, phone: string): Conversation | null {
-    const row = this.stmt(
-      `SELECT * FROM conversations WHERE event_id = ? AND phone = ? ORDER BY updated_at DESC LIMIT 1`,
-    ).get(eventId, phone) as ConversationRow | undefined;
-    return row ? toConversation(row) : null;
+  async findByPhone(eventId: string, phone: string): Promise<Conversation | null> {
+    const rows = await this.db.query<ConversationRow>(
+      `SELECT * FROM conversations WHERE event_id = $1 AND phone = $2 ORDER BY updated_at DESC LIMIT 1`,
+      [eventId, phone],
+    );
+    return rows[0] ? toConversation(rows[0]) : null;
   }
 
-  setParticipant(id: string, participantId: string): void {
-    this.stmt(`UPDATE conversations SET participant_id = ?, updated_at = ? WHERE id = ?`).run(
+  async setParticipant(id: string, participantId: string): Promise<void> {
+    await this.db.query(`UPDATE conversations SET participant_id = $1, updated_at = $2 WHERE id = $3`, [
       participantId,
       now(),
       id,
+    ]);
+  }
+
+  async setFlow(id: string, flow: Flow, missionId: string | null): Promise<void> {
+    await this.db.query(
+      `UPDATE conversations SET current_flow = $1, current_mission_id = $2, updated_at = $3 WHERE id = $4`,
+      [flow, missionId, now(), id],
     );
   }
 
-  setFlow(id: string, flow: Flow, missionId: string | null): void {
-    this.stmt(
-      `UPDATE conversations SET current_flow = ?, current_mission_id = ?, updated_at = ? WHERE id = ?`,
-    ).run(flow, missionId, now(), id);
-  }
-
-  setExternalId(id: string, externalId: string | null): void {
-    this.stmt(`UPDATE conversations SET external_id = ?, updated_at = ? WHERE id = ?`).run(
+  async setExternalId(id: string, externalId: string | null): Promise<void> {
+    await this.db.query(`UPDATE conversations SET external_id = $1, updated_at = $2 WHERE id = $3`, [
       externalId,
       now(),
       id,
-    );
+    ]);
   }
 }

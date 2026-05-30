@@ -1,4 +1,4 @@
-/** Core domain types. Repositories map SQLite rows to/from these shapes. */
+/** Core domain types. Repositories map Postgres rows to/from these shapes. */
 
 import type { DrinkStatus } from "@/constants/drinks";
 import type { InboundChannel, Flow } from "@/constants/event";

@@ -1,12 +1,11 @@
 import { env } from "@/lib/env";
 import { getDb } from "@/server/db/client";
-import type { DB } from "@/server/db/connection";
+import type { Db } from "@/server/db/connection";
 import { Repositories } from "@/server/db/repositories";
 import { AgentBrain } from "@/server/agent/brain";
 import { AgentRunner } from "@/server/agent/runner";
 import { ConversationService } from "@/server/services/conversations";
 import { DrinkService } from "@/server/services/drinks";
-import { EventBus, getEventBus } from "@/server/services/event-bus";
 import { MissionService } from "@/server/services/missions";
 import { ProjectionService } from "@/server/services/projection";
 import { RegistrationService } from "@/server/services/registration";
@@ -15,7 +14,6 @@ import type { ChatFn } from "@/server/partners/dedalus/types";
 
 export interface BackboneOptions {
   eventId?: string;
-  bus?: EventBus;
   /** Inject the model call (tests). Defaults to the Dedalus gateway, resolved lazily. */
   chat?: ChatFn;
   model?: string;
@@ -25,7 +23,6 @@ export interface BackboneOptions {
 export class Backbone {
   readonly eventId: string;
   readonly repos: Repositories;
-  readonly bus: EventBus;
   readonly conversations: ConversationService;
   readonly projection: ProjectionService;
   readonly registration: RegistrationService;
@@ -34,11 +31,10 @@ export class Backbone {
   readonly runner: AgentRunner;
   readonly brain: AgentBrain;
 
-  constructor(db: DB, options: BackboneOptions = {}) {
+  constructor(db: Db, options: BackboneOptions = {}) {
     this.eventId = options.eventId ?? env.eventId;
-    this.bus = options.bus ?? new EventBus();
     this.repos = new Repositories(db);
-    this.projection = new ProjectionService(this.eventId, this.repos, this.bus);
+    this.projection = new ProjectionService(this.eventId, this.repos);
     this.conversations = new ConversationService(this.eventId, this.repos);
     this.registration = new RegistrationService(
       this.eventId,
@@ -80,12 +76,12 @@ export class Backbone {
   }
 }
 
-// Singleton bound to the on-disk DB + process bus, memoized across HMR.
+// Singleton bound to the Postgres pool, memoized across HMR + warm invocations.
 const globalRef = globalThis as unknown as { __ariadneBackbone?: Backbone };
 
 export function getBackbone(): Backbone {
   if (!globalRef.__ariadneBackbone) {
-    globalRef.__ariadneBackbone = new Backbone(getDb(), { bus: getEventBus() });
+    globalRef.__ariadneBackbone = new Backbone(getDb());
   }
   return globalRef.__ariadneBackbone;
 }

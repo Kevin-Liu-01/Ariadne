@@ -34,17 +34,17 @@ export class RegistrationService {
     private readonly projection: ProjectionService,
   ) {}
 
-  register(input: RegisterInput): RegisterResult {
-    const conversation = this.conversations.resolve(
+  async register(input: RegisterInput): Promise<RegisterResult> {
+    const conversation = await this.conversations.resolve(
       input.externalConversationId,
       input.phone,
       input.channel,
     );
 
-    const existing = this.findExisting(conversation.participantId, input.phone);
+    const existing = await this.findExisting(conversation.participantId, input.phone);
     if (existing) {
       if (!conversation.participantId) {
-        this.conversations.linkParticipant(conversation.id, existing.id);
+        await this.conversations.linkParticipant(conversation.id, existing.id);
       }
       return {
         participant: existing,
@@ -54,17 +54,18 @@ export class RegistrationService {
       };
     }
 
-    const participant = this.repos.transaction(() => {
-      const created = this.buildParticipant(input);
-      this.repos.participants.insert(created);
-      this.repos.participantMissions.assign(this.eventId, created.id, FIRST_MISSION_ID);
-      this.conversations.linkParticipant(conversation.id, created.id);
-      this.conversations.setFlow(conversation.id, FLOWS.MISSION, FIRST_MISSION_ID);
-      return created;
+    // Build before the transaction (reads only), then write atomically. The
+    // conversation links go through the tx repos so a rollback leaves no trace.
+    const participant = await this.buildParticipant(input);
+    await this.repos.transaction(async (r) => {
+      await r.participants.insert(participant);
+      await r.participantMissions.assign(this.eventId, participant.id, FIRST_MISSION_ID);
+      await r.conversations.setParticipant(conversation.id, participant.id);
+      await r.conversations.setFlow(conversation.id, FLOWS.MISSION, FIRST_MISSION_ID);
     });
 
     // Emit after commit so a rolled-back write never fans out a phantom tile.
-    this.projection.emit("participant.checked_in", {
+    await this.projection.emit("participant.checked_in", {
       gameId: participant.gameId,
       displayName: participant.displayName,
       gem: participant.gem,
@@ -84,23 +85,31 @@ export class RegistrationService {
     };
   }
 
-  private findExisting(participantId: string | null, phone: string | null): Participant | null {
+  private async findExisting(
+    participantId: string | null,
+    phone: string | null,
+  ): Promise<Participant | null> {
     if (participantId) {
-      const byId = this.repos.participants.findById(participantId);
+      const byId = await this.repos.participants.findById(participantId);
       if (byId) return byId;
     }
     if (phone) return this.repos.participants.findByPhone(this.eventId, phone);
     return null;
   }
 
-  private buildParticipant(input: RegisterInput): Participant {
-    const gem = assignGem(input.category ?? null, this.repos.participants.gemCounts(this.eventId));
-    const secretWord = assignSecretWord(this.repos.participants.secretWordCounts(this.eventId));
+  private async buildParticipant(input: RegisterInput): Promise<Participant> {
+    const [gemCounts, secretWordCounts] = await Promise.all([
+      this.repos.participants.gemCounts(this.eventId),
+      this.repos.participants.secretWordCounts(this.eventId),
+    ]);
+    const gem = assignGem(input.category ?? null, gemCounts);
+    const secretWord = assignSecretWord(secretWordCounts);
+    const gameId = await this.uniqueGameId();
     const ts = now();
     return {
       id: newId("par"),
       eventId: this.eventId,
-      gameId: this.uniqueGameId(),
+      gameId,
       displayName: input.name ?? null,
       phone: input.phone,
       gem,
@@ -114,10 +123,10 @@ export class RegistrationService {
     };
   }
 
-  private uniqueGameId(): string {
+  private async uniqueGameId(): Promise<string> {
     for (let attempt = 0; attempt < 20; attempt += 1) {
       const id = newGameId();
-      if (!this.repos.participants.gameIdExists(this.eventId, id)) return id;
+      if (!(await this.repos.participants.gameIdExists(this.eventId, id))) return id;
     }
     return newGameId(5);
   }

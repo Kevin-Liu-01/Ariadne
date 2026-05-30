@@ -29,7 +29,7 @@ export async function PATCH(
     return problem(422, "invalid status update");
   }
 
-  const updated = getBackbone().drinks.updateStatus(id, body.status, body.note ?? null);
+  const updated = await getBackbone().drinks.updateStatus(id, body.status, body.note ?? null);
   if (!updated) return problem(404, "order not found");
 
   // Notify the guest when the drink is ready (best-effort).

@@ -13,6 +13,9 @@ import type { InteractionEvent } from "@/domain/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// The brain makes (possibly multi-step) gateway calls; give it room beyond the
+// default function cap so a slow turn isn't killed mid-flight.
+export const maxDuration = 60;
 
 export async function POST(req: Request): Promise<Response> {
   const raw = await req.text();
@@ -37,7 +40,7 @@ export async function POST(req: Request): Promise<Response> {
   const bb = getBackbone();
   const webhookId = headers.id ?? newId("wh");
 
-  const fresh = bb.repos.partnerEvents.recordOnce({
+  const fresh = await bb.repos.partnerEvents.recordOnce({
     id: newId("pe"),
     eventId: bb.eventId,
     provider: "agentphone",
@@ -52,13 +55,13 @@ export async function POST(req: Request): Promise<Response> {
 
   const interaction = normalizeAgentphone(body, webhookId);
   if (!interaction) {
-    bb.repos.partnerEvents.markStatus(webhookId, "processed");
+    await bb.repos.partnerEvents.markStatus(webhookId, "processed");
     return new Response("ok (ignored)", { status: 200 });
   }
 
   // Per-guest rate cap: drop floods without spending a gateway call.
   if (!allowInbound(interaction.from)) {
-    bb.repos.partnerEvents.markStatus(webhookId, "processed");
+    await bb.repos.partnerEvents.markStatus(webhookId, "processed");
     return new Response("ok (rate-limited)", { status: 200 });
   }
 
@@ -71,9 +74,9 @@ export async function POST(req: Request): Promise<Response> {
   let reply: BrainReply;
   try {
     reply = await bb.brain.process(interaction);
-    bb.repos.partnerEvents.markStatus(webhookId, "processed");
+    await bb.repos.partnerEvents.markStatus(webhookId, "processed");
   } catch (err) {
-    bb.repos.partnerEvents.markStatus(webhookId, "error");
+    await bb.repos.partnerEvents.markStatus(webhookId, "error");
     console.error("[ariadne] brain error", err);
     return new Response("ok (error logged)", { status: 200 });
   }
@@ -92,10 +95,10 @@ function voiceStream(bb: Backbone, interaction: InteractionEvent, webhookId: str
       write({ text: "one sec…", interim: true });
       try {
         const reply = await bb.brain.process(interaction);
-        bb.repos.partnerEvents.markStatus(webhookId, "processed");
+        await bb.repos.partnerEvents.markStatus(webhookId, "processed");
         write({ text: reply.text });
       } catch (err) {
-        bb.repos.partnerEvents.markStatus(webhookId, "error");
+        await bb.repos.partnerEvents.markStatus(webhookId, "error");
         console.error("[ariadne] voice brain error", err);
         write({ text: "having trouble right now — text the number instead." });
       }
@@ -108,7 +111,7 @@ function voiceStream(bb: Backbone, interaction: InteractionEvent, webhookId: str
 async function deliver(reply: BrainReply, interaction: InteractionEvent): Promise<void> {
   await sendGuestText(interaction.from, reply.text);
   if (interaction.externalConversationId && reply.participantId) {
-    const conversation = getBackbone().repos.conversations.findById(reply.conversationId);
+    const conversation = await getBackbone().repos.conversations.findById(reply.conversationId);
     await mirrorConversation(interaction.externalConversationId, {
       participant_id: reply.participantId,
       event_id: getBackbone().eventId,

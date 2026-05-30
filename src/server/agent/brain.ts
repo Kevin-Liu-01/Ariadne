@@ -29,12 +29,12 @@ export class AgentBrain {
   ) {}
 
   async process(event: InteractionEvent): Promise<BrainReply> {
-    const conversation = this.conversations.resolve(
+    const conversation = await this.conversations.resolve(
       event.externalConversationId,
       event.from,
       event.channel,
     );
-    const participant = this.lookup(conversation, event.from);
+    const participant = await this.lookup(conversation, event.from);
 
     const text = await this.runner.run({
       from: event.from,
@@ -46,8 +46,10 @@ export class AgentBrain {
     });
 
     // Re-read: the agent may have checked the guest in or advanced their mission.
-    const after = event.from ? this.repos.participants.findByPhone(this.eventId, event.from) : participant;
-    const conversationNow = this.repos.conversations.findById(conversation.id) ?? conversation;
+    const after = event.from
+      ? await this.repos.participants.findByPhone(this.eventId, event.from)
+      : participant;
+    const conversationNow = (await this.repos.conversations.findById(conversation.id)) ?? conversation;
     return {
       text,
       channel: event.channel,
@@ -56,9 +58,9 @@ export class AgentBrain {
     };
   }
 
-  private lookup(conversation: Conversation, phone: string): Participant | null {
+  private async lookup(conversation: Conversation, phone: string): Promise<Participant | null> {
     if (conversation.participantId) {
-      const byId = this.repos.participants.findById(conversation.participantId);
+      const byId = await this.repos.participants.findById(conversation.participantId);
       if (byId) return byId;
     }
     return phone ? this.repos.participants.findByPhone(this.eventId, phone) : null;

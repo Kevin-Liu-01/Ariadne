@@ -11,15 +11,14 @@ import { loadScriptEnv } from "@/lib/env";
 loadScriptEnv();
 
 import { Backbone } from "@/server/backbone";
-import { createDb } from "@/server/db/connection";
-import { EventBus } from "@/server/services/event-bus";
+import { createPgliteDb } from "@/server/db/pglite";
 
 async function main(): Promise<void> {
   const turns =
     process.argv.length > 2
       ? process.argv.slice(2)
       : ["hey, what is this place?", "what's good to drink?", "who is ariadne?"];
-  const bb = new Backbone(createDb(":memory:"), { eventId: "smoke", bus: new EventBus() });
+  const bb = new Backbone(await createPgliteDb(), { eventId: "smoke" });
   const history: { content: string; direction: "inbound" | "outbound" }[] = [];
 
   for (const text of turns) {

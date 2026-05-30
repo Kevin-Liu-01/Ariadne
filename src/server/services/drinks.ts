@@ -19,11 +19,11 @@ export class DrinkService {
     private readonly projection: ProjectionService,
   ) {}
 
-  createFromText(
+  async createFromText(
     participant: Participant,
     conversationId: string | null,
     rawText: string,
-  ): DrinkOutcome {
+  ): Promise<DrinkOutcome> {
     const parsed = parseDrink(rawText);
     if (!parsed.item) return { kind: "clarify" };
     if (!parsed.item.available) return { kind: "unavailable", label: parsed.item.label };
@@ -44,11 +44,11 @@ export class DrinkService {
       pickedUpAt: null,
     };
 
-    this.repos.transaction(() => {
-      this.repos.drinkOrders.insert(order);
-      this.repos.drinkOrderEvents.insert(order.id, "queued", null);
+    await this.repos.transaction(async (r) => {
+      await r.drinkOrders.insert(order);
+      await r.drinkOrderEvents.insert(order.id, "queued", null);
     });
-    this.projection.emit("drink_order.milestone", {
+    await this.projection.emit("drink_order.milestone", {
       status: "queued",
       gameId: participant.gameId,
       label: order.label,
@@ -57,14 +57,18 @@ export class DrinkService {
   }
 
   /** Operator transition. Returns the updated order (with the new milestone fanned out). */
-  updateStatus(orderId: string, status: DrinkStatus, note: string | null): DrinkOrder | null {
-    const updated = this.repos.transaction(() => {
-      const u = this.repos.drinkOrders.setStatus(orderId, status, note);
-      if (u) this.repos.drinkOrderEvents.insert(orderId, status, note);
+  async updateStatus(
+    orderId: string,
+    status: DrinkStatus,
+    note: string | null,
+  ): Promise<DrinkOrder | null> {
+    const updated = await this.repos.transaction(async (r) => {
+      const u = await r.drinkOrders.setStatus(orderId, status, note);
+      if (u) await r.drinkOrderEvents.insert(orderId, status, note);
       return u;
     });
     if (updated) {
-      this.projection.emit("drink_order.milestone", {
+      await this.projection.emit("drink_order.milestone", {
         status,
         label: updated.label,
         orderId,
@@ -73,15 +77,15 @@ export class DrinkService {
     return updated;
   }
 
-  listActive(): DrinkOrder[] {
+  async listActive(): Promise<DrinkOrder[]> {
     return this.repos.drinkOrders.listActive(this.eventId);
   }
 
-  listRecent(limit = 200): DrinkOrder[] {
+  async listRecent(limit = 200): Promise<DrinkOrder[]> {
     return this.repos.drinkOrders.listByEvent(this.eventId, limit);
   }
 
-  get(orderId: string): DrinkOrder | null {
+  async get(orderId: string): Promise<DrinkOrder | null> {
     return this.repos.drinkOrders.findById(orderId);
   }
 }

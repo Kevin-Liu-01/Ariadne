@@ -1,7 +1,7 @@
 import type { ParticipantMissionStatus } from "@/constants/missions";
 import { now } from "@/lib/time";
 import { newId } from "@/domain/ids";
-import type { DB } from "@/server/db/connection";
+import type { Db } from "@/server/db/connection";
 import { BaseRepository } from "@/server/db/repositories/base";
 import type { MissionEvent, ParticipantMission } from "@/domain/types";
 
@@ -32,68 +32,83 @@ function toParticipantMission(row: ParticipantMissionRow): ParticipantMission {
 }
 
 export class ParticipantMissionsRepository extends BaseRepository {
-  constructor(db: DB) {
+  constructor(db: Db) {
     super(db, "participant_missions");
   }
 
   /** Assign a mission once. Returns false if it was already assigned. */
-  assign(eventId: string, participantId: string, missionId: string): boolean {
-    const result = this.stmt(
-      `INSERT OR IGNORE INTO participant_missions
+  async assign(eventId: string, participantId: string, missionId: string): Promise<boolean> {
+    const rows = await this.db.query<{ id: string }>(
+      `INSERT INTO participant_missions
         (id, event_id, participant_id, mission_id, status, points_awarded, assigned_at)
-       VALUES (?, ?, ?, ?, 'assigned', 0, ?)`,
-    ).run(newId("pm"), eventId, participantId, missionId, now());
-    return result.changes === 1;
+       VALUES ($1, $2, $3, $4, 'assigned', 0, $5)
+       ON CONFLICT (participant_id, mission_id) DO NOTHING
+       RETURNING id`,
+      [newId("pm"), eventId, participantId, missionId, now()],
+    );
+    return rows.length === 1;
   }
 
-  find(participantId: string, missionId: string): ParticipantMission | null {
-    const row = this.stmt(
-      `SELECT * FROM participant_missions WHERE participant_id = ? AND mission_id = ?`,
-    ).get(participantId, missionId) as ParticipantMissionRow | undefined;
-    return row ? toParticipantMission(row) : null;
+  async find(participantId: string, missionId: string): Promise<ParticipantMission | null> {
+    const rows = await this.db.query<ParticipantMissionRow>(
+      `SELECT * FROM participant_missions WHERE participant_id = $1 AND mission_id = $2`,
+      [participantId, missionId],
+    );
+    return rows[0] ? toParticipantMission(rows[0]) : null;
   }
 
-  listByParticipant(participantId: string): ParticipantMission[] {
-    const rows = this.stmt(
-      `SELECT * FROM participant_missions WHERE participant_id = ? ORDER BY assigned_at ASC`,
-    ).all(participantId) as ParticipantMissionRow[];
+  async listByParticipant(participantId: string): Promise<ParticipantMission[]> {
+    const rows = await this.db.query<ParticipantMissionRow>(
+      `SELECT * FROM participant_missions WHERE participant_id = $1 ORDER BY assigned_at ASC`,
+      [participantId],
+    );
     return rows.map(toParticipantMission);
   }
 
-  completedMissionIds(participantId: string): string[] {
-    const rows = this.stmt(
-      `SELECT mission_id FROM participant_missions WHERE participant_id = ? AND status = 'completed'`,
-    ).all(participantId) as { mission_id: string }[];
+  async completedMissionIds(participantId: string): Promise<string[]> {
+    const rows = await this.db.query<{ mission_id: string }>(
+      `SELECT mission_id FROM participant_missions WHERE participant_id = $1 AND status = 'completed'`,
+      [participantId],
+    );
     return rows.map((r) => r.mission_id);
   }
 
-  countCompleted(eventId: string): number {
-    const row = this.stmt(
-      `SELECT COUNT(*) AS c FROM participant_missions WHERE event_id = ? AND status = 'completed'`,
-    ).get(eventId) as { c: number };
-    return row.c;
+  async countCompleted(eventId: string): Promise<number> {
+    const rows = await this.db.query<{ c: number }>(
+      `SELECT COUNT(*)::int AS c FROM participant_missions WHERE event_id = $1 AND status = 'completed'`,
+      [eventId],
+    );
+    return rows[0]?.c ?? 0;
   }
 
-  markSubmitted(participantId: string, missionId: string): void {
-    this.stmt(
-      `UPDATE participant_missions SET status = 'submitted', submitted_at = ?
-       WHERE participant_id = ? AND mission_id = ? AND status = 'assigned'`,
-    ).run(now(), participantId, missionId);
+  async markSubmitted(participantId: string, missionId: string): Promise<void> {
+    await this.db.query(
+      `UPDATE participant_missions SET status = 'submitted', submitted_at = $1
+       WHERE participant_id = $2 AND mission_id = $3 AND status = 'assigned'`,
+      [now(), participantId, missionId],
+    );
   }
 
   /** Transition to completed once. Returns true only on the transition (guards double scoring). */
-  markCompleted(participantId: string, missionId: string, points: number): boolean {
-    const result = this.stmt(
-      `UPDATE participant_missions SET status = 'completed', points_awarded = ?, completed_at = ?
-       WHERE participant_id = ? AND mission_id = ? AND status != 'completed'`,
-    ).run(points, now(), participantId, missionId);
-    return result.changes === 1;
+  async markCompleted(participantId: string, missionId: string, points: number): Promise<boolean> {
+    const rows = await this.db.query<{ id: string }>(
+      `UPDATE participant_missions SET status = 'completed', points_awarded = $1, completed_at = $2
+       WHERE participant_id = $3 AND mission_id = $4 AND status <> 'completed'
+       RETURNING id`,
+      [points, now(), participantId, missionId],
+    );
+    return rows.length === 1;
   }
 
-  setStatus(participantId: string, missionId: string, status: ParticipantMissionStatus): void {
-    this.stmt(
-      `UPDATE participant_missions SET status = ? WHERE participant_id = ? AND mission_id = ?`,
-    ).run(status, participantId, missionId);
+  async setStatus(
+    participantId: string,
+    missionId: string,
+    status: ParticipantMissionStatus,
+  ): Promise<void> {
+    await this.db.query(
+      `UPDATE participant_missions SET status = $1 WHERE participant_id = $2 AND mission_id = $3`,
+      [status, participantId, missionId],
+    );
   }
 }
 
@@ -111,33 +126,35 @@ interface MissionEventRow {
 }
 
 export class MissionEventsRepository extends BaseRepository {
-  constructor(db: DB) {
+  constructor(db: Db) {
     super(db, "mission_events");
   }
 
-  insert(e: MissionEvent): void {
-    this.stmt(
+  async insert(e: MissionEvent): Promise<void> {
+    await this.db.query(
       `INSERT INTO mission_events
         (id, event_id, participant_id, mission_id, raw_answer, normalized_answer, partner_game_ids, result, points_awarded, created_at)
-       VALUES (@id, @event_id, @participant_id, @mission_id, @raw_answer, @normalized_answer, @partner_game_ids, @result, @points_awarded, @created_at)`,
-    ).run({
-      id: e.id,
-      event_id: e.eventId,
-      participant_id: e.participantId,
-      mission_id: e.missionId,
-      raw_answer: e.rawAnswer,
-      normalized_answer: e.normalizedAnswer,
-      partner_game_ids: JSON.stringify(e.partnerGameIds),
-      result: e.result,
-      points_awarded: e.pointsAwarded,
-      created_at: e.createdAt,
-    });
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [
+        e.id,
+        e.eventId,
+        e.participantId,
+        e.missionId,
+        e.rawAnswer,
+        e.normalizedAnswer,
+        JSON.stringify(e.partnerGameIds),
+        e.result,
+        e.pointsAwarded,
+        e.createdAt,
+      ],
+    );
   }
 
-  listByParticipant(participantId: string): MissionEvent[] {
-    const rows = this.stmt(
-      `SELECT * FROM mission_events WHERE participant_id = ? ORDER BY created_at ASC`,
-    ).all(participantId) as MissionEventRow[];
+  async listByParticipant(participantId: string): Promise<MissionEvent[]> {
+    const rows = await this.db.query<MissionEventRow>(
+      `SELECT * FROM mission_events WHERE participant_id = $1 ORDER BY created_at ASC`,
+      [participantId],
+    );
     return rows.map((row) => ({
       id: row.id,
       eventId: row.event_id,

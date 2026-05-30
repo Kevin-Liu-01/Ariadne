@@ -19,7 +19,7 @@ function text(payload: unknown) {
   return { content: [{ type: "text" as const, text: body }] };
 }
 
-function participantView(p: Participant) {
+async function participantView(p: Participant) {
   const bb = getBackbone();
   return {
     gameId: p.gameId,
@@ -30,12 +30,13 @@ function participantView(p: Participant) {
     score: p.score,
     eliminated: p.eliminated,
     phone: p.phone,
-    missions: bb.repos.participantMissions.listByParticipant(p.id),
+    missions: await bb.repos.participantMissions.listByParticipant(p.id),
   };
 }
 
-function requireParticipant(gameId: string): Participant {
-  const p = getBackbone().repos.participants.findByGameId(getBackbone().eventId, gameId);
+async function requireParticipant(gameId: string): Promise<Participant> {
+  const bb = getBackbone();
+  const p = await bb.repos.participants.findByGameId(bb.eventId, gameId);
   if (!p) throw new Error(`no participant with game id ${gameId}`);
   return p;
 }
@@ -44,7 +45,7 @@ server.tool(
   "ariadne_status",
   "Read the live event status: scene, checked-in count, missions solved, drinks pouring.",
   {},
-  async () => text(getBackbone().projection.snapshot()),
+  async () => text(await getBackbone().projection.snapshot()),
 );
 
 server.tool(
@@ -64,7 +65,7 @@ server.tool(
     stationId: z.string().optional(),
   },
   async (args) => {
-    const result = getBackbone().registration.register({
+    const result = await getBackbone().registration.register({
       phone: args.phone ?? null,
       externalConversationId: null,
       channel: null,
@@ -72,7 +73,7 @@ server.tool(
       category: args.category ?? null,
       stationId: args.stationId ?? null,
     });
-    return text({ isNew: result.isNew, participant: participantView(result.participant) });
+    return text({ isNew: result.isNew, participant: await participantView(result.participant) });
   },
 );
 
@@ -80,7 +81,7 @@ server.tool(
   "ariadne_get_participant",
   "Look up a participant by game id, including missions and score.",
   { gameId: z.string() },
-  async (args) => text(participantView(requireParticipant(args.gameId))),
+  async (args) => text(await participantView(await requireParticipant(args.gameId))),
 );
 
 server.tool(
@@ -89,9 +90,9 @@ server.tool(
   { gameId: z.string() },
   async (args) => {
     const bb = getBackbone();
-    const p = requireParticipant(args.gameId);
-    const conv = bb.repos.conversations.findByPhone(bb.eventId, p.phone ?? "");
-    const delivered = conv ? bb.missions.deliverCurrent(p, conv) : null;
+    const p = await requireParticipant(args.gameId);
+    const conv = await bb.repos.conversations.findByPhone(bb.eventId, p.phone ?? "");
+    const delivered = conv ? await bb.missions.deliverCurrent(p, conv) : null;
     return text(delivered ? { title: delivered.mission.title, prompt: delivered.prompt } : { mission: null });
   },
 );
@@ -102,10 +103,10 @@ server.tool(
   { gameId: z.string(), text: z.string() },
   async (args) => {
     const bb = getBackbone();
-    const p = requireParticipant(args.gameId);
-    const conv = bb.repos.conversations.findByPhone(bb.eventId, p.phone ?? "");
+    const p = await requireParticipant(args.gameId);
+    const conv = await bb.repos.conversations.findByPhone(bb.eventId, p.phone ?? "");
     if (!conv) return text({ error: "no conversation for participant" });
-    return text(bb.missions.submit(p, conv, args.text));
+    return text(await bb.missions.submit(p, conv, args.text));
   },
 );
 
@@ -115,9 +116,9 @@ server.tool(
   { gameId: z.string(), text: z.string() },
   async (args) => {
     const bb = getBackbone();
-    const p = requireParticipant(args.gameId);
-    const conv = bb.repos.conversations.findByPhone(bb.eventId, p.phone ?? "");
-    return text(bb.drinks.createFromText(p, conv?.id ?? null, args.text));
+    const p = await requireParticipant(args.gameId);
+    const conv = await bb.repos.conversations.findByPhone(bb.eventId, p.phone ?? "");
+    return text(await bb.drinks.createFromText(p, conv?.id ?? null, args.text));
   },
 );
 
@@ -125,14 +126,15 @@ server.tool(
   "ariadne_list_drink_queue",
   "List open bar orders, oldest first.",
   {},
-  async () => text(getBackbone().drinks.listActive()),
+  async () => text(await getBackbone().drinks.listActive()),
 );
 
 server.tool(
   "ariadne_update_drink_status",
   "Move a drink order through its lifecycle.",
   { orderId: z.string(), status: z.enum(DRINK_STATUSES), note: z.string().optional() },
-  async (args) => text(getBackbone().drinks.updateStatus(args.orderId, args.status, args.note ?? null) ?? { error: "not found" }),
+  async (args) =>
+    text((await getBackbone().drinks.updateStatus(args.orderId, args.status, args.note ?? null)) ?? { error: "not found" }),
 );
 
 server.tool(
@@ -140,7 +142,7 @@ server.tool(
   "Send an SMS/iMessage to a guest via the AgentPhone line (best-effort).",
   { gameId: z.string(), text: z.string() },
   async (args) => {
-    const p = requireParticipant(args.gameId);
+    const p = await requireParticipant(args.gameId);
     if (!p.phone) return text({ sent: false, reason: "participant has no phone" });
     if (!outboundEnabled()) return text({ sent: false, reason: "outbound disabled", preview: args.text });
     const sent = await sendGuestText(p.phone, args.text);
@@ -160,19 +162,20 @@ server.tool(
   },
   async (args) => {
     const bb = getBackbone();
-    if (args.action === "scene" && args.scene) return text(bb.projection.emit("scene.changed", { scene: args.scene }));
+    if (args.action === "scene" && args.scene)
+      return text(await bb.projection.emit("scene.changed", { scene: args.scene }));
     if ((args.action === "eliminate" || args.action === "restore") && args.gameId) {
-      const p = requireParticipant(args.gameId);
-      bb.repos.participants.setEliminated(p.id, args.action === "eliminate");
+      const p = await requireParticipant(args.gameId);
+      await bb.repos.participants.setEliminated(p.id, args.action === "eliminate");
       return text(
-        bb.projection.emit(
+        await bb.projection.emit(
           args.action === "eliminate" ? "participant.eliminated" : "participant.restored",
           { gameId: p.gameId },
         ),
       );
     }
     if (args.action === "emit" && args.type) {
-      return text(bb.projection.emit(args.type as never, args.data ?? {}));
+      return text(await bb.projection.emit(args.type as never, args.data ?? {}));
     }
     return text({ error: "invalid projection command" });
   },

@@ -1,12 +1,15 @@
-import { env } from "@/lib/env";
-import { createDb, type DB } from "@/server/db/connection";
+import { requireDatabaseUrl } from "@/lib/env";
+import type { Db } from "@/server/db/connection";
+import { createPgDb } from "@/server/db/pg";
 
-// Memoized across Next HMR reloads so we keep a single connection (and WAL lock).
-const globalRef = globalThis as unknown as { __ariadneDb?: DB };
+// Memoized across HMR reloads and warm serverless invocations so we reuse one
+// connection pool instead of exhausting the Supabase pooler.
+const globalRef = globalThis as unknown as { __ariadneDb?: Db };
 
-export function getDb(): DB {
+/** The process-wide Postgres handle (Supabase pooler in prod). */
+export function getDb(): Db {
   if (!globalRef.__ariadneDb) {
-    globalRef.__ariadneDb = createDb(env.dbPath);
+    globalRef.__ariadneDb = createPgDb(requireDatabaseUrl());
   }
   return globalRef.__ariadneDb;
 }

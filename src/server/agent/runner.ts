@@ -83,7 +83,7 @@ export class AgentRunner {
           if (process.env.ARIADNE_DEBUG) {
             console.error(`[tool] ${call.function.name} ${call.function.arguments}`);
           }
-          result = executeTool(call.function.name, args, ctx);
+          result = await executeTool(call.function.name, args, ctx);
         } catch {
           result = { error: "tool_execution_failed" };
         }

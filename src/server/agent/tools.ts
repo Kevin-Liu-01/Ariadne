@@ -37,7 +37,7 @@ export interface ToolContext {
 type ToolResult = Record<string, unknown>;
 interface Tool {
   def: ToolDef;
-  execute: (args: Record<string, unknown>, ctx: ToolContext) => ToolResult;
+  execute: (args: Record<string, unknown>, ctx: ToolContext) => Promise<ToolResult>;
 }
 
 /**
@@ -64,12 +64,18 @@ function guessName(text: string): string | null {
 }
 
 /** Resolve the live conversation + participant for this phone, fresh each call. */
-function resolve(ctx: ToolContext): { conversation: Conversation; participant: Participant | null } {
-  const conversation = ctx.conversations.resolve(ctx.externalConversationId, ctx.from, ctx.channel);
+async function resolve(
+  ctx: ToolContext,
+): Promise<{ conversation: Conversation; participant: Participant | null }> {
+  const conversation = await ctx.conversations.resolve(
+    ctx.externalConversationId,
+    ctx.from,
+    ctx.channel,
+  );
   const participant = conversation.participantId
-    ? ctx.repos.participants.findById(conversation.participantId)
+    ? await ctx.repos.participants.findById(conversation.participantId)
     : ctx.from
-      ? ctx.repos.participants.findByPhone(ctx.eventId, ctx.from)
+      ? await ctx.repos.participants.findByPhone(ctx.eventId, ctx.from)
       : null;
   return { conversation, participant };
 }
@@ -93,8 +99,8 @@ const checkIn: Tool = {
       },
     },
   },
-  execute: (args, ctx) => {
-    const result = ctx.registration.register({
+  execute: async (args, ctx) => {
+    const result = await ctx.registration.register({
       phone: ctx.from,
       externalConversationId: ctx.externalConversationId,
       channel: ctx.channel,
@@ -133,11 +139,11 @@ const orderDrink: Tool = {
       },
     },
   },
-  execute: (args, ctx) => {
-    const { conversation, participant } = resolve(ctx);
+  execute: async (args, ctx) => {
+    const { conversation, participant } = await resolve(ctx);
     if (!participant) return NOT_CHECKED_IN;
     const text = pickText(args, ["text", "request", "drink", "item", "order", "query"]) || ctx.userText;
-    const outcome = ctx.drinks.createFromText(participant, conversation.id, text);
+    const outcome = await ctx.drinks.createFromText(participant, conversation.id, text);
     switch (outcome.kind) {
       case "queued":
         return { status: "queued", label: outcome.order.label, say: drinkQueuedCopy(outcome.order.label) };
@@ -167,11 +173,11 @@ const answerMission: Tool = {
       },
     },
   },
-  execute: (args, ctx) => {
-    const { conversation, participant } = resolve(ctx);
+  execute: async (args, ctx) => {
+    const { conversation, participant } = await resolve(ctx);
     if (!participant) return NOT_CHECKED_IN;
     const text = pickText(args, ["text", "answer", "response", "guess", "request"]) || ctx.userText;
-    const outcome = ctx.missions.submit(participant, conversation, text);
+    const outcome = await ctx.missions.submit(participant, conversation, text);
     switch (outcome.kind) {
       case "correct":
         return {
@@ -186,7 +192,7 @@ const answerMission: Tool = {
       case "already":
         return { result: "already", say: "already solved that one — stay close to the screen." };
       case "no_mission": {
-        const delivered = ctx.missions.deliverCurrent(participant, conversation);
+        const delivered = await ctx.missions.deliverCurrent(participant, conversation);
         return {
           result: "no_mission",
           say: delivered
@@ -209,10 +215,10 @@ const getStatus: Tool = {
       parameters: { type: "object", properties: {}, required: [] },
     },
   },
-  execute: (_args, ctx) => {
-    const { conversation, participant } = resolve(ctx);
+  execute: async (_args, ctx) => {
+    const { conversation, participant } = await resolve(ctx);
     if (!participant) return NOT_CHECKED_IN;
-    const delivered = ctx.missions.deliverCurrent(participant, conversation);
+    const delivered = await ctx.missions.deliverCurrent(participant, conversation);
     return {
       gem: GEMS[participant.gem].label,
       secret_word: participant.secretWord,
@@ -240,10 +246,10 @@ const flagOperator: Tool = {
       },
     },
   },
-  execute: (args, ctx) => {
-    const { participant } = resolve(ctx);
+  execute: async (args, ctx) => {
+    const { participant } = await resolve(ctx);
     const reason = pickText(args, ["reason", "text", "issue", "message"]) || ctx.userText;
-    ctx.repos.operatorAlerts.create(
+    await ctx.repos.operatorAlerts.create(
       ctx.eventId,
       participant?.id ?? null,
       participant?.gameId ?? null,
@@ -263,8 +269,12 @@ const TOOLS: Record<string, Tool> = {
 
 export const AGENT_TOOL_DEFS: ToolDef[] = Object.values(TOOLS).map((t) => t.def);
 
-export function executeTool(name: string, args: Record<string, unknown>, ctx: ToolContext): ToolResult {
+export function executeTool(
+  name: string,
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<ToolResult> {
   const tool = TOOLS[name];
-  if (!tool) return { error: `unknown_tool:${name}` };
+  if (!tool) return Promise.resolve({ error: `unknown_tool:${name}` });
   return tool.execute(args, ctx);
 }

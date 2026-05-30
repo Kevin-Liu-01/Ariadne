@@ -23,7 +23,7 @@ export async function sendGuestText(toNumber: string, text: string): Promise<boo
 }
 
 export async function sendToParticipant(participantId: string, text: string): Promise<boolean> {
-  const participant = getBackbone().repos.participants.findById(participantId);
+  const participant = await getBackbone().repos.participants.findById(participantId);
   if (!participant?.phone) return false;
   return sendGuestText(participant.phone, text);
 }

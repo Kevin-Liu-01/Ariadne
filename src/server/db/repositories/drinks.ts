@@ -1,7 +1,7 @@
 import type { DrinkStatus } from "@/constants/drinks";
 import { now } from "@/lib/time";
 import { newId } from "@/domain/ids";
-import type { DB } from "@/server/db/connection";
+import type { Db } from "@/server/db/connection";
 import { BaseRepository } from "@/server/db/repositories/base";
 import type { DrinkOrder } from "@/domain/types";
 
@@ -39,97 +39,103 @@ function toDrinkOrder(row: DrinkOrderRow): DrinkOrder {
   };
 }
 
-const ACTIVE_STATUSES = ["queued", "in_progress", "ready"];
-
 export class DrinkOrdersRepository extends BaseRepository {
-  constructor(db: DB) {
+  constructor(db: Db) {
     super(db, "drink_orders");
   }
 
-  insert(o: DrinkOrder): void {
-    this.stmt(
+  async insert(o: DrinkOrder): Promise<void> {
+    await this.db.query(
       `INSERT INTO drink_orders
         (id, event_id, participant_id, conversation_id, raw_text, menu_item_id, label, modifiers, status, operator_notes, created_at, ready_at, picked_up_at)
-       VALUES (@id, @event_id, @participant_id, @conversation_id, @raw_text, @menu_item_id, @label, @modifiers, @status, @operator_notes, @created_at, @ready_at, @picked_up_at)`,
-    ).run({
-      id: o.id,
-      event_id: o.eventId,
-      participant_id: o.participantId,
-      conversation_id: o.conversationId,
-      raw_text: o.rawText,
-      menu_item_id: o.menuItemId,
-      label: o.label,
-      modifiers: JSON.stringify(o.modifiers),
-      status: o.status,
-      operator_notes: o.operatorNotes,
-      created_at: o.createdAt,
-      ready_at: o.readyAt,
-      picked_up_at: o.pickedUpAt,
-    });
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+      [
+        o.id,
+        o.eventId,
+        o.participantId,
+        o.conversationId,
+        o.rawText,
+        o.menuItemId,
+        o.label,
+        JSON.stringify(o.modifiers),
+        o.status,
+        o.operatorNotes,
+        o.createdAt,
+        o.readyAt,
+        o.pickedUpAt,
+      ],
+    );
   }
 
-  findById(id: string): DrinkOrder | null {
-    const row = this.stmt(`SELECT * FROM drink_orders WHERE id = ?`).get(id) as
-      | DrinkOrderRow
-      | undefined;
-    return row ? toDrinkOrder(row) : null;
+  async findById(id: string): Promise<DrinkOrder | null> {
+    const rows = await this.db.query<DrinkOrderRow>(`SELECT * FROM drink_orders WHERE id = $1`, [id]);
+    return rows[0] ? toDrinkOrder(rows[0]) : null;
   }
 
   /** Open orders the bar still cares about, oldest first. */
-  listActive(eventId: string): DrinkOrder[] {
-    const rows = this.stmt(
+  async listActive(eventId: string): Promise<DrinkOrder[]> {
+    const rows = await this.db.query<DrinkOrderRow>(
       `SELECT * FROM drink_orders
-       WHERE event_id = ? AND status IN ('queued','in_progress','ready')
+       WHERE event_id = $1 AND status IN ('queued','in_progress','ready')
        ORDER BY created_at ASC`,
-    ).all(eventId) as DrinkOrderRow[];
+      [eventId],
+    );
     return rows.map(toDrinkOrder);
   }
 
-  listByEvent(eventId: string, limit = 200): DrinkOrder[] {
-    const rows = this.stmt(
-      `SELECT * FROM drink_orders WHERE event_id = ? ORDER BY created_at DESC LIMIT ?`,
-    ).all(eventId, limit) as DrinkOrderRow[];
+  async listByEvent(eventId: string, limit = 200): Promise<DrinkOrder[]> {
+    const rows = await this.db.query<DrinkOrderRow>(
+      `SELECT * FROM drink_orders WHERE event_id = $1 ORDER BY created_at DESC LIMIT $2`,
+      [eventId, limit],
+    );
     return rows.map(toDrinkOrder);
   }
 
-  countOpenByParticipant(participantId: string): number {
-    const row = this.stmt(
-      `SELECT COUNT(*) AS c FROM drink_orders
-       WHERE participant_id = ? AND status IN ('queued','in_progress','ready')`,
-    ).get(participantId) as { c: number };
-    return row.c;
+  async countOpenByParticipant(participantId: string): Promise<number> {
+    const rows = await this.db.query<{ c: number }>(
+      `SELECT COUNT(*)::int AS c FROM drink_orders
+       WHERE participant_id = $1 AND status IN ('queued','in_progress','ready')`,
+      [participantId],
+    );
+    return rows[0]?.c ?? 0;
   }
 
   /** Update status, stamping ready_at / picked_up_at as the order moves. */
-  setStatus(id: string, status: DrinkStatus, note: string | null): DrinkOrder | null {
+  async setStatus(id: string, status: DrinkStatus, note: string | null): Promise<DrinkOrder | null> {
     const ts = now();
-    this.stmt(
+    const rows = await this.db.query<DrinkOrderRow>(
       `UPDATE drink_orders
-       SET status = ?,
-           operator_notes = COALESCE(?, operator_notes),
-           ready_at = CASE WHEN ? = 'ready' AND ready_at IS NULL THEN ? ELSE ready_at END,
-           picked_up_at = CASE WHEN ? = 'picked_up' AND picked_up_at IS NULL THEN ? ELSE picked_up_at END
-       WHERE id = ?`,
-    ).run(status, note, status, ts, status, ts, id);
-    return this.findById(id);
+       SET status = $1,
+           operator_notes = COALESCE($2, operator_notes),
+           ready_at = CASE WHEN $1 = 'ready' AND ready_at IS NULL THEN $3 ELSE ready_at END,
+           picked_up_at = CASE WHEN $1 = 'picked_up' AND picked_up_at IS NULL THEN $3 ELSE picked_up_at END
+       WHERE id = $4
+       RETURNING *`,
+      [status, note, ts, id],
+    );
+    return rows[0] ? toDrinkOrder(rows[0]) : null;
   }
 }
 
 export class DrinkOrderEventsRepository extends BaseRepository {
-  constructor(db: DB) {
+  constructor(db: Db) {
     super(db, "drink_order_events");
   }
 
-  insert(orderId: string, status: string, note: string | null): void {
-    this.stmt(
-      `INSERT INTO drink_order_events (id, order_id, status, note, created_at) VALUES (?, ?, ?, ?, ?)`,
-    ).run(newId("doe"), orderId, status, note, now());
+  async insert(orderId: string, status: string, note: string | null): Promise<void> {
+    await this.db.query(
+      `INSERT INTO drink_order_events (id, order_id, status, note, created_at) VALUES ($1, $2, $3, $4, $5)`,
+      [newId("doe"), orderId, status, note, now()],
+    );
   }
 
-  listByOrder(orderId: string): { status: string; note: string | null; createdAt: string }[] {
-    const rows = this.stmt(
-      `SELECT status, note, created_at FROM drink_order_events WHERE order_id = ? ORDER BY created_at ASC`,
-    ).all(orderId) as { status: string; note: string | null; created_at: string }[];
+  async listByOrder(
+    orderId: string,
+  ): Promise<{ status: string; note: string | null; createdAt: string }[]> {
+    const rows = await this.db.query<{ status: string; note: string | null; created_at: string }>(
+      `SELECT status, note, created_at FROM drink_order_events WHERE order_id = $1 ORDER BY created_at ASC`,
+      [orderId],
+    );
     return rows.map((r) => ({ status: r.status, note: r.note, createdAt: r.created_at }));
   }
 }

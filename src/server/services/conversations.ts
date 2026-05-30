@@ -16,21 +16,21 @@ export class ConversationService {
    * conversation id, falls back to phone, and backfills the external id when a
    * phone-only row later learns it.
    */
-  resolve(
+  async resolve(
     externalId: string | null,
     phone: string | null,
     channel: InboundChannel | null,
-  ): Conversation {
+  ): Promise<Conversation> {
     if (externalId) {
-      const byExternal = this.repos.conversations.findByExternalId(externalId);
+      const byExternal = await this.repos.conversations.findByExternalId(externalId);
       if (byExternal) return byExternal;
     }
     if (phone) {
-      const byPhone = this.repos.conversations.findByPhone(this.eventId, phone);
+      const byPhone = await this.repos.conversations.findByPhone(this.eventId, phone);
       if (byPhone) {
         if (externalId && !byPhone.externalId) {
-          this.repos.conversations.setExternalId(byPhone.id, externalId);
-          return this.repos.conversations.findById(byPhone.id) ?? byPhone;
+          await this.repos.conversations.setExternalId(byPhone.id, externalId);
+          return (await this.repos.conversations.findById(byPhone.id)) ?? byPhone;
         }
         return byPhone;
       }
@@ -47,15 +47,15 @@ export class ConversationService {
       createdAt: now(),
       updatedAt: now(),
     };
-    this.repos.conversations.insert(conversation);
+    await this.repos.conversations.insert(conversation);
     return conversation;
   }
 
-  linkParticipant(conversationId: string, participantId: string): void {
-    this.repos.conversations.setParticipant(conversationId, participantId);
+  async linkParticipant(conversationId: string, participantId: string): Promise<void> {
+    await this.repos.conversations.setParticipant(conversationId, participantId);
   }
 
-  setFlow(conversationId: string, flow: Flow, missionId: string | null): void {
-    this.repos.conversations.setFlow(conversationId, flow, missionId);
+  async setFlow(conversationId: string, flow: Flow, missionId: string | null): Promise<void> {
+    await this.repos.conversations.setFlow(conversationId, flow, missionId);
   }
 }

@@ -3,32 +3,38 @@ import { now } from "@/lib/time";
 import { DEFAULT_SCENE, type ProjectionSnapshot, type TileState } from "@/domain/projection";
 import type { ProjectionEvent, ProjectionEventType } from "@/domain/types";
 import type { Repositories } from "@/server/db/repositories";
-import type { EventBus } from "@/server/services/event-bus";
 
-/** Owns the append-only projection stream and the recoverable board snapshot. */
+/**
+ * Owns the append-only projection stream and the recoverable board snapshot.
+ * The board polls `snapshot()` then `eventsSince()`; Postgres is the single
+ * source of truth, so a reconnecting board always recovers exact state.
+ */
 export class ProjectionService {
   constructor(
     private readonly eventId: string,
     private readonly repos: Repositories,
-    private readonly bus: EventBus,
   ) {}
 
-  /** Append an event to the durable log and fan it out to live subscribers. */
-  emit(type: ProjectionEventType, data: Record<string, unknown>): ProjectionEvent {
-    const event = this.repos.projection.append(this.eventId, type, data);
-    this.bus.publish(this.eventId, event);
-    return event;
+  /** Append an event to the durable log. The board picks it up on its next poll. */
+  async emit(type: ProjectionEventType, data: Record<string, unknown>): Promise<ProjectionEvent> {
+    return this.repos.projection.append(this.eventId, type, data);
   }
 
   /** Current scene, derived from the last operator scene change. */
-  scene(): string {
-    const last = this.repos.projection.lastOfType(this.eventId, "scene.changed");
+  async scene(): Promise<string> {
+    const last = await this.repos.projection.lastOfType(this.eventId, "scene.changed");
     const scene = last?.data.scene;
     return typeof scene === "string" ? scene : DEFAULT_SCENE;
   }
 
-  snapshot(): ProjectionSnapshot {
-    const participants = this.repos.participants.listByEvent(this.eventId);
+  async snapshot(): Promise<ProjectionSnapshot> {
+    const [participants, scene, latestSeq, missionsCompleted, active] = await Promise.all([
+      this.repos.participants.listByEvent(this.eventId),
+      this.scene(),
+      this.repos.projection.latestSeq(this.eventId),
+      this.repos.participantMissions.countCompleted(this.eventId),
+      this.repos.drinkOrders.listActive(this.eventId),
+    ]);
     const tiles: TileState[] = participants.map((p, index) => ({
       gameId: p.gameId,
       displayName: p.displayName,
@@ -40,23 +46,19 @@ export class ProjectionService {
     }));
     return {
       eventId: this.eventId,
-      scene: this.scene(),
-      latestSeq: this.repos.projection.latestSeq(this.eventId),
+      scene,
+      latestSeq,
       generatedAt: now(),
       participants: tiles,
       stats: {
         checkedIn: participants.length,
-        missionsCompleted: this.repos.participantMissions.countCompleted(this.eventId),
-        drinksActive: this.repos.drinkOrders.listActive(this.eventId).length,
+        missionsCompleted,
+        drinksActive: active.length,
       },
     };
   }
 
-  eventsSince(sinceSeq: number): ProjectionEvent[] {
+  async eventsSince(sinceSeq: number): Promise<ProjectionEvent[]> {
     return this.repos.projection.listSince(this.eventId, sinceSeq);
-  }
-
-  subscribe(listener: (event: ProjectionEvent) => void): () => void {
-    return this.bus.subscribe(this.eventId, listener);
   }
 }

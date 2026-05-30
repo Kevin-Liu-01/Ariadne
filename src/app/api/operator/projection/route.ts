@@ -33,21 +33,21 @@ export async function POST(req: Request): Promise<Response> {
 
   switch (body.action) {
     case "scene":
-      return json(bb.projection.emit("scene.changed", { scene: body.scene }));
+      return json(await bb.projection.emit("scene.changed", { scene: body.scene }));
     case "eliminate":
     case "restore": {
-      const p = bb.repos.participants.findByGameId(bb.eventId, body.gameId);
+      const p = await bb.repos.participants.findByGameId(bb.eventId, body.gameId);
       if (!p) return problem(404, "participant not found");
       const eliminated = body.action === "eliminate";
-      bb.repos.participants.setEliminated(p.id, eliminated);
+      await bb.repos.participants.setEliminated(p.id, eliminated);
       return json(
-        bb.projection.emit(
+        await bb.projection.emit(
           eliminated ? "participant.eliminated" : "participant.restored",
           { gameId: p.gameId },
         ),
       );
     }
     case "emit":
-      return json(bb.projection.emit(body.type as ProjectionEventType, body.data ?? {}));
+      return json(await bb.projection.emit(body.type as ProjectionEventType, body.data ?? {}));
   }
 }

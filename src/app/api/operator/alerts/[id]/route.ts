@@ -12,6 +12,6 @@ export async function PATCH(
 ): Promise<Response> {
   if (!bearerOk(req, env.operatorToken)) return problem(401, "unauthorized");
   const { id } = await params;
-  getBackbone().repos.operatorAlerts.resolve(id);
+  await getBackbone().repos.operatorAlerts.resolve(id);
   return json({ ok: true });
 }

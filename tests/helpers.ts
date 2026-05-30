@@ -1,12 +1,12 @@
 import type { InboundChannel } from "@/constants/event";
 import type { InteractionEvent } from "@/domain/types";
 import { Backbone } from "@/server/backbone";
-import { createDb } from "@/server/db/connection";
-import { EventBus } from "@/server/services/event-bus";
+import { createPgliteDb } from "@/server/db/pglite";
 import type { ChatFn } from "@/server/partners/dedalus/types";
 
-export function freshBackbone(chat?: ChatFn): Backbone {
-  return new Backbone(createDb(":memory:"), { eventId: "test-event", bus: new EventBus(), chat });
+/** A backbone over a fresh in-memory pglite DB (real Postgres semantics, no network). */
+export async function freshBackbone(chat?: ChatFn): Promise<Backbone> {
+  return new Backbone(await createPgliteDb(), { eventId: "test-event", chat });
 }
 
 let counter = 0;

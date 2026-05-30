@@ -7,8 +7,8 @@ import type { DrinkOrder } from "@/domain/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function withGuest(bb: ReturnType<typeof getBackbone>, order: DrinkOrder) {
-  const p = bb.repos.participants.findById(order.participantId);
+async function withGuest(bb: ReturnType<typeof getBackbone>, order: DrinkOrder) {
+  const p = await bb.repos.participants.findById(order.participantId);
   return {
     ...order,
     guest: p ? { gameId: p.gameId, displayName: p.displayName } : null,
@@ -18,8 +18,9 @@ function withGuest(bb: ReturnType<typeof getBackbone>, order: DrinkOrder) {
 export async function GET(req: Request): Promise<Response> {
   if (!bearerOk(req, env.operatorToken)) return problem(401, "unauthorized");
   const bb = getBackbone();
+  const [active, recent] = await Promise.all([bb.drinks.listActive(), bb.drinks.listRecent(50)]);
   return json({
-    active: bb.drinks.listActive().map((o) => withGuest(bb, o)),
-    recent: bb.drinks.listRecent(50).map((o) => withGuest(bb, o)),
+    active: await Promise.all(active.map((o) => withGuest(bb, o))),
+    recent: await Promise.all(recent.map((o) => withGuest(bb, o))),
   });
 }

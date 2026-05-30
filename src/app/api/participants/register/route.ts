@@ -23,7 +23,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const bb = getBackbone();
-  const result = bb.registration.register({
+  const result = await bb.registration.register({
     phone: input.phone ?? null,
     externalConversationId: null,
     channel: input.channel ?? null,

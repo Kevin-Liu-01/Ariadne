@@ -24,7 +24,7 @@ projection is the thread.
 | 1. Arrival + personal-agent check-in | **P0** | ✅ live (gem + secret word + game id + first mission) |
 | 2. Free drink ordering through the agent | **P0** | ✅ live (parse → bar queue → operator status → guest ping) |
 | 3. Dedalus Labyrinth missions | **P1** | ✅ color quest, word match, clue, puzzle — deterministic validation |
-| 4. Live projection board + tiles | **P1** | ✅ SSE board, ranks, fade/restore, operator scenes |
+| 4. Live projection board + tiles | **P1** | ✅ live polling board, ranks, fade/restore, operator scenes |
 | 5. Fuser room visuals | P1 | ⏸ asset registry stubbed; runtime out of scope (AgentPhone only) |
 | 6. Photo / fit battle | P1 cond. | ⏸ media plumbing present; Fuser runtime out of scope |
 | 7. Merch try-on | P1 cond. | ⏸ out of scope |
@@ -37,10 +37,10 @@ tested**, including a live signed round-trip against the AgentPhone API.
 
 ## Architecture
 
-The whole thing is **one long-lived Next.js process** plus a **local SQLite
-file**, exposed through a tunnel so AgentPhone can reach the webhook. It is not
-serverless and not a managed cloud DB — a single instance by design, so the room
-survives Wi-Fi blips and the board always recovers full state from disk.
+Ariadne runs as **Next.js on Vercel** (serverless functions) backed by **Supabase
+Postgres**. State lives in the managed database, so every function invocation —
+the webhook, the operator console, a strap-on agent — sees the same source of
+truth, and the room has an always-on phone number with no machine to babysit.
 
 ```mermaid
 flowchart TD
@@ -50,14 +50,15 @@ flowchart TD
   op["Operator console /operator (alerts + bar + run-of-show)"]
   gw["Dedalus gateway — LLM (OpenAI-compatible)"]
 
-  subgraph host["Ariadne host · one Next.js process + local SQLite file, behind a tunnel"]
+  subgraph host["Ariadne · Next.js on Vercel (serverless)"]
     wh["/api/webhooks/agentphone"]
     brain["Conversational agent · LLM tool-calling (deterministic tools)"]
     svc["Services · registration / missions / drinks / projection"]
-    db[("SQLite backbone · durable state, idempotency, append-only projection log")]
     out["AgentPhone outbound · POST /v1/messages"]
-    proj["Projection board /projection · SSE (snapshot + live events)"]
+    proj["Projection board /projection · polls snapshot + events"]
   end
+
+  db[("Supabase Postgres · durable state, idempotency, append-only projection log")]
 
   subgraph dm["Dedalus Machine (optional) · the agent you strap Ariadne onto"]
     agent["Running agent (Claude Code / OpenClaw)"]
@@ -80,11 +81,11 @@ flowchart TD
 
 **What each piece is**
 
-- **SQLite backbone** — the single source of truth for all event state
-  (participants, conversations, the idempotency log, missions, drink orders, and
-  the append-only projection event log). A local file (`./data/ariadne.db`) read
-  synchronously via better-sqlite3 — no network dependency, chosen for event-day
-  resilience.
+- **Postgres backbone (Supabase)** — the single source of truth for all event
+  state (participants, conversations, the idempotency log, missions, drink orders,
+  and the append-only projection event log). Reached over the Supabase transaction
+  pooler via `pg`; the test suite runs the same SQL against in-memory `pglite`, so
+  one dialect is exercised everywhere.
 - **Conversational agent** — *ours*, an in-process LLM tool-calling loop over the
   **Dedalus gateway**. It routes and chats; the bounded **tools** (`check_in`,
   `order_drink`, `answer_mission`, `get_status`, `flag_operator`) run the
@@ -92,34 +93,33 @@ flowchart TD
   The system prompt + lore (Dedalus / venue / run-of-show / menu) + the guest's
   grounded state are injected each turn.
 - **Running agent (Dedalus Machine)** — the *optional* LLM agent (Claude Code,
-  OpenClaw) you strap Ariadne onto via MCP. This is the piece that would run on a
-  Dedalus Machine; it supervises/drives the room through the same services and
-  sends guest messages through the same outbound path.
+  OpenClaw) you strap Ariadne onto via MCP. It supervises/drives the room through
+  the same services and sends guest messages through the same outbound path.
 - **Operator console `/operator`** — the token-gated staff surface: a **bar queue**
   (move drinks queued → in_progress → ready → picked_up; marking *ready* texts the
   guest via AgentPhone outbound), **run-of-show** (change projection scene,
-  fade/restore a guest), and the **roster** (every participant + secret word for
-  force-completes). Live overrides, because event systems fail in boring ways.
-- **Projection board `/projection` (SSE)** — the big-screen client opens an
-  `EventSource` to `/api/projection/stream`: on connect it gets a full **snapshot**,
-  then **live events** (check-in, score, elimination, scene). The stream pushes
-  from an in-process bus (sub-second) *and* polls the SQLite log every 2s (so
-  writes from the operator or a strap-on agent in another process still arrive),
-  de-duped by sequence number, and refetches the snapshot every 15s to self-heal.
-  Reload-safe.
+  fade/restore a guest), an **alerts panel** (`flag_operator` escalations), and the
+  **roster** (every participant + secret word for force-completes). Live overrides,
+  because event systems fail in boring ways.
+- **Projection board `/projection`** — the big-screen client loads a full **snapshot**
+  from `/api/projection/state`, then polls `/api/projection/events?since=<seq>` every
+  ~1.5s for new events (check-in, score, elimination, scene), advancing by sequence
+  number, and re-fetches the snapshot every 15s to self-heal. Postgres is
+  authoritative, so a dropped poll recovers on the next tick. Reload-safe.
 
 **Layers** (`src/`): `constants/` (event content: gems, drinks, missions,
-prompts), `domain/` (pure logic: intent, parsers, assignment, types),
-`server/db/` (schema + repositories over a `BaseRepository`), `server/services/`
-(registration, missions, drinks, projection, event-bus), `server/agent/` (the
-deterministic brain), `server/partners/agentphone/` (verify, normalize, thin REST
-client, outbound), `app/` (routes + UIs), `mcp/` (the strap-on server).
+prompts, lore), `domain/` (pure logic: parsers, assignment, types), `server/db/`
+(schema, the `Db` adapter over `pg`/`pglite`, and repositories on a
+`BaseRepository`), `server/services/` (registration, missions, drinks,
+projection), `server/agent/` (the tool-calling brain + runner + tools),
+`server/partners/` (AgentPhone + Dedalus: verify, normalize, thin REST clients,
+outbound), `app/` (routes + UIs), `mcp/` (the strap-on server).
 
 Every guest becomes a canonical `participant_id` at check-in; phone / conversation
 ids are identifiers attached to it. Every inbound partner event is normalized to
 an `InteractionEvent` before it mutates state, and persisted once
 (idempotent by `X-Webhook-ID`). Projection is an append-only event log; the board
-recovers full state from `GET /projection/state` on any reload.
+recovers full state from `GET /api/projection/state` on any reload.
 
 ---
 
@@ -127,31 +127,44 @@ recovers full state from `GET /projection/state` on any reload.
 
 ```bash
 pnpm install
-cp .env.example .env.local      # set AGENTPHONE_API_KEY + tokens
-pnpm test                       # 24 tests (parsers, intent, assignment, signature, full E2E)
-pnpm seed                       # populate demo participants/missions/drinks
+cp .env.example .env.local      # set SUPABASE_DB_URL, AGENTPHONE_API_KEY, DEDALUS_API_KEY + tokens
+pnpm migrate                    # apply the schema to your Supabase Postgres
+pnpm test                       # 20 tests (parsers, assignment, signature, agent + full E2E on pglite)
+pnpm seed                       # populate demo participants/missions/drinks (via the live brain)
 pnpm dev                        # http://localhost:3939  (/  /join  /projection  /operator)
 ```
 
 Operator console token = `ARIADNE_OPERATOR_TOKEN`.
 
-### Go live with a real phone line
+### Deploy (always-on)
+
+Ariadne ships on **Vercel** (project `ariadne`, alias
+`https://ariadne-runway.vercel.app`) against the Supabase **Ariadne** project:
 
 ```bash
-# 1. expose the local server so AgentPhone can reach the webhook
-pnpm tunnel                     # cloudflared → https://<sub>.trycloudflare.com
-# 2. point the public URL at the tunnel in .env.local, then:
-pnpm provision                  # creates the "Ariadne · Run(way)time" agent,
-                                # provisions a number, sets a per-agent webhook,
-                                # and writes ids + signing secret to .env.local
-pnpm start                      # restart so the new secret is loaded
-pnpm smoke                      # triggers a real signed test webhook → expects 200
-pnpm simulate --text "vodka soda" --from +15555550123   # local signed inbound
+vercel link --project ariadne   # once
+pnpm migrate                    # ensure the Supabase schema is current
+vercel --prod                   # deploy (CLI uploads the working dir)
+pnpm provision --no-number      # point the AgentPhone agent webhook at the deployed URL
 ```
 
-`pnpm provision --no-number` configures the agent + webhook without buying a
-number (handy for testing the signed loop). Outbound SMS needs 10DLC; **iMessage
-outbound works without it**, and the operator queue + board run regardless.
+The same env vars live in the Vercel project (`SUPABASE_DB_URL`, `DEDALUS_*`,
+`AGENTPHONE_*`, operator/agent tokens). `ARIADNE_PUBLIC_BASE_URL` falls back to
+`VERCEL_URL` but is pinned to the alias so QR/join links and the webhook stay
+stable. Re-pointing the webhook rotates the signing secret — sync the new
+`AGENTPHONE_WEBHOOK_SECRET` into Vercel and redeploy.
+
+### Local phone testing
+
+```bash
+pnpm tunnel                     # cloudflared → https://<sub>.trycloudflare.com
+# point ARIADNE_PUBLIC_BASE_URL at the tunnel, then:
+pnpm provision                  # agent + number + per-agent webhook (writes signing secret)
+pnpm simulate --text "vodka soda" --from +15555550123   # signed inbound, no real phone
+```
+
+Outbound SMS needs 10DLC; **iMessage outbound works without it**, and the operator
+queue + board run regardless.
 
 ---
 
@@ -165,9 +178,9 @@ outbound works without it**, and the operator queue + board run regardless.
   (`{ agent_id, to_number, body, media_urls? }`). SMS webhooks only `200`; replies
   go out via this endpoint.
 - **Voice**: guests can **call the number** — AgentPhone transcribes and posts a
-  `voice` turn to the webhook; we reply with `{ "text": ... }` inline. Free plan =
-  **1 concurrent call**, so text stays primary (voice isn't latency-hardened yet —
-  the brain's tool loop can approach the 30s turn limit; interim streaming is the fix).
+  `voice` turn to the webhook; we stream an interim line immediately (NDJSON), then
+  the brain's spoken reply, so the caller never hits silence while the tool loop
+  runs. Free plan = **1 concurrent call**, so text stays primary.
 - **State mirror**: `PATCH /v1/conversations/{id}` reflects `participant_id` /
   flow / mission back onto the AgentPhone conversation.
 
@@ -183,8 +196,8 @@ npm SDK and the docs MCP server are valid alternatives.
 (`ariadne_register_participant`, `ariadne_take_drink_order`,
 `ariadne_submit_mission_answer`, `ariadne_send_guest_message`,
 `ariadne_projection`, …) plus `ariadne_get_system_prompt` (the rigorous persona).
-See [`skill/SKILL.md`](skill/SKILL.md). The default deterministic brain handles the
-fast <3s SMS path on its own; a strap-on agent supervises and drives the room.
+See [`skill/SKILL.md`](skill/SKILL.md). The built-in conversational brain handles
+the SMS/voice path on its own; a strap-on agent supervises and drives the room.
 
 ---
 
@@ -195,9 +208,10 @@ fast <3s SMS path on its own; a strap-on agent supervises and drives the room.
 | `POST /api/webhooks/agentphone` | inbound messages/voice (signed) |
 | `POST /api/participants/register` | web/QR check-in |
 | `GET /api/projection/state` | full board snapshot |
-| `GET /api/projection/stream` | SSE projection events |
+| `GET /api/projection/events?since=<seq>` | incremental projection events (board poll) |
 | `GET /api/operator/drink-orders` · `PATCH …/{id}` | bar queue (auth) |
 | `GET /api/operator/participants` | roster (auth) |
+| `GET /api/operator/alerts` · `PATCH …/{id}` | operator escalations (auth) |
 | `POST /api/operator/projection` | scene / eliminate / restore / emit (auth) |
 
 ## Data model

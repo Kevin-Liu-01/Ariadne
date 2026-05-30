@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request): Promise<Response> {
   if (!bearerOk(req, env.operatorToken)) return problem(401, "unauthorized");
   const bb = getBackbone();
-  const participants = bb.repos.participants.listByEvent(bb.eventId).map((p) => ({
+  const roster = await bb.repos.participants.listByEvent(bb.eventId);
+  const participants = roster.map((p) => ({
     gameId: p.gameId,
     displayName: p.displayName,
     gem: p.gem,

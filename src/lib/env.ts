@@ -29,16 +29,17 @@ export const env = {
     return process.env.ARIADNE_EVENT_ID ?? "nytw-runwaytime";
   },
   get publicBaseUrl(): string {
-    // RENDER_EXTERNAL_URL is injected automatically on Render, so the deployed
-    // URL needs no manual config.
+    // VERCEL_URL is injected automatically on Vercel (host only, no scheme), so
+    // the deployed origin needs no manual config.
     const base =
       process.env.ARIADNE_PUBLIC_BASE_URL ??
-      process.env.RENDER_EXTERNAL_URL ??
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ??
       "http://localhost:3939";
     return base.replace(/\/$/, "");
   },
-  get dbPath(): string {
-    return process.env.ARIADNE_DB_PATH ?? "./data/ariadne.db";
+  /** Postgres connection string (Supabase pooler). Read by prod routes + scripts. */
+  get databaseUrl(): string {
+    return process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL ?? "";
   },
   get operatorToken(): string {
     return process.env.ARIADNE_OPERATOR_TOKEN ?? "";
@@ -87,6 +88,12 @@ export const env = {
     },
   },
 };
+
+/** Postgres connection string required for any DB access. Throws if unset. */
+export function requireDatabaseUrl(): string {
+  if (!env.databaseUrl) throw new ConfigError("SUPABASE_DB_URL");
+  return env.databaseUrl;
+}
 
 /** AgentPhone API credentials required for any live call. Throws if unset. */
 export function requireAgentphoneApi(): { apiKey: string; baseUrl: string } {

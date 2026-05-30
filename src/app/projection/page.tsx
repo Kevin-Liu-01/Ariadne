@@ -30,12 +30,16 @@ export default function ProjectionPage() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    let lastSeq = 0;
+
     const rebuild = (snap: ProjectionSnapshot) => {
       const next: Tiles = {};
       for (const t of snap.participants) next[t.gameId] = t;
       setTiles(next);
       setStats(snap.stats);
       setScene(snap.scene);
+      lastSeq = snap.latestSeq;
     };
 
     const apply = (ev: ProjectionEvent) => {
@@ -75,23 +79,43 @@ export default function ProjectionPage() {
       }
     };
 
-    const es = new EventSource("/api/projection/stream");
-    es.addEventListener("open", () => setConnected(true));
-    es.addEventListener("snapshot", (e) => rebuild(JSON.parse((e as MessageEvent).data)));
-    es.addEventListener("projection", (e) => apply(JSON.parse((e as MessageEvent).data)));
-    es.onerror = () => setConnected(false);
+    // Load the authoritative snapshot, then poll for incremental events. Postgres
+    // is the source of truth, so a dropped poll heals on the next tick. A periodic
+    // full reload corrects any drift from optimistic incremental updates.
+    const loadState = async () => {
+      try {
+        const snap = (await (await fetch("/api/projection/state")).json()) as ProjectionSnapshot;
+        if (cancelled) return;
+        rebuild(snap);
+        setConnected(true);
+      } catch {
+        if (!cancelled) setConnected(false);
+      }
+    };
 
-    // Authoritative self-heal in case incremental events drift.
-    const heal = setInterval(() => {
-      fetch("/api/projection/state")
-        .then((r) => r.json())
-        .then(rebuild)
-        .catch(() => {});
-    }, 15000);
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/projection/events?since=${lastSeq}`);
+        const { events } = (await res.json()) as { events: ProjectionEvent[] };
+        if (cancelled) return;
+        setConnected(true);
+        for (const ev of events) {
+          apply(ev);
+          if (ev.seq > lastSeq) lastSeq = ev.seq;
+        }
+      } catch {
+        if (!cancelled) setConnected(false);
+      }
+    };
+
+    void loadState();
+    const pollTimer = setInterval(poll, 1500);
+    const healTimer = setInterval(loadState, 15000);
 
     return () => {
-      es.close();
-      clearInterval(heal);
+      cancelled = true;
+      clearInterval(pollTimer);
+      clearInterval(healTimer);
     };
   }, []);
 

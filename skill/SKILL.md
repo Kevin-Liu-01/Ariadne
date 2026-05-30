@@ -22,7 +22,7 @@ Add the MCP server (stdio) to your agent. From the Ariadne repo:
 ```
 
 It needs `.env.local` with `AGENTPHONE_API_KEY` (+ ids from `pnpm provision`) and
-`ARIADNE_DB_PATH` (shared with the web server).
+`SUPABASE_DB_URL` (shared with the web server).
 
 ## Adopt the persona first
 

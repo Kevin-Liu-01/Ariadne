@@ -1,4 +1,4 @@
-import type { DB } from "@/server/db/connection";
+import type { Db } from "@/server/db/connection";
 import { ConversationsRepository } from "@/server/db/repositories/conversations";
 import { DrinkOrderEventsRepository, DrinkOrdersRepository } from "@/server/db/repositories/drinks";
 import {
@@ -10,7 +10,7 @@ import { ParticipantsRepository } from "@/server/db/repositories/participants";
 import { PartnerEventsRepository } from "@/server/db/repositories/partner-events";
 import { ProjectionEventsRepository } from "@/server/db/repositories/projection";
 
-/** All repositories bound to one DB. Constructed once per backbone. */
+/** All repositories bound to one Db handle. Constructed once per backbone (and once per transaction). */
 export class Repositories {
   readonly participants: ParticipantsRepository;
   readonly conversations: ConversationsRepository;
@@ -22,7 +22,7 @@ export class Repositories {
   readonly projection: ProjectionEventsRepository;
   readonly operatorAlerts: OperatorAlertsRepository;
 
-  constructor(private readonly db: DB) {
+  constructor(private readonly db: Db) {
     this.participants = new ParticipantsRepository(db);
     this.conversations = new ConversationsRepository(db);
     this.partnerEvents = new PartnerEventsRepository(db);
@@ -34,8 +34,12 @@ export class Repositories {
     this.operatorAlerts = new OperatorAlertsRepository(db);
   }
 
-  /** Run a synchronous unit of work atomically. Side effects (bus emits) go after. */
-  transaction<T>(work: () => T): T {
-    return this.db.transaction(work)();
+  /**
+   * Run a unit of work atomically. The callback receives a Repositories bound to
+   * the transaction's connection, so every write inside commits or rolls back
+   * together. Side effects (projection emits) belong after the call returns.
+   */
+  async transaction<T>(work: (repos: Repositories) => Promise<T>): Promise<T> {
+    return this.db.transaction((tx) => work(new Repositories(tx)));
   }
 }
