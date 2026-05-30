@@ -11,6 +11,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { useState } from "react";
+import { EVENT_NAME } from "@/constants/event";
 import { GemDot } from "@/components/gem-dot";
 import { cn } from "@/lib/utils";
 
@@ -151,6 +152,9 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
             {phoneNumber}
           </span>
           <span className="mt-1 block text-[11px] text-ash">opens your messages — just hit send</span>
+          <span className="mt-2 block text-[11px] leading-relaxed text-ash/80">
+            iPhone: use iMessage (blue bubble). Green SMS replies need 10DLC — not live yet.
+          </span>
         </a>
       ) : (
         <div className="reticle border border-nyx-line bg-nyx-soft px-6 py-5 text-center text-sm text-ash">
@@ -182,10 +186,35 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="phone — links your texts to this check-in"
+            placeholder="mobile number — so your texts link up"
             inputMode="tel"
             className="border border-nyx-line bg-nyx px-4 py-3 text-cloud outline-none placeholder:text-ash/60 focus:border-helio/50"
           />
+          <p className="text-[11px] leading-relaxed text-ash">
+            By tapping check in, you agree to receive recurring automated text messages from{" "}
+            <span className="text-cloud">Ariadne</span> (Dedalus Labs) about {EVENT_NAME} —
+            check-in, missions, and drink orders. Consent is not a condition of entry. Message
+            frequency varies. Msg &amp; data rates may apply. Reply{" "}
+            <span className="text-cloud">STOP</span> to opt out, <span className="text-cloud">HELP</span>{" "}
+            for help.{" "}
+            <a
+              href="https://dedaluslabs.ai/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-helio underline underline-offset-2 hover:text-cloud"
+            >
+              Privacy Policy
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://dedaluslabs.ai/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-helio underline underline-offset-2 hover:text-cloud"
+            >
+              Terms
+            </a>
+          </p>
           <button
             type="submit"
             disabled={busy}
