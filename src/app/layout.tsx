@@ -3,8 +3,19 @@ import { EVENT_NAME, PRODUCT_NAME, PRODUCT_TAGLINE } from "@/constants/event";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://ariadne-runway.vercel.app"),
   title: `${PRODUCT_NAME} · ${EVENT_NAME}`,
-  description: PRODUCT_TAGLINE,
+  description: `${PRODUCT_TAGLINE} — a phone-first game for ${EVENT_NAME}.`,
+  openGraph: {
+    title: `${PRODUCT_NAME} · ${EVENT_NAME}`,
+    description: PRODUCT_TAGLINE,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${PRODUCT_NAME} · ${EVENT_NAME}`,
+    description: PRODUCT_TAGLINE,
+  },
 };
 
 export default function RootLayout({

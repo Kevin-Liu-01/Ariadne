@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import { EVENT_NAME, PRODUCT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/event";
+import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { CheckInPanel } from "@/app/join/check-in-panel";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,10 @@ export default async function JoinPage({
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
       <div className="w-full max-w-md animate-rise">
-        <p className="text-center text-xs uppercase tracking-[0.3em] text-ash">
+        <div className="flex justify-center">
+          <LabyrinthThread size={92} animate />
+        </div>
+        <p className="mt-6 text-center text-xs uppercase tracking-[0.3em] text-ash">
           {EVENT_NAME} · {VENUE}
         </p>
         <h1 className="mt-3 text-center text-4xl font-semibold tracking-tight">{PRODUCT_NAME}</h1>

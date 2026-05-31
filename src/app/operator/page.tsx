@@ -3,6 +3,7 @@
 import { Lock, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PRODUCT_NAME } from "@/constants/event";
+import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { AlertsPanel } from "@/app/operator/alerts-panel";
 import { DrinkQueue } from "@/app/operator/drink-queue";
 import { ProjectionControls } from "@/app/operator/projection-controls";
@@ -36,7 +37,10 @@ export default function OperatorPage() {
     return (
       <main className="flex flex-1 items-center justify-center px-6">
         <div className="reticle reticle-strong w-full max-w-sm border border-nyx-line bg-nyx-soft p-6 animate-rise">
-          <h1 className="flex items-center gap-2 text-lg font-semibold">
+          <div className="mb-4 flex justify-center">
+            <LabyrinthThread size={60} />
+          </div>
+          <h1 className="flex items-center justify-center gap-2 text-lg font-semibold">
             <Lock className="h-4 w-4 text-helio" strokeWidth={1.5} aria-hidden />
             {PRODUCT_NAME} · operator
           </h1>
@@ -67,7 +71,10 @@ export default function OperatorPage() {
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
       <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">{PRODUCT_NAME} · operator</h1>
+        <h1 className="flex items-center gap-3 text-xl font-semibold tracking-tight">
+          <LabyrinthThread size={36} />
+          {PRODUCT_NAME} · operator
+        </h1>
         <button
           type="button"
           onClick={lock}

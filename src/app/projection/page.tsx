@@ -4,7 +4,8 @@ import { Crown, Hourglass, Target, Users, Wine } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { PRODUCT_NAME } from "@/constants/event";
-import { GemDot } from "@/components/gem-dot";
+import { LabyrinthThread } from "@/components/labyrinth-thread";
+import { GemIcon } from "@/components/gem-icon";
 import type { ProjectionSnapshot, TileState } from "@/domain/projection";
 import type { ProjectionEvent } from "@/domain/types";
 import { cn } from "@/lib/utils";
@@ -135,8 +136,8 @@ export default function ProjectionPage() {
   return (
     <main className="relative flex min-h-screen flex-col px-10 py-8 hud-grid scanlines">
       <header className="flex items-baseline justify-between border-b border-nyx-line pb-5">
-        <div className="flex items-center gap-3">
-          <span className="crosshair translate-y-1" aria-hidden />
+        <div className="flex items-center gap-4">
+          <LabyrinthThread size={48} />
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">{PRODUCT_NAME}</h1>
             <p className="text-xs uppercase tracking-[0.4em] text-ash">scene · {scene}</p>
@@ -199,7 +200,7 @@ export default function ProjectionPage() {
                   {i + 1}
                 </span>
               ) : null}
-              <GemDot hex={tile.gemHex} size={26} label={tile.gem} />
+              <GemIcon gem={tile.gem} size={28} />
               <p className="mt-2 truncate text-sm text-cloud">{tile.displayName ?? initials(tile)}</p>
               <p className="text-xs uppercase tracking-[0.18em] text-ash">{tile.gameId}</p>
               <p className="mt-1 text-lg tabular-nums text-cloud">{tile.score}</p>
