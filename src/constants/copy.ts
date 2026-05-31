@@ -9,7 +9,7 @@ export function welcomeCopy(p: {
   gameId: string;
   missionPrompt: string;
 }): string {
-  return `you're in. gem: ${p.gemLabel}. word: ${p.word}. id: ${p.gameId}. first move — ${p.missionPrompt}`;
+  return `you're in 🪽. gem: ${p.gemLabel}. word: ${p.word}. id: ${p.gameId}. first move — ${p.missionPrompt}`;
 }
 
 export function alreadyHereCopy(p: { gemLabel: string; gameId: string }): string {
