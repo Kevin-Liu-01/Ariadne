@@ -103,28 +103,6 @@ export class ParticipantsRepository extends BaseRepository {
     return rows.map(toParticipant);
   }
 
-  /** Gem -> count, for balanced assignment when RSVP category is unknown. */
-  async gemCounts(eventId: string): Promise<Record<string, number>> {
-    const rows = await this.db.query<{ gem: string; c: number }>(
-      `SELECT gem, COUNT(*)::int AS c FROM participants WHERE event_id = $1 GROUP BY gem`,
-      [eventId],
-    );
-    const out: Record<string, number> = {};
-    for (const r of rows) out[r.gem] = r.c;
-    return out;
-  }
-
-  /** secret_word -> count, so word assignment keeps phrase halves balanced. */
-  async secretWordCounts(eventId: string): Promise<Record<string, number>> {
-    const rows = await this.db.query<{ secret_word: string; c: number }>(
-      `SELECT secret_word, COUNT(*)::int AS c FROM participants WHERE event_id = $1 GROUP BY secret_word`,
-      [eventId],
-    );
-    const out: Record<string, number> = {};
-    for (const r of rows) out[r.secret_word] = r.c;
-    return out;
-  }
-
   /** Add to score and return the new total. */
   async addScore(id: string, delta: number): Promise<number> {
     const rows = await this.db.query<{ score: number }>(

@@ -1,5 +1,6 @@
 import type { Db } from "@/server/db/connection";
 import { ConversationsRepository } from "@/server/db/repositories/conversations";
+import { CountersRepository } from "@/server/db/repositories/counters";
 import { DrinkOrderEventsRepository, DrinkOrdersRepository } from "@/server/db/repositories/drinks";
 import {
   MissionEventsRepository,
@@ -21,6 +22,7 @@ export class Repositories {
   readonly drinkOrderEvents: DrinkOrderEventsRepository;
   readonly projection: ProjectionEventsRepository;
   readonly operatorAlerts: OperatorAlertsRepository;
+  readonly counters: CountersRepository;
 
   constructor(private readonly db: Db) {
     this.participants = new ParticipantsRepository(db);
@@ -32,6 +34,7 @@ export class Repositories {
     this.drinkOrderEvents = new DrinkOrderEventsRepository(db);
     this.projection = new ProjectionEventsRepository(db);
     this.operatorAlerts = new OperatorAlertsRepository(db);
+    this.counters = new CountersRepository(db);
   }
 
   /**

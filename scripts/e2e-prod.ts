@@ -107,6 +107,7 @@ async function wipeEvent(): Promise<number> {
   await db.query(`DELETE FROM conversations WHERE event_id = $1`, [EVENT]);
   await db.query(`DELETE FROM participants WHERE event_id = $1`, [EVENT]);
   await db.query(`DELETE FROM projection_events WHERE event_id = $1`, [EVENT]);
+  await db.query(`DELETE FROM counters WHERE event_id = $1`, [EVENT]);
   return ids.length;
 }
 
@@ -160,6 +161,12 @@ async function main(): Promise<void> {
   const lat = regs.map((r) => r.ms).sort((a, b) => a - b);
   ok(`${N} concurrent web check-ins all succeeded`, okRegs.length === N, `${okRegs.length}/${N} in ${burstMs}ms, p50=${lat[Math.floor(N / 2)]}ms p95=${lat[Math.floor(N * 0.95)]}ms`);
   ok("all burst game IDs unique (no collision under load)", ids.size === okRegs.length, `${ids.size} unique`);
+  const burstRoster = (await roster()).filter((r) => r.phone !== null && burst.includes(r.phone));
+  const tally: Record<string, number> = {};
+  for (const r of burstRoster) tally[r.gem] = (tally[r.gem] ?? 0) + 1;
+  const counts = Object.values(tally);
+  const spread = counts.length ? Math.max(...counts) - Math.min(...counts) : 99;
+  ok("gems stay evenly distributed under the burst (race-safe)", Object.keys(tally).length === 6 && spread <= 2, `spread=${spread} ${JSON.stringify(tally)}`);
 
   // ---- LOAD: 8 concurrent brain webhooks (full LLM path under concurrency) ----
   const brainBurst = Array.from({ length: 8 }, (_, i) => `+1777${String(2000000 + i).slice(-7)}`);

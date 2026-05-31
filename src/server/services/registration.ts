@@ -55,14 +55,16 @@ export class RegistrationService {
       };
     }
 
-    // Build before the transaction (reads only), then write atomically. The
-    // conversation links go through the tx repos so a rollback leaves no trace.
-    const participant = await this.buildParticipant(input);
-    await this.repos.transaction(async (r) => {
-      await r.participants.insert(participant);
-      await r.participantMissions.assign(this.eventId, participant.id, FIRST_MISSION_ID);
-      await r.conversations.setParticipant(conversation.id, participant.id);
+    // Assign + insert atomically. The assignment index comes from an event-scoped
+    // counter bumped inside this transaction, so concurrent check-ins serialize on
+    // it and each guest gets a distinct, even gem/word — no race, no skew.
+    const participant = await this.repos.transaction(async (r) => {
+      const p = await this.buildParticipant(r, input);
+      await r.participants.insert(p);
+      await r.participantMissions.assign(this.eventId, p.id, FIRST_MISSION_ID);
+      await r.conversations.setParticipant(conversation.id, p.id);
       await r.conversations.setFlow(conversation.id, FLOWS.MISSION, FIRST_MISSION_ID);
+      return p;
     });
 
     // Emit after commit so a rolled-back write never fans out a phantom tile.
@@ -98,14 +100,12 @@ export class RegistrationService {
     return null;
   }
 
-  private async buildParticipant(input: RegisterInput): Promise<Participant> {
-    const [gemCounts, secretWordCounts] = await Promise.all([
-      this.repos.participants.gemCounts(this.eventId),
-      this.repos.participants.secretWordCounts(this.eventId),
-    ]);
-    const gem = assignGem(input.category ?? null, gemCounts);
-    const secretWord = assignSecretWord(secretWordCounts);
-    const gameId = await this.uniqueGameId();
+  private async buildParticipant(repos: Repositories, input: RegisterInput): Promise<Participant> {
+    // One atomic counter bump per check-in -> a distinct, even round-robin index.
+    const index = (await repos.counters.next(this.eventId, "assign")) - 1;
+    const gem = assignGem(input.category ?? null, index);
+    const secretWord = assignSecretWord(index);
+    const gameId = await this.uniqueGameId(repos);
     const ts = now();
     return {
       id: newId("par"),
@@ -124,12 +124,12 @@ export class RegistrationService {
     };
   }
 
-  private async uniqueGameId(): Promise<string> {
+  private async uniqueGameId(repos: Repositories): Promise<string> {
     for (let attempt = 0; attempt < 20; attempt += 1) {
       const id = newGameId();
       // Skip codes that read as profanity — they go on the public board.
       if (isProfane(id)) continue;
-      if (!(await this.repos.participants.gameIdExists(this.eventId, id))) return id;
+      if (!(await repos.participants.gameIdExists(this.eventId, id))) return id;
     }
     return newGameId(5);
   }

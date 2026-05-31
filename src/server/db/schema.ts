@@ -141,4 +141,14 @@ CREATE TABLE IF NOT EXISTS fuser_assets (
   status          TEXT NOT NULL DEFAULT 'received',
   created_at      TEXT NOT NULL
 );
+
+-- Atomic per-event counters. Incremented inside the check-in transaction so each
+-- guest gets a distinct round-robin index: gem/word assignment stays even and
+-- race-free even when many guests check in at the same instant.
+CREATE TABLE IF NOT EXISTS counters (
+  event_id  TEXT NOT NULL,
+  kind      TEXT NOT NULL,
+  value     INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (event_id, kind)
+);
 `;
