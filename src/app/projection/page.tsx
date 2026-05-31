@@ -28,6 +28,7 @@ export default function ProjectionPage() {
   const [tiles, setTiles] = useState<Tiles>({});
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
   const [scene, setScene] = useState("arrival");
+  const [puzzle, setPuzzle] = useState<{ id: string; imageUrl: string | null } | null>(null);
   const [flash, setFlash] = useState<Record<string, number>>({});
   const [connected, setConnected] = useState(false);
 
@@ -41,6 +42,7 @@ export default function ProjectionPage() {
       setTiles(next);
       setStats(snap.stats);
       setScene(snap.scene);
+      setPuzzle(snap.puzzle);
       lastSeq = snap.latestSeq;
     };
 
@@ -48,6 +50,9 @@ export default function ProjectionPage() {
       const d = ev.data as Record<string, string | number | undefined>;
       const gameId = typeof d.gameId === "string" ? d.gameId : null;
       if (ev.type === "scene.changed" && typeof d.scene === "string") setScene(d.scene);
+      if (ev.type === "puzzle.changed" && typeof d.puzzleId === "string") {
+        setPuzzle({ id: d.puzzleId, imageUrl: typeof d.imageUrl === "string" ? d.imageUrl : null });
+      }
       if (ev.type === "participant.checked_in" && gameId) {
         setTiles((prev) => ({
           ...prev,
@@ -150,6 +155,23 @@ export default function ProjectionPage() {
           />
         </div>
       </header>
+
+      {(scene === "missions" || scene === "puzzle") && puzzle?.imageUrl ? (
+        <section className="mt-6 flex items-center gap-5 border border-helio/40 bg-nyx-soft/70 p-4">
+          {/* eslint-disable-next-line @next/next/no-img-element -- event asset, intentionally cropped + blurred */}
+          <img
+            src={puzzle.imageUrl}
+            alt="decode this"
+            className="h-28 w-28 shrink-0 rounded object-cover blur-[2px] contrast-125"
+          />
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-helio">decode the labyrinth</p>
+            <p className="mt-1 text-sm text-cloud">
+              Text Ariadne what this is — name the myth, object, place, or source.
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       {ordered.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-ash">

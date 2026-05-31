@@ -24,7 +24,7 @@ describe("parseDrink", () => {
     expect(parseDrink("where is the bathroom").item).toBeNull();
   });
 
-  it("does not treat the mission word 'wings' as the house drink", () => {
+  it("does not treat a mission word phrase as the house drink", () => {
     expect(parseDrink("give wings").item).toBeNull();
   });
 });

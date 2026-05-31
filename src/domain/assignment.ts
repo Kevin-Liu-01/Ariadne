@@ -1,6 +1,9 @@
 import { GEM_IDS, RSVP_CATEGORY_TO_GEM, type GemId } from "@/constants/gems";
 import { WORD_PAIRS } from "@/constants/missions";
 
+// Pairs are laid out [a0, b0, a1, b1, ...]; assigning least-used in this order
+// hands out a0, b0, a1, b1, ... so each phrase's two halves both land early and
+// the word-match mission stays solvable even with a large word bank.
 const WORD_POOL: readonly string[] = WORD_PAIRS.flat();
 
 /** Pick the least-used option so quests stay solvable; tie-break by declared order. */

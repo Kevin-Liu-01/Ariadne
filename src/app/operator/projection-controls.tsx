@@ -1,10 +1,10 @@
 "use client";
 
-import { Clapperboard, Eye, EyeOff } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clapperboard, Eye, EyeOff, Images } from "lucide-react";
 import { useState } from "react";
 import { authedFetch } from "@/app/operator/api";
 
-const SCENES = ["arrival", "runway", "missions", "elimination", "finale"];
+const SCENES = ["arrival", "runway", "missions", "puzzle", "elimination", "finale"];
 
 export function ProjectionControls({ token }: { token: string }) {
   const [scene, setScene] = useState<string | null>(null);
@@ -18,6 +18,21 @@ export function ProjectionControls({ token }: { token: string }) {
     });
     setNote(res.ok ? label : "command failed");
     setTimeout(() => setNote(null), 2500);
+  }
+
+  async function advancePuzzle(step: "next" | "prev") {
+    const res = await authedFetch(token, "/api/operator/projection", {
+      method: "POST",
+      body: JSON.stringify({ action: "puzzle", step }),
+    });
+    if (!res.ok) {
+      setNote("command failed");
+      setTimeout(() => setNote(null), 2500);
+      return;
+    }
+    const d = (await res.json()) as { label: string; index: number; total: number };
+    setNote(`puzzle ${d.index}/${d.total} → ${d.label}`);
+    setTimeout(() => setNote(null), 5000);
   }
 
   return (
@@ -72,6 +87,29 @@ export function ProjectionControls({ token }: { token: string }) {
         >
           <Eye className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
           restore
+        </button>
+      </div>
+
+      <p className="mt-5 flex items-center gap-2 text-xs leading-relaxed text-ash">
+        <Images className="h-3.5 w-3.5 shrink-0 text-helio" strokeWidth={1.5} aria-hidden />
+        Decode-the-labyrinth image on the board. Advance when the room cracks it.
+      </p>
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={() => advancePuzzle("prev")}
+          className="flex items-center gap-1.5 rounded-md border border-nyx-line px-3 py-1 text-xs text-cloud hover:border-helio/50"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+          prev
+        </button>
+        <button
+          type="button"
+          onClick={() => advancePuzzle("next")}
+          className="flex items-center gap-1.5 rounded-md border border-nyx-line px-3 py-1 text-xs text-cloud hover:border-helio/50"
+        >
+          next
+          <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
         </button>
       </div>
 

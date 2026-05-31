@@ -1,4 +1,5 @@
 import type { GemId } from "@/constants/gems";
+import type { PublicPuzzle } from "@/constants/puzzles";
 
 /** A participant rendered as a projection tile. */
 export interface TileState {
@@ -15,6 +16,8 @@ export interface TileState {
 export interface ProjectionSnapshot {
   eventId: string;
   scene: string;
+  /** The image-puzzle currently posed to the room (answers never included). */
+  puzzle: PublicPuzzle;
   latestSeq: number;
   generatedAt: string;
   participants: TileState[];

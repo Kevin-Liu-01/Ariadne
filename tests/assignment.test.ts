@@ -14,7 +14,7 @@ describe("assignGem", () => {
 });
 
 describe("assignSecretWord", () => {
-  it("hands out the least-used half-phrase word", () => {
+  it("hands out the least-used half-phrase word, completing pairs first", () => {
     expect(assignSecretWord({})).toBe("give");
     expect(assignSecretWord({ give: 1 })).toBe("wings");
   });

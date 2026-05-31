@@ -7,8 +7,14 @@ import {
   type MissionTemplate,
   type ValidationRule,
 } from "@/constants/missions";
+import { puzzleById } from "@/constants/puzzles";
 import { newId } from "@/domain/ids";
-import { extractGameIds, wordsPair } from "@/domain/mission-parse";
+import {
+  clueForParticipant,
+  extractGameIds,
+  isValidColorCombo,
+  wordsPair,
+} from "@/domain/mission-parse";
 import { containsPhrase, normalize } from "@/domain/text";
 import { now } from "@/lib/time";
 import type { Conversation, MissionResult, Participant } from "@/domain/types";
@@ -47,7 +53,8 @@ export class MissionService {
     return template.promptCopy
       .replaceAll("{gem}", GEMS[participant.gem].label)
       .replaceAll("{word}", participant.secretWord)
-      .replaceAll("{game_id}", participant.gameId);
+      .replaceAll("{game_id}", participant.gameId)
+      .replaceAll("{clue}", clueForParticipant(participant.gameId).prompt);
   }
 
   /** The current mission for a participant, assigning the next one if none is active. */
@@ -126,11 +133,26 @@ export class MissionService {
         const ok = rule.answers.some((a) => containsPhrase(haystack, normalize(a)));
         return ok ? "correct" : "incorrect";
       }
-      case "distinct_gems": {
+      case "color_combo": {
         const partners = await this.resolvePartners(partnerGameIds);
-        if (partners.length === 0) return "incorrect";
-        const gems = new Set<string>([participant.gem, ...partners.map((p) => p.gem)]);
-        return gems.size >= rule.count ? "correct" : "incorrect";
+        const group = new Map<string, Participant>([[participant.id, participant]]);
+        for (const p of partners) group.set(p.id, p);
+        const gems = [...group.values()].map((p) => p.gem);
+        return isValidColorCombo(gems) ? "correct" : "incorrect";
+      }
+      case "clue": {
+        const clue = clueForParticipant(participant.gameId);
+        const haystack = normalize(rawText);
+        const ok = clue.answers.some((a) => containsPhrase(haystack, normalize(a)));
+        return ok ? "correct" : "incorrect";
+      }
+      case "image_puzzle": {
+        // The puzzle is shared: validate against whatever image the operator
+        // currently has on the board, not a per-guest assignment.
+        const piece = puzzleById(await this.projection.currentPuzzleId());
+        const haystack = normalize(rawText);
+        const ok = piece.answers.some((a) => containsPhrase(haystack, normalize(a)));
+        return ok ? "correct" : "incorrect";
       }
       case "word_pair": {
         const partners = (await this.resolvePartners(partnerGameIds)).filter(

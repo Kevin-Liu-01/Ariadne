@@ -97,6 +97,7 @@ export type ProjectionEventType =
   | "participant.restored"
   | "drink_order.milestone"
   | "scene.changed"
+  | "puzzle.changed"
   | "fuser_asset.added";
 
 export interface ProjectionEvent {

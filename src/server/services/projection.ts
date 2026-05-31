@@ -1,4 +1,5 @@
 import { GEMS } from "@/constants/gems";
+import { DEFAULT_PUZZLE_ID, PUZZLE_BY_ID, puzzleById, toPublicPuzzle } from "@/constants/puzzles";
 import { now } from "@/lib/time";
 import { DEFAULT_SCENE, type ProjectionSnapshot, type TileState } from "@/domain/projection";
 import type { ProjectionEvent, ProjectionEventType } from "@/domain/types";
@@ -27,14 +28,23 @@ export class ProjectionService {
     return typeof scene === "string" ? scene : DEFAULT_SCENE;
   }
 
+  /** Current image-puzzle id, derived from the last operator puzzle change. */
+  async currentPuzzleId(): Promise<string> {
+    const last = await this.repos.projection.lastOfType(this.eventId, "puzzle.changed");
+    const id = last?.data.puzzleId;
+    return typeof id === "string" && PUZZLE_BY_ID.has(id) ? id : DEFAULT_PUZZLE_ID;
+  }
+
   async snapshot(): Promise<ProjectionSnapshot> {
-    const [participants, scene, latestSeq, missionsCompleted, active] = await Promise.all([
+    const [participants, scene, puzzleId, latestSeq, missionsCompleted, active] = await Promise.all([
       this.repos.participants.listByEvent(this.eventId),
       this.scene(),
+      this.currentPuzzleId(),
       this.repos.projection.latestSeq(this.eventId),
       this.repos.participantMissions.countCompleted(this.eventId),
       this.repos.drinkOrders.listActive(this.eventId),
     ]);
+    const puzzle = toPublicPuzzle(puzzleById(puzzleId));
     const tiles: TileState[] = participants.map((p, index) => ({
       gameId: p.gameId,
       displayName: p.displayName,
@@ -47,6 +57,7 @@ export class ProjectionService {
     return {
       eventId: this.eventId,
       scene,
+      puzzle,
       latestSeq,
       generatedAt: now(),
       participants: tiles,
