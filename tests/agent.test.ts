@@ -60,7 +60,7 @@ describe("conversational agent (mocked model)", () => {
     const zoe = await bb.repos.participants.findByPhone("test-event", "+1700000001");
     expect(zoe).toBeTruthy();
     expect(reply.participantId).toBe(zoe?.id);
-    expect(reply.text.toLowerCase()).toContain("you're in");
+    expect(reply.text.toLowerCase()).toContain("you're threaded in");
     expect(reply.text).toContain(zoe?.gameId ?? "??");
   });
 
