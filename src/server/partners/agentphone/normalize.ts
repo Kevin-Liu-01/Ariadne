@@ -1,4 +1,5 @@
 import type { InboundChannel } from "@/constants/event";
+import { normalizePhone } from "@/domain/phone";
 import { now } from "@/lib/time";
 import type { InteractionEvent } from "@/domain/types";
 import type { AgentphoneWebhookBody } from "@/server/partners/agentphone/types";
@@ -34,7 +35,7 @@ export function normalizeAgentphone(
     webhookId,
     channel,
     externalConversationId: str(data.conversationId) || str(data.callId) || null,
-    from: str(data.from),
+    from: normalizePhone(str(data.from)),
     to: str(data.to) || null,
     text,
     mediaUrls,

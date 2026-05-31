@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { GEMS } from "@/constants/gems";
+import { normalizePhone } from "@/domain/phone";
 import { getBackbone } from "@/server/backbone";
 import { json, problem } from "@/server/http/respond";
 
@@ -24,7 +25,7 @@ export async function POST(req: Request): Promise<Response> {
 
   const bb = getBackbone();
   const result = await bb.registration.register({
-    phone: input.phone ?? null,
+    phone: input.phone ? normalizePhone(input.phone) || null : null,
     externalConversationId: null,
     channel: input.channel ?? null,
     name: input.name ?? null,
