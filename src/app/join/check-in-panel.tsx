@@ -12,13 +12,15 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { EVENT_NAME } from "@/constants/event";
-import { GemDot } from "@/components/gem-dot";
+import type { GemId } from "@/constants/gems";
+import { GemIcon } from "@/components/gem-icon";
 import { cn } from "@/lib/utils";
 
 interface RegisterResult {
   isNew: boolean;
   participant: {
     gameId: string;
+    gem: GemId;
     gemLabel: string;
     gemHex: string;
     secretWord: string;
@@ -75,7 +77,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
         </p>
 
         <div className="mt-4 flex items-center gap-3">
-          <GemDot hex={p.gemHex} size={22} label={p.gemLabel} />
+          <GemIcon gem={p.gem} size={26} />
           <div>
             <p className="text-lg text-cloud">{p.gemLabel}</p>
             <p className="text-xs text-ash">your gem — team up with other colors</p>

@@ -1,5 +1,7 @@
 "use client";
 
+import type { GemId } from "@/constants/gems";
+
 /** Authenticated fetch for the operator console. Token is supplied by the gate. */
 export function authedFetch(token: string, path: string, init: RequestInit = {}): Promise<Response> {
   const headers: Record<string, string> = {
@@ -30,6 +32,7 @@ export interface OperatorAlert {
 export interface OperatorParticipant {
   gameId: string;
   displayName: string | null;
+  gem: GemId;
   gemLabel: string;
   gemHex: string;
   secretWord: string;

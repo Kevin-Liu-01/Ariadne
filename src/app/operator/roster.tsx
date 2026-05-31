@@ -2,7 +2,7 @@
 
 import { ChevronDown, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { GemDot } from "@/components/gem-dot";
+import { GemIcon } from "@/components/gem-icon";
 import { authedFetch, type OperatorParticipant } from "@/app/operator/api";
 import { cn } from "@/lib/utils";
 
@@ -67,7 +67,7 @@ export function Roster({ token }: { token: string }) {
                   <td className="py-2 text-cloud">{p.displayName ?? "—"}</td>
                   <td className="py-2">
                     <span className="flex items-center gap-2">
-                      <GemDot hex={p.gemHex} size={10} label={p.gemLabel} />
+                      <GemIcon gem={p.gem} size={16} />
                       <span className="text-ash">{p.gemLabel}</span>
                     </span>
                   </td>

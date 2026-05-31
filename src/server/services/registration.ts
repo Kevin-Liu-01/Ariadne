@@ -3,6 +3,7 @@ import { GEMS } from "@/constants/gems";
 import { FIRST_MISSION_ID, MISSION_BY_ID, type MissionTemplate } from "@/constants/missions";
 import { assignGem, assignSecretWord } from "@/domain/assignment";
 import { newGameId, newId } from "@/domain/ids";
+import { cleanDisplayName, isProfane } from "@/domain/profanity";
 import { now } from "@/lib/time";
 import type { Conversation, Participant } from "@/domain/types";
 import type { Repositories } from "@/server/db/repositories";
@@ -110,7 +111,7 @@ export class RegistrationService {
       id: newId("par"),
       eventId: this.eventId,
       gameId,
-      displayName: input.name ?? null,
+      displayName: cleanDisplayName(input.name),
       phone: input.phone,
       gem,
       secretWord,
@@ -126,6 +127,8 @@ export class RegistrationService {
   private async uniqueGameId(): Promise<string> {
     for (let attempt = 0; attempt < 20; attempt += 1) {
       const id = newGameId();
+      // Skip codes that read as profanity — they go on the public board.
+      if (isProfane(id)) continue;
       if (!(await this.repos.participants.gameIdExists(this.eventId, id))) return id;
     }
     return newGameId(5);
