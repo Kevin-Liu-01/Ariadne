@@ -115,11 +115,6 @@ body {
   background-position:
     left top, left top, right top, right top, left bottom, left bottom, right bottom, right bottom;
 }
-.reticle-strong::before {
-  --rc: var(--color-helio);
-  --rl: 14px;
-}
-
 /* Horizontal ledger lines behind HUD surfaces (no vertical grid). */
 .hud-grid {
   background-image: linear-gradient(

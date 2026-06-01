@@ -79,7 +79,7 @@ export default function Home() {
       <section className="grid min-h-screen grid-cols-1 gap-2 p-2 lg:h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)]">
         <HeroBentoLeft />
 
-        <section className="bgimg-nyx-waves reticle reticle-strong relative flex flex-col items-center justify-center overflow-hidden border border-nyx-line/70 px-6 py-16 text-center">
+        <section className="bgimg-nyx-waves reticle relative flex flex-col items-center justify-center overflow-hidden border border-nyx-line/70 px-6 py-16 text-center">
           <div className="absolute inset-0 bg-gradient-to-b from-nyx/75 via-nyx/40 to-nyx/85" />
           <div className="scanlines absolute inset-0" />
 
@@ -104,7 +104,7 @@ export default function Home() {
                   className={cn(
                     "reticle group block border px-5 py-3 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5",
                     l.primary
-                      ? "reticle-strong border-helio/50 bg-helio/10 hover:bg-helio/15"
+                      ? "border-helio/50 bg-helio/10 hover:bg-helio/15"
                       : "border-nyx-line/70 bg-nyx/60 hover:border-helio/50 hover:bg-nyx/40",
                   )}
                 >

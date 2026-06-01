@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://ariadne-runway.vercel.app"),
   title: `${PRODUCT_NAME} · ${EVENT_NAME}`,
   description: `${PRODUCT_TAGLINE}, a phone-first game for ${EVENT_NAME}.`,
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/icon.png", type: "image/png" }],
+    apple: "/apple-icon.png",
+  },
   openGraph: {
     title: `${PRODUCT_NAME} · ${EVENT_NAME}`,
     description: PRODUCT_TAGLINE,

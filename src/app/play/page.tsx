@@ -48,7 +48,7 @@ export default function PlayPage() {
         <h1 className="mt-3 text-center text-4xl font-semibold tracking-tight">How to play</h1>
         <p className="mt-2 text-center text-sm text-helio">{PRODUCT_TAGLINE}</p>
 
-        <section className="reticle reticle-strong mt-10 border border-nyx-line bg-nyx-soft/90 p-6 text-center">
+        <section className="reticle mt-10 border border-nyx-line bg-nyx-soft/90 p-6 text-center">
           <p className="text-xs uppercase tracking-[0.25em] text-ash">event line</p>
           <p className="mt-2 text-2xl tabular-nums tracking-wide text-cloud">{phone}</p>
           <p className="mt-3 text-sm leading-relaxed text-ash">

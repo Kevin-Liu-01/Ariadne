@@ -4,6 +4,8 @@ import { BookOpen, Home, LayoutGrid, QrCode, SlidersHorizontal } from "lucide-re
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LabyrinthThread } from "@/components/labyrinth-thread";
+import { PRODUCT_NAME } from "@/constants/event";
 import { cn } from "@/lib/utils";
 
 const ROUTES: { href: string; label: string; Icon: LucideIcon }[] = [
@@ -24,7 +26,21 @@ export function SiteNav({ className }: { className?: string }) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Site" className={cn("flex flex-wrap gap-2", className)}>
+    <nav
+      aria-label="Site"
+      className={cn("flex flex-wrap items-center gap-3", className)}
+    >
+      <Link
+        href="/"
+        className="group flex shrink-0 items-center gap-2 border border-transparent pr-1 transition-colors hover:text-helio"
+        aria-label={`${PRODUCT_NAME} home`}
+      >
+        <LabyrinthThread size={28} className="transition-transform group-hover:scale-105" />
+        <span className="hidden font-display text-sm font-extralight tracking-tight text-cloud sm:inline">
+          {PRODUCT_NAME}
+        </span>
+      </Link>
+      <div className="flex flex-wrap gap-2">
       {ROUTES.map((route) => {
         const active = isActive(pathname, route.href);
         return (
@@ -43,6 +59,7 @@ export function SiteNav({ className }: { className?: string }) {
           </Link>
         );
       })}
+      </div>
     </nav>
   );
 }

@@ -174,7 +174,7 @@ export default function ProjectionPage() {
       </header>
 
       {showPuzzle ? (
-        <section className="relative z-[2] mt-6 reticle reticle-strong flex items-center gap-6 border border-helio/40 bg-nyx-soft/80 p-5">
+        <section className="relative z-[2] mt-6 reticle flex items-center gap-6 border border-helio/40 bg-nyx-soft/80 p-5">
           {/* eslint-disable-next-line @next/next/no-img-element -- event asset, intentionally cropped + blurred */}
           <img
             src={puzzle.imageUrl!}
@@ -252,7 +252,7 @@ export default function ProjectionPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <LegendItem term="Gem" description="Your team color on the board" />
           <LegendItem term="Score" description="Missions solved tonight" />
-          <LegendItem term="Rank" description="Leaderboard position (#1–#3 highlighted)" />
+          <LegendItem term="Rank" description="Leaderboard position (#1 to #3 highlighted)" />
           <LegendItem term="Faded" description="Guest removed from the board" />
         </div>
       </footer>
@@ -316,7 +316,7 @@ function PlayerTile({ tile, rank, flash }: { tile: TileState; rank: number; flas
     <div
       className={cn(
         "reticle relative flex aspect-square flex-col items-center justify-center border border-nyx-line/70 bg-nyx-soft/80 p-3 transition-all duration-500",
-        rank <= 3 && !tile.eliminated && "reticle-strong",
+        rank <= 3 && !tile.eliminated && "border-helio/40",
         tile.eliminated && "tile-eliminated",
         flash && "border-helio shadow-[0_0_28px_rgba(210,190,255,0.45)]",
       )}

@@ -144,7 +144,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
       {smsHref ? (
         <a
           href={smsHref}
-          className="reticle reticle-strong block border border-helio/40 bg-helio/10 px-6 py-5 text-center transition-colors hover:bg-helio/15"
+          className="reticle block border border-helio/40 bg-helio/10 px-6 py-5 text-center transition-colors hover:bg-helio/15"
         >
           <span className="flex items-center justify-center gap-2 text-xs uppercase tracking-[0.25em] text-helio">
             <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
