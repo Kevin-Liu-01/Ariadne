@@ -72,14 +72,17 @@ export class AgentBrain {
 
   private grounding(participant: Participant | null, conversation: Conversation): string {
     if (!participant) {
-      return "CURRENT GUEST: not checked in yet. Check them in before anything else.";
+      return "CURRENT GUEST: not checked in yet. Ask their name, then call check_in with it. Do not check them in without a name.";
     }
+    const nameLine = participant.displayName
+      ? ` Name: ${participant.displayName}.`
+      : " Name unknown: ask once and call check_in with their answer to save it.";
     const mission = conversation.currentMissionId
       ? MISSION_BY_ID.get(conversation.currentMissionId)
       : null;
     const missionLine = mission
       ? ` Active mission: ${mission.title}. ${this.missions.renderPrompt(mission, participant)}`
       : " No active mission.";
-    return `CURRENT GUEST: gem ${GEMS[participant.gem].label}, secret word "${participant.secretWord}", game id ${participant.gameId}, score ${participant.score}.${missionLine}`;
+    return `CURRENT GUEST:${nameLine} gem ${GEMS[participant.gem].label}, secret word "${participant.secretWord}", game id ${participant.gameId}, score ${participant.score}.${missionLine}`;
   }
 }

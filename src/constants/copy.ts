@@ -6,16 +6,27 @@
  */
 
 export function welcomeCopy(p: {
+  name?: string | null;
   gemLabel: string;
   word: string;
   gameId: string;
   missionPrompt: string;
 }): string {
-  return `You're threaded in. 🪽\n\nGem: ${p.gemLabel}\nSecret word: ${p.word}\nGame ID: ${p.gameId}\n\nYour first move: ${p.missionPrompt}`;
+  const lead = p.name ? `Welcome, ${p.name}. You're threaded in. 🪽` : `You're threaded in. 🪽`;
+  return `${lead}\n\nGem: ${p.gemLabel}\nSecret word: ${p.word}\nGame ID: ${p.gameId}\n\nYour first move: ${p.missionPrompt}`;
 }
 
-export function alreadyHereCopy(p: { gemLabel: string; gameId: string }): string {
-  return `You're already threaded in. 🪽\n\nGem: ${p.gemLabel} · Game ID: ${p.gameId}\n\nText MISSION for your current move, or name a drink and I'll send it to the bar.`;
+export function askNameCopy(): string {
+  return "Welcome to the maze. What should I call you? First name is fine.";
+}
+
+export function badNameCopy(): string {
+  return "I can't put that on the board. What should I call you? First name is fine.";
+}
+
+export function alreadyHereCopy(p: { name?: string | null; gemLabel: string; gameId: string }): string {
+  const who = p.name ? `${p.name}, you're` : "You're";
+  return `${who} already threaded in. 🪽\n\nGem: ${p.gemLabel} · Game ID: ${p.gameId}\n\nText MISSION for your current move, or name a drink and I'll send it to the bar.`;
 }
 
 export function missionDeliverCopy(p: { title: string; prompt: string }): string {

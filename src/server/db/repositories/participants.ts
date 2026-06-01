@@ -127,4 +127,12 @@ export class ParticipantsRepository extends BaseRepository {
       id,
     ]);
   }
+
+  async setDisplayName(id: string, displayName: string | null): Promise<Participant | null> {
+    const rows = await this.db.query<ParticipantRow>(
+      `UPDATE participants SET display_name = $1, updated_at = $2 WHERE id = $3 RETURNING *`,
+      [displayName, now(), id],
+    );
+    return rows[0] ? toParticipant(rows[0]) : null;
+  }
 }

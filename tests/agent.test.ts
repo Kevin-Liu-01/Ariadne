@@ -43,9 +43,15 @@ const fakeChat: ChatFn = async (req) => {
   if (/lost|stolen|hurt|someone|harass|emergency/i.test(user)) {
     return toolCall("flag_operator", { reason: user });
   }
-  if (/\b(i'?m|i am|join|check)\b/i.test(user)) {
+  if (/\b(i'?m|i am)\b/i.test(user)) {
     const name = user.replace(/.*\b(i'?m|i am)\b\s*/i, "").trim();
     return toolCall("check_in", name ? { name } : {});
+  }
+  if (/\b(join|check in|hey|hello|hi)\b/i.test(user)) {
+    return toolCall("check_in", {});
+  }
+  if (/^[a-z'-]{2,30}$/i.test(user.trim())) {
+    return toolCall("check_in", { name: user.trim() });
   }
   if (/vodka|drink|soda|martini|beer|wine/i.test(user)) {
     return toolCall("order_drink", { text: user });
@@ -59,9 +65,26 @@ describe("conversational agent (mocked model)", () => {
     const reply = await bb.brain.process(inbound("+1700000001", "I'm Zoe"));
     const zoe = await bb.repos.participants.findByPhone("test-event", "+1700000001");
     expect(zoe).toBeTruthy();
+    expect(zoe?.displayName).toBe("Zoe");
     expect(reply.participantId).toBe(zoe?.id);
-    expect(reply.text.toLowerCase()).toContain("you're threaded in");
+    expect(reply.text.toLowerCase()).toContain("welcome, zoe");
     expect(reply.text).toContain(zoe?.gameId ?? "??");
+  });
+
+  it("asks for a name before check-in when none is given", async () => {
+    const bb = await freshBackbone(fakeChat);
+    const reply = await bb.brain.process(inbound("+1700000005", "hey"));
+    expect(await bb.repos.participants.findByPhone("test-event", "+1700000005")).toBeNull();
+    expect(reply.text.toLowerCase()).toContain("what should i call you");
+  });
+
+  it("threads in after the guest replies with their name", async () => {
+    const bb = await freshBackbone(fakeChat);
+    await bb.brain.process(inbound("+1700000006", "JOIN"));
+    const reply = await bb.brain.process(inbound("+1700000006", "Kevin"));
+    const guest = await bb.repos.participants.findByPhone("test-event", "+1700000006");
+    expect(guest?.displayName).toBe("Kevin");
+    expect(reply.text.toLowerCase()).toContain("welcome, kevin");
   });
 
   it("routes a drink request through the order_drink tool", async () => {

@@ -1,5 +1,7 @@
 import {
   alreadyHereCopy,
+  askNameCopy,
+  badNameCopy,
   drinkClarifyCopy,
   drinkQueuedCopy,
   drinkUnavailableCopy,
@@ -12,6 +14,7 @@ import {
 import type { InboundChannel } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import { assertNever } from "@/lib/assert";
+import { cleanDisplayName } from "@/domain/profanity";
 import type { Conversation, Participant } from "@/domain/types";
 import type { Repositories } from "@/server/db/repositories";
 import type { ConversationService } from "@/server/services/conversations";
@@ -56,11 +59,43 @@ function pickText(args: Record<string, unknown>, keys: string[]): string {
   return "";
 }
 
+/** Words that look like names but are not. */
+const NOT_A_NAME = new Set([
+  "join",
+  "hi",
+  "hello",
+  "hey",
+  "help",
+  "mission",
+  "drink",
+  "yes",
+  "no",
+  "ok",
+  "okay",
+  "thanks",
+  "thank",
+  "stop",
+]);
+
 /** Light name extraction for when the model omits the name arg. */
 function guessName(text: string): string | null {
   const m = text.match(/\b(?:i'?m|i am|this is|name'?s|call me)\s+([a-z][a-z'-]{1,30})/i);
-  if (!m?.[1]) return null;
-  return m[1][0].toUpperCase() + m[1].slice(1).toLowerCase();
+  if (m?.[1]) return titleName(m[1]);
+  const bare = text.trim();
+  if (/^[a-z][a-z'-]{0,29}$/i.test(bare) && !NOT_A_NAME.has(bare.toLowerCase())) {
+    return titleName(bare);
+  }
+  return null;
+}
+
+function titleName(raw: string): string {
+  return raw[0].toUpperCase() + raw.slice(1).toLowerCase();
+}
+
+function resolveName(args: Record<string, unknown>, userText: string): string | null {
+  const raw = pickText(args, ["name", "guest_name"]) || guessName(userText);
+  if (!raw) return null;
+  return raw.trim() || null;
 }
 
 /** Resolve the live conversation + participant for this phone, fresh each call. */
@@ -88,23 +123,54 @@ const checkIn: Tool = {
     function: {
       name: "check_in",
       description:
-        "Thread a guest into the event: assigns their color gem, secret word, game id, and first mission. Call this the first time someone with no record messages. Use their name if they gave one.",
+        "Thread a guest into the event: assigns their color gem, secret word, game id, and first mission. Requires their name. If they have not given one, ask first and do not call this until they do.",
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "guest's name if given" },
+          name: { type: "string", description: "guest's first name (required for new check-ins)" },
           category: { type: "string", description: "RSVP cohort if known (engineers/founders/artists/...)" },
         },
-        required: [],
+        required: ["name"],
       },
     },
   },
   execute: async (args, ctx) => {
+    const rawName = resolveName(args, ctx.userText);
+    const displayName = rawName ? cleanDisplayName(rawName) : null;
+    if (rawName && !displayName) return { needs_name: true, say: badNameCopy() };
+
+    const { participant: existing } = await resolve(ctx);
+    if (existing) {
+      if (!existing.displayName && displayName) {
+        const updated = await ctx.repos.participants.setDisplayName(existing.id, displayName);
+        const p = updated ?? existing;
+        return {
+          is_new: false,
+          name_saved: true,
+          gem: GEMS[p.gem].label,
+          game_id: p.gameId,
+          say: alreadyHereCopy({ name: p.displayName, gemLabel: GEMS[p.gem].label, gameId: p.gameId }),
+        };
+      }
+      return {
+        is_new: false,
+        gem: GEMS[existing.gem].label,
+        game_id: existing.gameId,
+        say: alreadyHereCopy({
+          name: existing.displayName,
+          gemLabel: GEMS[existing.gem].label,
+          gameId: existing.gameId,
+        }),
+      };
+    }
+
+    if (!displayName) return { needs_name: true, say: askNameCopy() };
+
     const result = await ctx.registration.register({
       phone: ctx.from,
       externalConversationId: ctx.externalConversationId,
       channel: ctx.channel,
-      name: pickText(args, ["name", "guest_name"]) || guessName(ctx.userText),
+      name: displayName,
       category: pickText(args, ["category", "cohort"]) || null,
     });
     const p = result.participant;
@@ -112,8 +178,18 @@ const checkIn: Tool = {
       ? ctx.missions.renderPrompt(result.firstMission, p)
       : "";
     const say = result.isNew
-      ? welcomeCopy({ gemLabel: GEMS[p.gem].label, word: p.secretWord, gameId: p.gameId, missionPrompt })
-      : alreadyHereCopy({ gemLabel: GEMS[p.gem].label, gameId: p.gameId });
+      ? welcomeCopy({
+          name: p.displayName,
+          gemLabel: GEMS[p.gem].label,
+          word: p.secretWord,
+          gameId: p.gameId,
+          missionPrompt,
+        })
+      : alreadyHereCopy({
+          name: p.displayName,
+          gemLabel: GEMS[p.gem].label,
+          gameId: p.gameId,
+        });
     return {
       is_new: result.isNew,
       gem: GEMS[p.gem].label,
