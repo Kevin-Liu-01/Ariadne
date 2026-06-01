@@ -12,19 +12,19 @@ function BentoWall({ children, className }: { children: ReactNode; className?: s
 }
 
 /**
- * Left wall: posters get full width, runway gets a tall column, textures fill gaps.
+ * Left wall.
  *
- * Row budget (12): runway+lines 4 | nytw 3 | archives 3 | byoa+smoke 2
+ * Row budget (12): runway+lines 4 | nytw+archives 4 | byoa 2 | cloud-lines 2
  */
 export function HeroBentoLeft() {
   return (
     <BentoWall>
       <BentoCell bg="bgimg-event-runway" tone="veil" className="row-span-4" />
       <BentoCell bg="bgimg-nyx-lines" className="row-span-4" />
-      <BentoCell bg="bgimg-event-nytw" fit="contain" tone="none" className="col-span-2 row-span-3" />
-      <BentoCell bg="bgimg-event-a2a" fit="contain" tone="none" className="col-span-2 row-span-3" />
-      <BentoCell bg="bgimg-event-byoa" tone="veil" className="row-span-2" />
-      <BentoCell bg="bgimg-hero-smoke" tone="veil" className="row-span-2" />
+      <BentoCell bg="bgimg-event-nytw" fit="contain" tone="none" className="row-span-4" />
+      <BentoCell bg="bgimg-event-a2a" fit="contain" tone="none" className="row-span-4" />
+      <BentoCell bg="bgimg-event-byoa" tone="veil" className="col-span-2 row-span-2" />
+      <BentoCell bg="bgimg-cloud-lines" tone="veil" className="col-span-2 row-span-2" />
     </BentoWall>
   );
 }
@@ -32,7 +32,7 @@ export function HeroBentoLeft() {
 /**
  * Right wall: ultrawide team photo spans full width; hero sky anchors the top.
  *
- * Row budget (12): hero sky 5 | team 4 | waves+cloud 3
+ * Row budget (12): hero sky 5 | team 4 | waves+smoke 3
  */
 export function HeroBentoRight() {
   return (
@@ -40,7 +40,7 @@ export function HeroBentoRight() {
       <BentoCell bg="bgimg-hero-sky" tone="veil" className="col-span-2 row-span-5" />
       <BentoCell bg="bgimg-event-team" tone="veil" className="col-span-2 row-span-4" />
       <BentoCell bg="bgimg-nyx-waves" className="row-span-3" />
-      <BentoCell bg="bgimg-cloud-lines" tone="veil" className="row-span-3" />
+      <BentoCell bg="bgimg-hero-smoke" tone="veil" className="row-span-3" />
     </BentoWall>
   );
 }
