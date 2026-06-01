@@ -135,4 +135,48 @@ export class ParticipantsRepository extends BaseRepository {
     );
     return rows[0] ? toParticipant(rows[0]) : null;
   }
+
+  /** Operator edit. Only the provided fields are written; column names are literal, values parameterized. */
+  async applyEdits(id: string, edit: ParticipantEdit): Promise<Participant | null> {
+    const sets: string[] = [];
+    const values: unknown[] = [];
+    const columns: [keyof ParticipantEdit, string][] = [
+      ["displayName", "display_name"],
+      ["gem", "gem"],
+      ["secretWord", "secret_word"],
+      ["score", "score"],
+      ["eliminated", "eliminated"],
+    ];
+    for (const [key, column] of columns) {
+      if (edit[key] === undefined) continue;
+      values.push(edit[key]);
+      sets.push(`${column} = $${values.length}`);
+    }
+    if (sets.length === 0) return this.findById(id);
+    values.push(now());
+    sets.push(`updated_at = $${values.length}`);
+    values.push(id);
+    const rows = await this.db.query<ParticipantRow>(
+      `UPDATE participants SET ${sets.join(", ")} WHERE id = $${values.length} RETURNING *`,
+      values,
+    );
+    return rows[0] ? toParticipant(rows[0]) : null;
+  }
+
+  async remove(id: string): Promise<boolean> {
+    const rows = await this.db.query<{ id: string }>(
+      `DELETE FROM participants WHERE id = $1 RETURNING id`,
+      [id],
+    );
+    return rows.length === 1;
+  }
+}
+
+/** Fields an operator may change on a guest. Absent fields are left untouched. */
+export interface ParticipantEdit {
+  displayName?: string | null;
+  gem?: GemId;
+  secretWord?: string;
+  score?: number;
+  eliminated?: boolean;
 }

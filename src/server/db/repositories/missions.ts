@@ -110,6 +110,10 @@ export class ParticipantMissionsRepository extends BaseRepository {
       [status, participantId, missionId],
     );
   }
+
+  async removeByParticipant(participantId: string): Promise<void> {
+    await this.db.query(`DELETE FROM participant_missions WHERE participant_id = $1`, [participantId]);
+  }
 }
 
 interface MissionEventRow {
@@ -148,6 +152,10 @@ export class MissionEventsRepository extends BaseRepository {
         e.createdAt,
       ],
     );
+  }
+
+  async removeByParticipant(participantId: string): Promise<void> {
+    await this.db.query(`DELETE FROM mission_events WHERE participant_id = $1`, [participantId]);
   }
 
   async listByParticipant(participantId: string): Promise<MissionEvent[]> {

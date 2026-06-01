@@ -100,4 +100,12 @@ export class ConversationsRepository extends BaseRepository {
       id,
     ]);
   }
+
+  /** Detach any conversations from a guest the operator is deleting, back to an idle thread. */
+  async unlinkParticipant(participantId: string): Promise<void> {
+    await this.db.query(
+      `UPDATE conversations SET participant_id = NULL, current_flow = 'idle', current_mission_id = NULL, updated_at = $1 WHERE participant_id = $2`,
+      [now(), participantId],
+    );
+  }
 }

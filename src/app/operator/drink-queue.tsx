@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, Hand, Play, Wine, X } from "lucide-react";
+import { Check, Hand, Pencil, Play, Wine, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { DRINK_STATUSES } from "@/constants/drinks";
 import { authedFetch, type OperatorOrder } from "@/app/operator/api";
+import { DrinkEditor } from "@/app/operator/drink-editor";
 import {
   DRINK_PIPELINE,
   drinkCategoryForLabel,
@@ -59,9 +60,11 @@ function DrinkPipeline({ status }: { status: string }) {
 function OrderRow({
   order,
   onUpdate,
+  onEdit,
 }: {
   order: OperatorOrder;
   onUpdate: (id: string, status: string) => Promise<void>;
+  onEdit: (order: OperatorOrder) => void;
 }) {
   const category = drinkCategoryForLabel(order.label);
   const CategoryIcon = drinkCategoryIcon(category);
@@ -106,6 +109,15 @@ function OrderRow({
               {a.label}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => onEdit(order)}
+            aria-label="edit order"
+            className="flex items-center gap-1.5 rounded-md border border-nyx-line px-3 py-1.5 text-xs text-ash hover:border-helio/50 hover:text-cloud"
+          >
+            <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            edit
+          </button>
         </div>
       </div>
     </li>
@@ -117,6 +129,7 @@ export function DrinkQueue({ token }: { token: string }) {
   const [recent, setRecent] = useState<OperatorOrder[]>([]);
   const [error, setError] = useState<"auth" | "offline" | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [editing, setEditing] = useState<OperatorOrder | null>(null);
 
   const statusCounts = useMemo(() => {
     const counts = { queued: 0, in_progress: 0, ready: 0 };
@@ -192,7 +205,7 @@ export function DrinkQueue({ token }: { token: string }) {
         {active.length === 0 && !error ? (
           <li className="text-sm text-ash">no open orders. quiet bar.</li>
         ) : (
-          active.map((o) => <OrderRow key={o.id} order={o} onUpdate={update} />)
+          active.map((o) => <OrderRow key={o.id} order={o} onUpdate={update} onEdit={setEditing} />)
         )}
       </ul>
       {recent.length > 0 ? (
@@ -200,10 +213,18 @@ export function DrinkQueue({ token }: { token: string }) {
           <p className="mt-5 text-[10px] uppercase tracking-widest text-ash">recent (picked up / cancelled)</p>
           <ul className="mt-2 space-y-2 opacity-75">
             {recent.slice(0, 6).map((o) => (
-              <OrderRow key={o.id} order={o} onUpdate={update} />
+              <OrderRow key={o.id} order={o} onUpdate={update} onEdit={setEditing} />
             ))}
           </ul>
         </>
+      ) : null}
+      {editing ? (
+        <DrinkEditor
+          token={token}
+          order={editing}
+          onClose={() => setEditing(null)}
+          onChanged={refresh}
+        />
       ) : null}
       {note ? <p className="mt-3 text-xs text-helio">{note}</p> : null}
       <p className="mt-3 text-xs leading-relaxed text-ash">

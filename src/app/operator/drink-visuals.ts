@@ -37,3 +37,14 @@ export function pipelineIndex(status: string): number {
   const idx = (DRINK_PIPELINE as readonly string[]).indexOf(status);
   return idx >= 0 ? idx : 0;
 }
+
+/** Available items in the same category as the given drink, for "swap to" recommendations. */
+export function sameCategoryDrinkIds(menuItemId: string): Set<string> {
+  const item = DRINK_MENU.find((d) => d.id === menuItemId);
+  if (!item) return new Set();
+  return new Set(
+    DRINK_MENU.filter((d) => d.category === item.category && d.id !== menuItemId && d.available).map(
+      (d) => d.id,
+    ),
+  );
+}

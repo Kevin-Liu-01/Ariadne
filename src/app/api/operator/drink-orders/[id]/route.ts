@@ -11,8 +11,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const PatchBody = z.object({
-  status: z.enum(DRINK_STATUSES),
+  status: z.enum(DRINK_STATUSES).optional(),
   note: z.string().trim().max(200).optional(),
+  menuItemId: z.string().trim().min(1).optional(),
+  modifiers: z.array(z.string().trim().min(1).max(40)).max(8).optional(),
 });
 
 export async function PATCH(
@@ -26,15 +28,38 @@ export async function PATCH(
   try {
     body = PatchBody.parse(await req.json());
   } catch {
-    return problem(422, "invalid status update");
+    return problem(422, "invalid drink update");
   }
 
-  const updated = await getBackbone().drinks.updateStatus(id, body.status, body.note ?? null);
-  if (!updated) return problem(404, "order not found");
+  const bb = getBackbone();
 
-  // Notify the guest when the drink is ready (best-effort).
-  if (body.status === "ready") {
-    void sendToParticipant(updated.participantId, drinkReadyCopy(updated.label));
+  // An item swap takes precedence over a status move; the editor sends one or the other.
+  if (body.menuItemId) {
+    const edited = await bb.drinks.editItem(id, body.menuItemId, body.modifiers ?? []);
+    if (!edited) return problem(404, "order or menu item not found");
+    return json(edited);
   }
-  return json(updated);
+
+  if (body.status) {
+    const updated = await bb.drinks.updateStatus(id, body.status, body.note ?? null);
+    if (!updated) return problem(404, "order not found");
+    // Notify the guest when the drink is ready (best-effort).
+    if (body.status === "ready") {
+      void sendToParticipant(updated.participantId, drinkReadyCopy(updated.label));
+    }
+    return json(updated);
+  }
+
+  return problem(422, "nothing to update");
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<Response> {
+  if (!bearerOk(req, env.operatorToken)) return problem(401, "unauthorized");
+  const { id } = await params;
+  const removed = await getBackbone().drinks.remove(id);
+  if (!removed) return problem(404, "order not found");
+  return json({ ok: true });
 }

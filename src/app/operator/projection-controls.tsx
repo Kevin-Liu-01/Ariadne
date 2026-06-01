@@ -1,15 +1,29 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Clapperboard, Eye, EyeOff, Images } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { SCENES, nextScene } from "@/constants/scenes";
 import { authedFetch } from "@/app/operator/api";
-
-const SCENES = ["arrival", "runway", "missions", "puzzle", "elimination", "finale"];
+import { RecommendationStrip, type Suggestion } from "@/app/operator/recommendation-strip";
 
 export function ProjectionControls({ token }: { token: string }) {
   const [scene, setScene] = useState<string | null>(null);
   const [gameId, setGameId] = useState("");
   const [note, setNote] = useState<string | null>(null);
+
+  // Load the current scene so we can recommend the next one in the run of show.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/projection/state")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((snap: { scene?: string } | null) => {
+        if (!cancelled && snap?.scene) setScene(snap.scene);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function post(body: unknown, label: string) {
     const res = await authedFetch(token, "/api/operator/projection", {
@@ -18,6 +32,19 @@ export function ProjectionControls({ token }: { token: string }) {
     });
     setNote(res.ok ? label : "command failed");
     setTimeout(() => setNote(null), 2500);
+  }
+
+  const recommendedNext = nextScene(scene ?? "arrival");
+  const sceneItems: Suggestion[] = SCENES.map((s) => ({
+    id: s.id,
+    label: s.id,
+    note: s.note,
+    recommended: s.id === recommendedNext,
+  }));
+
+  function pickScene(id: string) {
+    setScene(id);
+    void post({ action: "scene", scene: id }, `scene to ${id}`);
   }
 
   async function advancePuzzle(step: "next" | "prev") {
@@ -43,22 +70,15 @@ export function ProjectionControls({ token }: { token: string }) {
       </h2>
 
       <p className="mt-4 text-xs text-ash">scene: sets the mood label on the projection board</p>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {SCENES.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => {
-              setScene(s);
-              post({ action: "scene", scene: s }, `scene → ${s}`);
-            }}
-            className={`rounded-md border px-3 py-1 text-xs transition-colors ${
-              scene === s ? "border-helio text-helio" : "border-nyx-line text-cloud hover:border-helio/50"
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+      <div className="mt-3">
+        <RecommendationStrip
+          label="scene"
+          hint="next in the run of show recommended"
+          items={sceneItems}
+          activeId={scene}
+          onPick={pickScene}
+          columns={3}
+        />
       </div>
 
       <p className="mt-5 text-xs leading-relaxed text-ash">

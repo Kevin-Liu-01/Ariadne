@@ -1,4 +1,4 @@
-import type { DrinkStatus } from "@/constants/drinks";
+import { DRINK_MENU, type DrinkStatus } from "@/constants/drinks";
 import { parseDrink } from "@/domain/drink-parse";
 import { newId } from "@/domain/ids";
 import { now } from "@/lib/time";
@@ -75,6 +75,29 @@ export class DrinkService {
       });
     }
     return updated;
+  }
+
+  /** Operator edit: swap the ordered item / modifiers. Returns null if the item id is unknown. */
+  async editItem(
+    orderId: string,
+    menuItemId: string,
+    modifiers: string[],
+  ): Promise<DrinkOrder | null> {
+    const item = DRINK_MENU.find((d) => d.id === menuItemId);
+    if (!item) return null;
+    return this.repos.transaction(async (r) => {
+      const updated = await r.drinkOrders.updateItem(orderId, item.id, item.label, modifiers);
+      if (updated) await r.drinkOrderEvents.insert(orderId, updated.status, `edited to ${item.label}`);
+      return updated;
+    });
+  }
+
+  /** Operator delete: drop an order and its history entirely. */
+  async remove(orderId: string): Promise<boolean> {
+    return this.repos.transaction(async (r) => {
+      await r.drinkOrderEvents.deleteByOrder(orderId);
+      return r.drinkOrders.remove(orderId);
+    });
   }
 
   async listActive(): Promise<DrinkOrder[]> {

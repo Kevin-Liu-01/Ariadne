@@ -14,6 +14,7 @@ export function authedFetch(token: string, path: string, init: RequestInit = {})
 
 export interface OperatorOrder {
   id: string;
+  menuItemId: string;
   label: string;
   status: string;
   modifiers: string[];
@@ -30,6 +31,7 @@ export interface OperatorAlert {
 }
 
 export interface OperatorParticipant {
+  id: string;
   gameId: string;
   displayName: string | null;
   gem: GemId;

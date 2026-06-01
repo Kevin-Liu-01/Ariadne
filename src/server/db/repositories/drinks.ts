@@ -100,6 +100,37 @@ export class DrinkOrdersRepository extends BaseRepository {
     return rows[0]?.c ?? 0;
   }
 
+  /** Operator edit: swap the ordered item and its modifiers, leaving status/history intact. */
+  async updateItem(
+    id: string,
+    menuItemId: string,
+    label: string,
+    modifiers: string[],
+  ): Promise<DrinkOrder | null> {
+    const rows = await this.db.query<DrinkOrderRow>(
+      `UPDATE drink_orders SET menu_item_id = $1, label = $2, modifiers = $3 WHERE id = $4 RETURNING *`,
+      [menuItemId, label, JSON.stringify(modifiers), id],
+    );
+    return rows[0] ? toDrinkOrder(rows[0]) : null;
+  }
+
+  async remove(id: string): Promise<boolean> {
+    const rows = await this.db.query<{ id: string }>(
+      `DELETE FROM drink_orders WHERE id = $1 RETURNING id`,
+      [id],
+    );
+    return rows.length === 1;
+  }
+
+  /** Drop every order (and its events) for a guest. Used when an operator deletes the guest. */
+  async removeByParticipant(participantId: string): Promise<void> {
+    await this.db.query(
+      `DELETE FROM drink_order_events WHERE order_id IN (SELECT id FROM drink_orders WHERE participant_id = $1)`,
+      [participantId],
+    );
+    await this.db.query(`DELETE FROM drink_orders WHERE participant_id = $1`, [participantId]);
+  }
+
   /** Update status, stamping ready_at / picked_up_at as the order moves. */
   async setStatus(id: string, status: DrinkStatus, note: string | null): Promise<DrinkOrder | null> {
     const ts = now();
@@ -127,6 +158,10 @@ export class DrinkOrderEventsRepository extends BaseRepository {
       `INSERT INTO drink_order_events (id, order_id, status, note, created_at) VALUES ($1, $2, $3, $4, $5)`,
       [newId("doe"), orderId, status, note, now()],
     );
+  }
+
+  async deleteByOrder(orderId: string): Promise<void> {
+    await this.db.query(`DELETE FROM drink_order_events WHERE order_id = $1`, [orderId]);
   }
 
   async listByOrder(

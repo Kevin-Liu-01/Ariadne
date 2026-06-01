@@ -28,6 +28,20 @@ export function isGemId(value: string): value is GemId {
   return value in GEMS;
 }
 
+/** The gem with the fewest holders, for a balanced "recommended" reassignment. Ties break by gem order. */
+export function leastUsedGem(counts: Partial<Record<GemId, number>>): GemId {
+  let best: GemId = GEM_IDS[0];
+  let fewest = Number.POSITIVE_INFINITY;
+  for (const id of GEM_IDS) {
+    const count = counts[id] ?? 0;
+    if (count < fewest) {
+      fewest = count;
+      best = id;
+    }
+  }
+  return best;
+}
+
 /** Free-text RSVP category -> gem. Unknown categories fall to balanced assignment, not here. */
 export const RSVP_CATEGORY_TO_GEM: Record<string, GemId> = {
   founder: "amethyst",
