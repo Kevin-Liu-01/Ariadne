@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: `${PRODUCT_NAME} · ${EVENT_NAME}`,
   description: `${PRODUCT_TAGLINE}, a phone-first game for ${EVENT_NAME}.`,
   icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/icon.png", type: "image/png" }],
+    icon: "/icon.png",
     apple: "/apple-icon.png",
   },
   openGraph: {

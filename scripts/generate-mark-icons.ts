@@ -14,14 +14,12 @@ const APP = join(ROOT, "src/app");
 
 const HELIO = "#d2beff";
 const ASH = "#8a8a8a";
-const NYX = "#0f0f0f";
 
 function markSvg(size = 100): string {
   const walls = LABYRINTH_WALLS.map((d) => `<path d="${d}"/>`).join("\n    ");
   const thread = labyrinthThreadPath();
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}">
-  <rect width="100" height="100" fill="${NYX}"/>
   <g fill="none" stroke="${ASH}" stroke-opacity="0.45" stroke-width="1.4" stroke-linecap="round">
     ${walls}
   </g>
@@ -43,14 +41,12 @@ async function writePng(name: string, px: number): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const svg = markSvg();
-  writeFileSync(join(APP, "icon.svg"), `${svg}\n`, "utf8");
-  writeFileSync(join(ROOT, "public/brand/ariadne-icon.svg"), `${svg}\n`, "utf8");
+  writeFileSync(join(ROOT, "public/brand/ariadne-icon.svg"), `${markSvg()}\n`, "utf8");
 
   await writePng("icon.png", 512);
   await writePng("apple-icon.png", 180);
 
-  console.log("Wrote icon.svg, icon.png, apple-icon.png, public/brand/ariadne-icon.svg");
+  console.log("Wrote icon.png, apple-icon.png, public/brand/ariadne-icon.svg");
 }
 
 main().catch((err) => {
