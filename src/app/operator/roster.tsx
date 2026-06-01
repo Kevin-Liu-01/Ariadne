@@ -8,16 +8,26 @@ import { cn } from "@/lib/utils";
 
 export function Roster({ token }: { token: string }) {
   const [people, setPeople] = useState<OperatorParticipant[]>([]);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
+  const [error, setError] = useState<"auth" | "offline" | null>(null);
 
   const refresh = useCallback(async () => {
     try {
       const res = await authedFetch(token, "/api/operator/participants");
-      if (!res.ok) return;
+      if (res.status === 401) {
+        setError("auth");
+        return;
+      }
+      if (!res.ok) {
+        setError("offline");
+        return;
+      }
       const data = (await res.json()) as { participants: OperatorParticipant[] };
       setPeople(data.participants);
+      setError(null);
+      if (data.participants.length > 0) setOpen(true);
     } catch {
-      // transient; next poll retries
+      setError("offline");
     }
   }, [token]);
 
@@ -48,6 +58,12 @@ export function Roster({ token }: { token: string }) {
         </span>
       </button>
 
+      {error ? (
+        <p className="mt-3 text-xs text-red-400">
+          {error === "auth" ? "token rejected, lock and re-enter the production token." : "cannot load roster."}
+        </p>
+      ) : null}
+
       {open ? (
         <div className="mt-4 max-h-80 overflow-auto">
           <table className="w-full text-left text-sm">
@@ -61,7 +77,14 @@ export function Roster({ token }: { token: string }) {
               </tr>
             </thead>
             <tbody>
-              {people.map((p) => (
+              {people.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-4 text-sm text-ash">
+                    no guests checked in yet.
+                  </td>
+                </tr>
+              ) : (
+                people.map((p) => (
                 <tr key={p.gameId} className="border-t border-nyx-line/60">
                   <td className="py-2 tabular-nums tracking-[0.12em] text-helio">{p.gameId}</td>
                   <td className="py-2 text-cloud">{p.displayName ?? "n/a"}</td>
@@ -74,7 +97,8 @@ export function Roster({ token }: { token: string }) {
                   <td className="py-2 tracking-wide text-ash">{p.secretWord}</td>
                   <td className="py-2 text-right tabular-nums text-cloud">{p.score}</td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>

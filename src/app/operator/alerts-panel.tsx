@@ -6,15 +6,24 @@ import { authedFetch, type OperatorAlert } from "@/app/operator/api";
 
 export function AlertsPanel({ token }: { token: string }) {
   const [alerts, setAlerts] = useState<OperatorAlert[]>([]);
+  const [error, setError] = useState<"auth" | "offline" | null>(null);
 
   const refresh = useCallback(async () => {
     try {
       const res = await authedFetch(token, "/api/operator/alerts");
-      if (!res.ok) return;
+      if (res.status === 401) {
+        setError("auth");
+        return;
+      }
+      if (!res.ok) {
+        setError("offline");
+        return;
+      }
       const data = (await res.json()) as { alerts: OperatorAlert[] };
       setAlerts(data.alerts);
+      setError(null);
     } catch {
-      // transient; next poll retries
+      setError("offline");
     }
   }, [token]);
 
@@ -40,6 +49,11 @@ export function AlertsPanel({ token }: { token: string }) {
         </h2>
         <span className="tabular-nums text-xs text-ash">{alerts.length} open</span>
       </div>
+      {error ? (
+        <p className="mt-3 text-xs text-red-400">
+          {error === "auth" ? "token rejected, lock and re-enter the production token." : "cannot load alerts."}
+        </p>
+      ) : null}
       <ul className="mt-4 space-y-2">
         {alerts.length === 0 ? (
           <li className="text-sm text-ash">no alerts, all quiet.</li>

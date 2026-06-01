@@ -1,37 +1,17 @@
 "use client";
 
 import { Lock, LogOut } from "lucide-react";
-import { useEffect, useState } from "react";
 import { PRODUCT_NAME } from "@/constants/event";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { AlertsPanel } from "@/app/operator/alerts-panel";
+import { ConnectionBanner } from "@/app/operator/connection-banner";
 import { DrinkQueue } from "@/app/operator/drink-queue";
 import { ProjectionControls } from "@/app/operator/projection-controls";
 import { Roster } from "@/app/operator/roster";
-
-const TOKEN_KEY = "ariadne_operator_token";
+import { useOperatorToken } from "@/app/operator/use-operator-token";
 
 export default function OperatorPage() {
-  const [token, setToken] = useState("");
-  const [input, setInput] = useState("");
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem(TOKEN_KEY);
-    if (saved) setToken(saved);
-  }, []);
-
-  function unlock() {
-    const t = input.trim();
-    if (!t) return;
-    window.localStorage.setItem(TOKEN_KEY, t);
-    setToken(t);
-  }
-
-  function lock() {
-    window.localStorage.removeItem(TOKEN_KEY);
-    setToken("");
-    setInput("");
-  }
+  const { token, input, setInput, unlock, lock } = useOperatorToken();
 
   if (!token) {
     return (
@@ -45,8 +25,9 @@ export default function OperatorPage() {
             {PRODUCT_NAME} · operator
           </h1>
           <p className="mt-1 text-xs leading-relaxed text-ash">
-            Staff console: bar queue, run-of-show, roster, and guest alerts. Enter the operator
-            token (<span className="text-cloud">ARIADNE_OPERATOR_TOKEN</span>) to open it.
+            Staff console: bar queue, run-of-show, roster, and guest alerts. Paste the production
+            token from Vercel env <span className="text-cloud">ARIADNE_OPERATOR_TOKEN</span>, or open
+            a staff link with <span className="text-cloud">?token=...</span> on this URL.
           </p>
           <input
             value={input}
@@ -84,7 +65,8 @@ export default function OperatorPage() {
           lock
         </button>
       </header>
-      <div className="mt-6">
+      <ConnectionBanner token={token} />
+      <div className="mt-2">
         <AlertsPanel token={token} />
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
