@@ -3,32 +3,31 @@ import { cn } from "@/lib/utils";
 interface BentoCellProps {
   /** A `bgimg-*` brand background class from globals.css. */
   bg: string;
-  label?: string;
   /** How heavily to scrim the image so the wall reads as cohesive dark UI. */
-  tone?: "dark" | "veil";
+  tone?: "dark" | "veil" | "none";
+  /** `contain` shows the full asset (posters); default is cover crop. */
+  fit?: "cover" | "contain";
   className?: string;
 }
 
-/** A reticle-framed bento tile filled with a brand background and a HUD label. */
-export function BentoCell({ bg, label, tone = "dark", className }: BentoCellProps) {
+/** A reticle-framed bento tile filled with a brand background. */
+export function BentoCell({ bg, tone = "dark", fit = "cover", className }: BentoCellProps) {
   return (
     <div
       className={cn(
-        "reticle group relative overflow-hidden border border-nyx-line/70",
+        "reticle group relative overflow-hidden border border-nyx-line/70 bg-nyx",
         bg,
+        fit === "contain" && "bgimg-fit-contain",
         className,
       )}
     >
-      <div
-        className={cn(
-          "absolute inset-0 transition-colors duration-500",
-          tone === "dark" ? "bg-nyx/55 group-hover:bg-nyx/30" : "bg-nyx/25 group-hover:bg-nyx/10",
-        )}
-      />
-      {label ? (
-        <span className="absolute bottom-2 left-2 z-[3] text-[10px] uppercase tracking-[0.25em] text-cloud/70">
-          {label}
-        </span>
+      {tone !== "none" ? (
+        <div
+          className={cn(
+            "absolute inset-0 transition-colors duration-500",
+            tone === "dark" ? "bg-nyx/55 group-hover:bg-nyx/30" : "bg-nyx/25 group-hover:bg-nyx/10",
+          )}
+        />
       ) : null}
     </div>
   );

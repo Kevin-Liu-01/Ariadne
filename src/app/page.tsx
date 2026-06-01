@@ -4,7 +4,7 @@ import Link from "next/link";
 import { EVENT_NAME, PRODUCT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
-import { BentoCell } from "@/components/bento-cell";
+import { HeroBentoLeft, HeroBentoRight } from "@/components/hero-bento-walls";
 import { GemIcon } from "@/components/gem-icon";
 import { cn } from "@/lib/utils";
 
@@ -76,15 +76,8 @@ export default function Home() {
   return (
     <main className="flex flex-col">
       {/* Hero: photo bento walls flanking the wordmark */}
-      <section className="grid min-h-screen grid-cols-1 gap-2 p-2 lg:h-screen lg:grid-cols-[1fr_1.5fr_1fr]">
-        <div className="hidden grid-cols-2 grid-rows-8 gap-2 lg:grid">
-          <BentoCell bg="bgimg-nyx-lines" label="NYX // LINES" className="col-span-2 row-span-2" />
-          <BentoCell bg="bgimg-event-nytw" label="NY TECH WEEK" tone="veil" className="row-span-2" />
-          <BentoCell bg="bgimg-event-runway" label="RUN(WAY)TIME" tone="veil" className="row-span-2" />
-          <BentoCell bg="bgimg-event-byoa" label="BYOA" tone="veil" className="row-span-2" />
-          <BentoCell bg="bgimg-event-a2a" label="DEDALUS ARCHIVES" className="row-span-2" />
-          <BentoCell bg="bgimg-cloud-lines" label="CIRRUS" tone="veil" className="col-span-2 row-span-2" />
-        </div>
+      <section className="grid min-h-screen grid-cols-1 gap-2 p-2 lg:h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)]">
+        <HeroBentoLeft />
 
         <section className="bgimg-nyx-waves reticle reticle-strong relative flex flex-col items-center justify-center overflow-hidden border border-nyx-line/70 px-6 py-16 text-center">
           <div className="absolute inset-0 bg-gradient-to-b from-nyx/75 via-nyx/40 to-nyx/85" />
@@ -143,12 +136,7 @@ export default function Home() {
           </div>
         </section>
 
-        <div className="hidden grid-cols-2 grid-rows-8 gap-2 lg:grid">
-          <BentoCell bg="bgimg-hero-sky" label="RUN(WAY)TIME" tone="veil" className="col-span-2 row-span-3" />
-          <BentoCell bg="bgimg-nyx-waves" label="NYX // WAVE" className="row-span-3" />
-          <BentoCell bg="bgimg-event-team" label="THE THREAD" tone="veil" className="row-span-3" />
-          <BentoCell bg="bgimg-cloud-lines" label="CIRRUS" tone="veil" className="col-span-2 row-span-2" />
-        </div>
+        <HeroBentoRight />
       </section>
 
       {/* How the night works */}

@@ -180,11 +180,14 @@ body {
 .bgimg-hero-sky,
 .bgimg-hero-smoke,
 .bgimg-event-runway,
-.bgimg-event-nytw,
 .bgimg-event-team,
-.bgimg-event-byoa,
-.bgimg-event-a2a {
+.bgimg-event-byoa {
   background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.bgimg-fit-contain {
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
 }
@@ -208,15 +211,14 @@ body {
 }
 .bgimg-event-runway {
   background-image: url("/brand/event-runway.png");
-  background-position: center 20%;
+  background-position: center 15%;
 }
 .bgimg-event-nytw {
   background-image: url("/brand/event-nytw.png");
-  background-position: center top;
 }
 .bgimg-event-team {
   background-image: url("/brand/event-team.png");
-  background-position: center 35%;
+  background-position: center 40%;
 }
 .bgimg-event-byoa {
   background-image: url("/brand/event-byoa.png");
@@ -224,7 +226,6 @@ body {
 }
 .bgimg-event-a2a {
   background-image: url("/brand/event-a2a.png");
-  background-position: center;
 }
 
 @keyframes ariadne-rise {
