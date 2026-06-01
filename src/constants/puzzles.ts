@@ -2,7 +2,7 @@
  * Image-puzzle catalog for the collaborative "decode the labyrinth" mission
  * (Scenario 3). One puzzle is shown on the projection at a time (the operator
  * advances them); guests text the agent what they think it is. Deterministic
- * code checks the answer against `answers` — the agent never decides.
+ * code checks the answer against `answers`; the agent never decides.
  *
  * `answers` is server-only and MUST NOT be sent to the projection client. The
  * public snapshot exposes only `id` and `imageUrl`.
@@ -29,7 +29,7 @@ export interface PuzzlePiece {
 export const PUZZLES: readonly PuzzlePiece[] = [
   {
     id: "erechtheion",
-    label: "Erechtheion — anathyrosis stonework (Acropolis)",
+    label: "Erechtheion, anathyrosis stonework (Acropolis)",
     sourceUrl: "https://upload.wikimedia.org/wikipedia/commons/1/1f/Erechtheion-anathyrosis.jpg",
     imageUrl: "https://upload.wikimedia.org/wikipedia/commons/1/1f/Erechtheion-anathyrosis.jpg",
     answers: ["erechtheion", "anathyrosis", "acropolis", "greek temple", "temple", "athens"],
@@ -49,11 +49,11 @@ export const PUZZLES: readonly PuzzlePiece[] = [
     imageUrl:
       "https://media.gettyimages.com/id/655097684/vector/daedalus-delivering-the-wooden-cow-to-pasiphae-pasipha%C3%AB.jpg",
     answers: ["daedalus", "pasiphae", "wooden cow", "the wooden cow", "cow", "daedalus and pasiphae"],
-    needsImage: true, // getty hotlink is watermarked/unreliable — host a local crop for the event
+    needsImage: true, // getty hotlink is watermarked/unreliable; host a local crop for the event
   },
   {
     id: "stater",
-    label: "Knossos silver stater — labyrinth coin",
+    label: "Knossos silver stater, labyrinth coin",
     sourceUrl: "https://www.puzzlemuseum.com/month/picm09/2009-09-stater.htm",
     answers: ["stater", "labyrinth", "knossos", "coin", "labyrinth coin"],
     needsImage: true, // source is a page, not a direct image

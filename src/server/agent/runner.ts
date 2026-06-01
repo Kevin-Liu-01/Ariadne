@@ -93,6 +93,6 @@ export class AgentRunner {
 
     // Tool budget spent (or empty reply): force one final spoken line.
     const final = await this.chat({ model: this.model, messages, tool_choice: "none" });
-    return (final.choices[0]?.message.content ?? "").trim() || "give me one sec — text me again.";
+    return (final.choices[0]?.message.content ?? "").trim() || "Give me one sec, text me again.";
   }
 }

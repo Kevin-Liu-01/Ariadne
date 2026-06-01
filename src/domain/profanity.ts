@@ -2,7 +2,7 @@ import { englishDataset, englishRecommendedTransformers, RegExpMatcher } from "o
 
 /**
  * Profanity gate for anything a guest can put on the big screen (chiefly their
- * display name). One matcher per process — building the dataset is non-trivial,
+ * display name). One matcher per process; building the dataset is non-trivial,
  * so we reuse it. The recommended transformers catch common obfuscations
  * (leetspeak, spacing) so "sh1t" and "s h i t" are caught alongside "shit".
  */

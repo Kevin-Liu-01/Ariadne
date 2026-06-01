@@ -1,5 +1,6 @@
 import { GEMS } from "@/constants/gems";
 import { MISSION_BY_ID } from "@/constants/missions";
+import { stripDashes } from "@/domain/text";
 import type { InboundChannel } from "@/constants/event";
 import type { Conversation, InteractionEvent, Participant } from "@/domain/types";
 import type { Repositories } from "@/server/db/repositories";
@@ -36,14 +37,17 @@ export class AgentBrain {
     );
     const participant = await this.lookup(conversation, event.from);
 
-    const text = await this.runner.run({
-      from: event.from,
-      externalConversationId: event.externalConversationId,
-      channel: event.channel,
-      text: event.text,
-      recentHistory: event.recentHistory,
-      grounding: this.grounding(participant, conversation),
-    });
+    // Strip any em/en dash the model slips in: the brand voice never uses one.
+    const text = stripDashes(
+      await this.runner.run({
+        from: event.from,
+        externalConversationId: event.externalConversationId,
+        channel: event.channel,
+        text: event.text,
+        recentHistory: event.recentHistory,
+        grounding: this.grounding(participant, conversation),
+      }),
+    );
 
     // Re-read: the agent may have checked the guest in or advanced their mission.
     const after = event.from
@@ -68,13 +72,13 @@ export class AgentBrain {
 
   private grounding(participant: Participant | null, conversation: Conversation): string {
     if (!participant) {
-      return "CURRENT GUEST: not checked in yet — check them in before anything else.";
+      return "CURRENT GUEST: not checked in yet. Check them in before anything else.";
     }
     const mission = conversation.currentMissionId
       ? MISSION_BY_ID.get(conversation.currentMissionId)
       : null;
     const missionLine = mission
-      ? ` Active mission: ${mission.title} — ${this.missions.renderPrompt(mission, participant)}`
+      ? ` Active mission: ${mission.title}. ${this.missions.renderPrompt(mission, participant)}`
       : " No active mission.";
     return `CURRENT GUEST: gem ${GEMS[participant.gem].label}, secret word "${participant.secretWord}", game id ${participant.gameId}, score ${participant.score}.${missionLine}`;
   }

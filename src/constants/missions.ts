@@ -35,7 +35,7 @@ export interface MissionTemplate {
  * word-match mission is to find the guest holding the complement that completes
  * the two-word phrase.
  *
- * The brand slogans lead — assembled, they spell the event's lines — followed by
+ * The brand slogans lead (assembled, they spell the event's lines), followed by
  * the Run(way)time atmospheric word bank (Scenario 3). Pairs are laid out [a, b]
  * and handed out in order (see `assignSecretWord`), so both halves land early and
  * the match stays solvable. Some words appear in more than one pair (e.g. "open");
@@ -54,7 +54,7 @@ export const WORD_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["open", "call"],
   ["night", "circuit"],
   ["cloud", "native"],
-  // Run(way)time atmospheric word bank — tech + myth pairs.
+  // Run(way)time atmospheric word bank: tech + myth pairs.
   ["agents", "run"],
   ["models", "train"],
   ["prompts", "branch"],
@@ -161,7 +161,7 @@ export const WORD_PAIRS: ReadonlyArray<readonly [string, string]> = [
  * Winning color-quest combinations, as multisets of gem ids. A group's gems must
  * match one exactly. Gems encode colors (amethyst=purple, garnet=red,
  * moonstone=white, peridot=green, aquamarine=blue, topaz=yellow); the combos are
- * color theory — a matched pair, or two colors plus the one they mix into. The
+ * color theory: a matched pair, or two colors plus the one they mix into. The
  * "two purples + one other" rule is handled in the validator, not listed here.
  */
 export const COLOR_COMBOS: readonly (readonly GemId[])[] = [
@@ -177,7 +177,7 @@ export const MISSIONS: readonly MissionTemplate[] = [
     type: "color_quest",
     title: "Constellation",
     promptCopy:
-      "Your gem is a color. Find the guests whose colors complete yours — a matched pair, or colors that mix into a third. Text me everyone's game IDs, yours included.",
+      "Your gem is a color. Find the guests whose colors complete yours: a matched pair, or colors that mix into a third. Text me everyone's game IDs, yours included.",
     points: 100,
     requiresPartner: true,
     projectionEffect: "constellation",
@@ -205,19 +205,19 @@ export const MISSIONS: readonly MissionTemplate[] = [
     requiresPartner: false,
     projectionEffect: "clue",
     validation: { kind: "clue" },
-    hint: "one word — a systems term hiding a second, everyday meaning.",
+    hint: "one word, a systems term hiding a second, everyday meaning.",
   },
   {
     id: "puzzle-decode",
     type: "puzzle",
     title: "Decode the Labyrinth",
     promptCopy:
-      "Look at the big screen. The labyrinth is showing the room a cropped image. Text me what it is — name the myth, object, place, or source.",
+      "Look at the big screen. The labyrinth is showing the room a cropped image. Text me what it is: name the myth, object, place, or source.",
     points: 120,
     requiresPartner: false,
     projectionEffect: "puzzle",
     validation: { kind: "image_puzzle" },
-    hint: "look harder — it's pulled from Greek myth, the Daedalus story, or our own merch. one clear name is enough.",
+    hint: "look harder. it's pulled from Greek myth, the Daedalus story, or our own merch. one clear name is enough.",
   },
 ] as const;
 

@@ -25,7 +25,7 @@ export interface ToolContext {
   from: string;
   externalConversationId: string | null;
   channel: InboundChannel;
-  /** The guest's current message — the fallback when the model omits a tool arg. */
+  /** The guest's current message: the fallback when the model omits a tool arg. */
   userText: string;
   repos: Repositories;
   registration: RegistrationService;
@@ -163,7 +163,7 @@ const answerMission: Tool = {
     function: {
       name: "answer_mission",
       description:
-        "Submit the guest's current-mission answer. Pass their words verbatim (include any game IDs). Pass/fail is decided deterministically — never judge it yourself.",
+        "Submit the guest's current-mission answer. Pass their words verbatim (include any game IDs). Pass/fail is decided deterministically; never judge it yourself.",
       parameters: {
         type: "object",
         properties: {
@@ -190,7 +190,7 @@ const answerMission: Tool = {
       case "partner_invalid":
         return { result: "partner_invalid", say: missionPartnerInvalidCopy() };
       case "already":
-        return { result: "already", say: "already solved that one — stay close to the screen." };
+        return { result: "already", say: "You already solved that one. Stay close to the screen." };
       case "no_mission": {
         const delivered = await ctx.missions.deliverCurrent(participant, conversation);
         return {
@@ -238,7 +238,7 @@ const flagOperator: Tool = {
     function: {
       name: "flag_operator",
       description:
-        "Alert a human staffer when a guest has a real-world problem, is upset, or asks for a person — lost item, safety concern, complaint, or anything you can't resolve. Pass a short reason.",
+        "Alert a human staffer when a guest has a real-world problem, is upset, or asks for a person (lost item, safety concern, complaint, or anything you can't resolve). Pass a short reason.",
       parameters: {
         type: "object",
         properties: { reason: { type: "string", description: "short summary of what the guest needs" } },
@@ -255,7 +255,7 @@ const flagOperator: Tool = {
       participant?.gameId ?? null,
       reason,
     );
-    return { flagged: true, say: "got it — a staffer's heading your way. hang tight." };
+    return { flagged: true, say: "Got it. A staffer is heading your way. Hang tight." };
   },
 };
 

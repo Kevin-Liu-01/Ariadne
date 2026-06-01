@@ -1,6 +1,6 @@
 /**
  * Canonicalize a phone number to E.164 so one human maps to one participant no
- * matter how their number arrives — SMS/iMessage ("+17328105793"), a web form
+ * matter how their number arrives: SMS/iMessage ("+17328105793"), a web form
  * ("7328105793"), or a formatted string ("(732) 810-5793"). Applied at every
  * inbound boundary (webhook + web check-in) so storage and lookups always agree.
  *

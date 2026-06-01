@@ -100,7 +100,7 @@ function voiceStream(bb: Backbone, interaction: InteractionEvent, webhookId: str
       } catch (err) {
         await bb.repos.partnerEvents.markStatus(webhookId, "error");
         console.error("[ariadne] voice brain error", err);
-        write({ text: "having trouble right now — text the number instead." });
+        write({ text: "having trouble right now, text the number instead." });
       }
       controller.close();
     },

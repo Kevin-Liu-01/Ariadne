@@ -21,3 +21,12 @@ export function containsPhrase(haystack: string, needle: string): boolean {
   const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`(^|\\s)${escaped}($|\\s)`).test(haystack);
 }
+
+/**
+ * Last-line guard on the agent's voice: replace any em/en dash (with surrounding
+ * spaces) with ", " so a dash never reaches a guest even if the model slips one
+ * past the prompt rule. Leaves hyphens in words ("check-in") and line breaks alone.
+ */
+export function stripDashes(text: string): string {
+  return text.replace(/[ \t]*[—–][ \t]*/g, ", ");
+}
