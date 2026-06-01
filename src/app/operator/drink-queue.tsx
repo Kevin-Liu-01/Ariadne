@@ -67,7 +67,7 @@ function OrderRow({
   const CategoryIcon = drinkCategoryIcon(category);
 
   return (
-    <li className="reticle border border-nyx-line bg-nyx px-4 py-3">
+    <li className="border border-nyx-line bg-nyx px-4 py-3">
       <div className="flex items-start gap-3">
         <span
           className={cn(
@@ -175,7 +175,7 @@ export function DrinkQueue({ token }: { token: string }) {
         : null;
 
   return (
-    <section className="reticle border border-nyx-line bg-nyx-soft/90 p-5">
+    <section className="border border-nyx-line bg-nyx-soft/90 p-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-helio">
           <Wine className="h-4 w-4" strokeWidth={1.5} aria-hidden />

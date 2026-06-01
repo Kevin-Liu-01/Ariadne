@@ -48,7 +48,7 @@ export default function PlayPage() {
         <h1 className="mt-3 text-center text-4xl font-semibold tracking-tight">How to play</h1>
         <p className="mt-2 text-center text-sm text-helio">{PRODUCT_TAGLINE}</p>
 
-        <section className="reticle mt-10 border border-nyx-line bg-nyx-soft/90 p-6 text-center">
+        <section className="mt-10 border border-nyx-line bg-nyx-soft/90 p-6 text-center">
           <p className="text-xs uppercase tracking-[0.25em] text-ash">event line</p>
           <p className="mt-2 text-2xl tabular-nums tracking-wide text-cloud">{phone}</p>
           <p className="mt-3 text-sm leading-relaxed text-ash">
@@ -62,7 +62,7 @@ export default function PlayPage() {
 
         <ol className="mt-10 space-y-4">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="reticle flex gap-4 border border-nyx-line bg-nyx-soft/80 p-5">
+            <li key={step.title} className="flex gap-4 border border-nyx-line bg-nyx-soft/80 p-5">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-nyx-line text-xs tabular-nums text-helio">
                 {i + 1}
               </span>

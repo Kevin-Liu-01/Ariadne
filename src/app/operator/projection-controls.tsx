@@ -36,7 +36,7 @@ export function ProjectionControls({ token }: { token: string }) {
   }
 
   return (
-    <section className="reticle border border-nyx-line bg-nyx-soft p-5">
+    <section className="border border-nyx-line bg-nyx-soft p-5">
       <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-helio">
         <Clapperboard className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         run of show

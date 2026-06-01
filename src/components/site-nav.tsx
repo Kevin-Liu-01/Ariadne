@@ -48,7 +48,7 @@ export function SiteNav({ className }: { className?: string }) {
             key={route.href}
             href={route.href}
             className={cn(
-              "reticle flex items-center gap-1.5 border px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] transition-colors",
+              "flex items-center gap-1.5 border px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] transition-colors",
               active
                 ? "border-helio/50 bg-helio/10 text-helio"
                 : "border-nyx-line/70 text-ash hover:border-helio/40 hover:text-cloud",

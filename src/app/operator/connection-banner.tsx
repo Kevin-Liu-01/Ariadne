@@ -43,7 +43,7 @@ export function ConnectionBanner({ token }: { token: string }) {
 
   if (state === "unauthorized") {
     return (
-      <div className="reticle mb-4 flex items-start gap-2 border border-gem-garnet/60 bg-gem-garnet/10 px-4 py-3 text-sm text-cloud">
+      <div className="mb-4 flex items-start gap-2 border border-gem-garnet/60 bg-gem-garnet/10 px-4 py-3 text-sm text-cloud">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-gem-garnet" strokeWidth={1.5} aria-hidden />
         <p>
           Token rejected. Lock the console and paste the production{" "}
@@ -56,7 +56,7 @@ export function ConnectionBanner({ token }: { token: string }) {
 
   if (state === "offline") {
     return (
-      <div className="reticle mb-4 flex items-start gap-2 border border-gem-topaz/60 bg-gem-topaz/10 px-4 py-3 text-sm text-cloud">
+      <div className="mb-4 flex items-start gap-2 border border-gem-topaz/60 bg-gem-topaz/10 px-4 py-3 text-sm text-cloud">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-gem-topaz" strokeWidth={1.5} aria-hidden />
         <p>Cannot reach the operator API. Check network and try again.</p>
       </div>

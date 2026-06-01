@@ -40,7 +40,7 @@ export function AlertsPanel({ token }: { token: string }) {
 
   return (
     <section
-      className={`reticle border bg-nyx-soft p-5 ${alerts.length > 0 ? "border-gem-garnet/60" : "border-nyx-line"}`}
+      className={`border bg-nyx-soft p-5 ${alerts.length > 0 ? "border-gem-garnet/60" : "border-nyx-line"}`}
     >
       <div className="flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-helio">

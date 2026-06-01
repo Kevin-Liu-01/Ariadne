@@ -21,7 +21,7 @@ export default function OperatorPage() {
       <main className="relative flex flex-1 items-center justify-center bg-nyx px-10 scanlines">
         <div className="relative z-[2] w-full max-w-sm animate-rise">
           <SiteNav className="mb-6 justify-center" />
-          <div className="reticle border border-nyx-line bg-nyx-soft p-6">
+          <div className="border border-nyx-line bg-nyx-soft p-6">
           <div className="mb-4 flex justify-center">
             <LabyrinthThread size={60} />
           </div>

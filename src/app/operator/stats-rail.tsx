@@ -36,7 +36,7 @@ export function StatsRail() {
   }, []);
 
   return (
-    <section className="reticle grid gap-3 border border-nyx-line bg-nyx-soft/90 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+    <section className="grid gap-3 border border-nyx-line bg-nyx-soft/90 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
       <div className="flex items-center gap-3">
         <LayoutGrid className="h-4 w-4 text-helio" strokeWidth={1.5} aria-hidden />
         <div>

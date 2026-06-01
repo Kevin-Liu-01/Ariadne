@@ -10,12 +10,12 @@ interface BentoCellProps {
   className?: string;
 }
 
-/** A reticle-framed bento tile filled with a brand background. */
+/** Bordered bento tile filled with a brand background. */
 export function BentoCell({ bg, tone = "dark", fit = "cover", className }: BentoCellProps) {
   return (
     <div
       className={cn(
-        "reticle group relative overflow-hidden border border-nyx-line/70 bg-nyx",
+        "group relative overflow-hidden border border-nyx-line/70 bg-nyx",
         bg,
         fit === "contain" && "bgimg-fit-contain",
         className,

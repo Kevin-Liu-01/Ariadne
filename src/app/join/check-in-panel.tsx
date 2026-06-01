@@ -70,7 +70,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
   if (result) {
     const p = result.participant;
     return (
-      <div className="reticle mt-10 border border-nyx-line bg-nyx-soft p-6 animate-rise">
+      <div className="mt-10 border border-nyx-line bg-nyx-soft p-6 animate-rise">
         <p className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-helio">
           <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
           {result.isNew ? "you're threaded in" : "already in"}
@@ -144,7 +144,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
       {smsHref ? (
         <a
           href={smsHref}
-          className="reticle block border border-helio/40 bg-helio/10 px-6 py-5 text-center transition-colors hover:bg-helio/15"
+          className="block border border-helio/40 bg-helio/10 px-6 py-5 text-center transition-colors hover:bg-helio/15"
         >
           <span className="flex items-center justify-center gap-2 text-xs uppercase tracking-[0.25em] text-helio">
             <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
@@ -159,7 +159,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
           </span>
         </a>
       ) : (
-        <div className="reticle border border-nyx-line bg-nyx-soft px-6 py-5 text-center text-sm text-ash">
+        <div className="border border-nyx-line bg-nyx-soft px-6 py-5 text-center text-sm text-ash">
           event number not provisioned yet, use web check-in below.
         </div>
       )}

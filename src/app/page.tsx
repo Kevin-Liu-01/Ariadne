@@ -79,7 +79,7 @@ export default function Home() {
       <section className="grid min-h-screen grid-cols-1 gap-2 p-2 lg:h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)]">
         <HeroBentoLeft />
 
-        <section className="bgimg-nyx-waves reticle relative flex flex-col items-center justify-center overflow-hidden border border-nyx-line/70 px-6 py-16 text-center">
+        <section className="bgimg-nyx-waves relative flex flex-col items-center justify-center overflow-hidden border border-nyx-line/70 px-6 py-16 text-center">
           <div className="absolute inset-0 bg-gradient-to-b from-nyx/75 via-nyx/40 to-nyx/85" />
           <div className="scanlines absolute inset-0" />
 
@@ -102,7 +102,7 @@ export default function Home() {
                   key={l.href}
                   href={l.href}
                   className={cn(
-                    "reticle group block border px-5 py-3 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5",
+                    "group block border px-5 py-3 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5",
                     l.primary
                       ? "border-helio/50 bg-helio/10 hover:bg-helio/15"
                       : "border-nyx-line/70 bg-nyx/60 hover:border-helio/50 hover:bg-nyx/40",
@@ -153,7 +153,7 @@ export default function Home() {
             {STEPS.map((s, i) => (
               <div
                 key={s.title}
-                className="reticle group border border-nyx-line/70 bg-nyx-soft/60 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-helio/40"
+                className="group border border-nyx-line/70 bg-nyx-soft/60 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-helio/40"
               >
                 <div className="flex items-center justify-between">
                   <s.Icon className="h-5 w-5 text-helio" strokeWidth={1.5} aria-hidden />
@@ -187,7 +187,7 @@ export default function Home() {
             {Object.values(GEMS).map((gem) => (
               <div
                 key={gem.id}
-                className="reticle group flex flex-col items-center gap-3 border border-nyx-line/70 bg-nyx-soft/60 px-3 py-6 transition-all duration-300 hover:-translate-y-1 hover:border-helio/40"
+                className="group flex flex-col items-center gap-3 border border-nyx-line/70 bg-nyx-soft/60 px-3 py-6 transition-all duration-300 hover:-translate-y-1 hover:border-helio/40"
               >
                 <GemIcon
                   gem={gem.id}

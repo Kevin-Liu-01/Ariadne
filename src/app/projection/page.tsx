@@ -174,7 +174,7 @@ export default function ProjectionPage() {
       </header>
 
       {showPuzzle ? (
-        <section className="relative z-[2] mt-6 reticle flex items-center gap-6 border border-helio/40 bg-nyx-soft/80 p-5">
+        <section className="relative z-[2] mt-6 flex items-center gap-6 border border-helio/40 bg-nyx-soft/80 p-5">
           {/* eslint-disable-next-line @next/next/no-img-element -- event asset, intentionally cropped + blurred */}
           <img
             src={puzzle.imageUrl!}
@@ -200,7 +200,7 @@ export default function ProjectionPage() {
         </div>
       ) : (
         <div className="relative z-[2] mt-6 flex flex-1 flex-col gap-6 lg:flex-row lg:items-stretch">
-          <aside className="reticle flex w-full shrink-0 flex-col border border-nyx-line/70 bg-nyx-soft/60 p-4 lg:w-80">
+          <aside className="flex w-full shrink-0 flex-col border border-nyx-line/70 bg-nyx-soft/60 p-4 lg:w-80">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-xs uppercase tracking-[0.25em] text-helio">leaderboard</h2>
               <span className="text-xs tabular-nums text-ash">{ordered.length} players</span>
@@ -315,7 +315,7 @@ function PlayerTile({ tile, rank, flash }: { tile: TileState; rank: number; flas
   return (
     <div
       className={cn(
-        "reticle relative flex aspect-square flex-col items-center justify-center border border-nyx-line/70 bg-nyx-soft/80 p-3 transition-all duration-500",
+        "relative flex aspect-square flex-col items-center justify-center border border-nyx-line/70 bg-nyx-soft/80 p-3 transition-all duration-500",
         rank <= 3 && !tile.eliminated && "border-helio/40",
         tile.eliminated && "tile-eliminated",
         flash && "border-helio shadow-[0_0_28px_rgba(210,190,255,0.45)]",

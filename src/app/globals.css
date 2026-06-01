@@ -88,33 +88,6 @@ body {
   background: transparent;
 }
 
-/* ---- Reticle / HUD aesthetic ---- */
-
-/* Hairline corner brackets drawn on one overlay (all four corners). */
-.reticle {
-  position: relative;
-}
-.reticle::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-  --rc: color-mix(in srgb, var(--color-ash) 55%, transparent);
-  --rl: 10px;
-  --rt: 1px;
-  background-repeat: no-repeat;
-  background-image:
-    linear-gradient(var(--rc), var(--rc)), linear-gradient(var(--rc), var(--rc)),
-    linear-gradient(var(--rc), var(--rc)), linear-gradient(var(--rc), var(--rc)),
-    linear-gradient(var(--rc), var(--rc)), linear-gradient(var(--rc), var(--rc)),
-    linear-gradient(var(--rc), var(--rc)), linear-gradient(var(--rc), var(--rc));
-  background-size:
-    var(--rl) var(--rt), var(--rt) var(--rl), var(--rl) var(--rt), var(--rt) var(--rl),
-    var(--rl) var(--rt), var(--rt) var(--rl), var(--rl) var(--rt), var(--rt) var(--rl);
-  background-position:
-    left top, left top, right top, right top, left bottom, left bottom, right bottom, right bottom;
-}
 /* Horizontal ledger lines behind HUD surfaces (no vertical grid). */
 .hud-grid {
   background-image: linear-gradient(

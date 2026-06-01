@@ -38,7 +38,7 @@ export function Roster({ token }: { token: string }) {
   }, [refresh]);
 
   return (
-    <section className="reticle border border-nyx-line bg-nyx-soft p-5">
+    <section className="border border-nyx-line bg-nyx-soft p-5">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

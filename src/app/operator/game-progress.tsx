@@ -54,7 +54,7 @@ export function GameProgress({ token }: { token: string }) {
   const avgScore = people.length > 0 ? Math.round(totalScore / people.length) : 0;
 
   return (
-    <section className="reticle border border-nyx-line bg-nyx-soft p-5">
+    <section className="border border-nyx-line bg-nyx-soft p-5">
       <div className="flex items-center justify-between gap-4">
         <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-helio">
           <Target className="h-4 w-4" strokeWidth={1.5} aria-hidden />
