@@ -14,16 +14,17 @@ function BentoWall({ children, className }: { children: ReactNode; className?: s
 /**
  * Left wall.
  *
- * Row budget (12): runway+lines 4 | nytw+archives 4 | byoa 2 | cloud-lines 2
+ * Row budget (12): runway+lines 5 | nytw+archives 2 | byoa 3 | cloud-lines 2
+ * Posters sit in a shallow horizontal band (2 rows) so 4:3 assets read landscape.
  */
 export function HeroBentoLeft() {
   return (
     <BentoWall>
-      <BentoCell bg="bgimg-event-runway" tone="veil" className="row-span-4" />
-      <BentoCell bg="bgimg-nyx-lines" className="row-span-4" />
-      <BentoCell bg="bgimg-event-nytw" fit="contain" tone="none" className="row-span-4" />
-      <BentoCell bg="bgimg-event-a2a" fit="contain" tone="none" className="row-span-4" />
-      <BentoCell bg="bgimg-event-byoa" tone="veil" className="col-span-2 row-span-2" />
+      <BentoCell bg="bgimg-event-runway" tone="veil" className="row-span-5" />
+      <BentoCell bg="bgimg-nyx-lines" className="row-span-5" />
+      <BentoCell bg="bgimg-event-nytw" fit="contain" tone="none" className="row-span-2" />
+      <BentoCell bg="bgimg-event-a2a" fit="contain" tone="none" className="row-span-2" />
+      <BentoCell bg="bgimg-event-byoa" tone="veil" className="col-span-2 row-span-3" />
       <BentoCell bg="bgimg-cloud-lines" tone="veil" className="col-span-2 row-span-2" />
     </BentoWall>
   );
