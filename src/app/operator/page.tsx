@@ -3,6 +3,7 @@
 import { Lock, LogOut } from "lucide-react";
 import { PRODUCT_NAME } from "@/constants/event";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
+import { SiteNav } from "@/components/site-nav";
 import { AlertsPanel } from "@/app/operator/alerts-panel";
 import { ConnectionBanner } from "@/app/operator/connection-banner";
 import { DrinkQueue } from "@/app/operator/drink-queue";
@@ -17,8 +18,10 @@ export default function OperatorPage() {
 
   if (!token) {
     return (
-      <main className="relative flex flex-1 items-center justify-center px-10 hud-grid">
-        <div className="reticle reticle-strong w-full max-w-sm border border-nyx-line bg-nyx-soft p-6 animate-rise">
+      <main className="relative flex flex-1 items-center justify-center bg-nyx px-10 scanlines">
+        <div className="relative z-[2] w-full max-w-sm animate-rise">
+          <SiteNav className="mb-6 justify-center" />
+          <div className="reticle reticle-strong border border-nyx-line bg-nyx-soft p-6">
           <div className="mb-4 flex justify-center">
             <LabyrinthThread size={60} />
           </div>
@@ -46,27 +49,31 @@ export default function OperatorPage() {
           >
             unlock
           </button>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="relative min-h-screen flex-1 px-10 py-8 hud-grid">
-      <div className="mx-auto w-full max-w-[1600px]">
-        <header className="flex items-center justify-between border-b border-nyx-line pb-5">
-          <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight">
-            <LabyrinthThread size={40} />
-            {PRODUCT_NAME} · operator
-          </h1>
-          <button
-            type="button"
-            onClick={lock}
-            className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-ash hover:text-cloud"
-          >
-            <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-            lock
-          </button>
+    <main className="relative min-h-screen flex-1 bg-nyx px-10 py-8 scanlines">
+      <div className="relative z-[2] mx-auto w-full max-w-[1600px]">
+        <header className="flex flex-col gap-4 border-b border-nyx-line pb-5">
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight">
+              <LabyrinthThread size={40} />
+              {PRODUCT_NAME} · operator
+            </h1>
+            <button
+              type="button"
+              onClick={lock}
+              className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-ash hover:text-cloud"
+            >
+              <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+              lock
+            </button>
+          </div>
+          <SiteNav />
         </header>
 
         <div className="mt-5 space-y-4">

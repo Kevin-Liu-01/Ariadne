@@ -6,6 +6,7 @@ import { GEMS } from "@/constants/gems";
 import { MISSIONS } from "@/constants/missions";
 import { GemIcon } from "@/components/gem-icon";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
+import { SiteNav } from "@/components/site-nav";
 import { env } from "@/lib/env";
 
 const STEPS: { Icon: LucideIcon; title: string; body: string }[] = [
@@ -35,8 +36,9 @@ export default function PlayPage() {
   const phone = env.agentphone.phoneNumber;
 
   return (
-    <main className="relative min-h-screen px-10 py-10 hud-grid">
-      <div className="mx-auto w-full max-w-3xl animate-rise">
+    <main className="relative min-h-screen bg-nyx px-10 py-10 scanlines">
+      <div className="relative z-[2] mx-auto w-full max-w-3xl animate-rise">
+        <SiteNav className="mb-8 justify-center" />
         <div className="flex justify-center">
           <LabyrinthThread size={72} animate />
         </div>
