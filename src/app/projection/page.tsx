@@ -168,7 +168,7 @@ export default function ProjectionPage() {
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-helio">decode the labyrinth</p>
             <p className="mt-1 text-sm text-cloud">
-              Text Ariadne what this is — name the myth, object, place, or source.
+              Text Ariadne what this is: name the myth, object, place, or source.
             </p>
           </div>
         </section>

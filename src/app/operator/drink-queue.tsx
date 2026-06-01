@@ -58,7 +58,7 @@ export function DrinkQueue({ token }: { token: string }) {
         </h2>
         <span className="tabular-nums text-xs text-ash">{active.length} open</span>
       </div>
-      {error ? <p className="mt-3 text-xs text-red-400">can't reach the queue — check the token.</p> : null}
+      {error ? <p className="mt-3 text-xs text-red-400">can't reach the queue, check the token.</p> : null}
       <ul className="mt-4 space-y-2">
         {active.length === 0 ? (
           <li className="text-sm text-ash">no orders. quiet bar.</li>
@@ -106,7 +106,7 @@ export function DrinkQueue({ token }: { token: string }) {
       </ul>
       <p className="mt-3 text-xs leading-relaxed text-ash">
         Tap <span className="text-cloud">start</span> when you begin making a drink,{" "}
-        <span className="text-cloud">ready</span> when it&apos;s at the bar — the guest gets a text.
+        <span className="text-cloud">ready</span> when it&apos;s at the bar; the guest gets a text.
         Flow: {DRINK_STATUSES.join(" → ")}.
       </p>
     </section>

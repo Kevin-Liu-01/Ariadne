@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://ariadne-runway.vercel.app"),
   title: `${PRODUCT_NAME} · ${EVENT_NAME}`,
-  description: `${PRODUCT_TAGLINE} — a phone-first game for ${EVENT_NAME}.`,
+  description: `${PRODUCT_TAGLINE}, a phone-first game for ${EVENT_NAME}.`,
   openGraph: {
     title: `${PRODUCT_NAME} · ${EVENT_NAME}`,
     description: PRODUCT_TAGLINE,

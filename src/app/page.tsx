@@ -24,7 +24,7 @@ const LINKS: NavLink[] = [
     note: "start here · check in",
     Icon: QrCode,
     primary: true,
-    hint: "Text or web check-in — get your gem and first mission.",
+    hint: "Text or web check-in: get your gem and first mission.",
   },
   {
     href: "/projection",
@@ -38,7 +38,7 @@ const LINKS: NavLink[] = [
     label: "Staff",
     note: "bar + show control",
     Icon: SlidersHorizontal,
-    hint: "Bartenders and run-of-show — token required.",
+    hint: "Bartenders and run-of-show: token required.",
   },
 ];
 
@@ -51,7 +51,7 @@ const STEPS: { Icon: LucideIcon; title: string; body: string }[] = [
   {
     Icon: Target,
     title: "Run the labyrinth",
-    body: "Solve missions — match gem colors, complete secret phrases, crack riddles, and decode the screen.",
+    body: "Solve missions: match gem colors, complete secret phrases, crack riddles, and decode the screen.",
   },
   {
     Icon: Wine,
@@ -91,7 +91,7 @@ export default function Home() {
 
             <p className="mt-6 max-w-md text-sm leading-relaxed text-ash">
               A phone-first game for <span className="text-cloud">{EVENT_NAME}</span> at {VENUE}. Check
-              in, get a gem and secret word, solve the labyrinth, and order drinks — all by text.
+              in, get a gem and secret word, solve the labyrinth, and order drinks, all by text.
             </p>
 
             <nav className="mt-10 grid w-full gap-2">
@@ -183,7 +183,7 @@ export default function Home() {
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-ash">
             Everyone is threaded a color at check-in. We never say why. Find the colors that complete
-            yours — a matched pair, or two that mix into a third — to solve the constellation.
+            yours: a matched pair, or two that mix into a third, to solve the constellation.
           </p>
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {Object.values(GEMS).map((gem) => (

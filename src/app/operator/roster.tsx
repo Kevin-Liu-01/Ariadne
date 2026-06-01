@@ -64,7 +64,7 @@ export function Roster({ token }: { token: string }) {
               {people.map((p) => (
                 <tr key={p.gameId} className="border-t border-nyx-line/60">
                   <td className="py-2 tabular-nums tracking-[0.12em] text-helio">{p.gameId}</td>
-                  <td className="py-2 text-cloud">{p.displayName ?? "—"}</td>
+                  <td className="py-2 text-cloud">{p.displayName ?? "n/a"}</td>
                   <td className="py-2">
                     <span className="flex items-center gap-2">
                       <GemIcon gem={p.gem} size={16} />

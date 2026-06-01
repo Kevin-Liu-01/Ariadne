@@ -42,7 +42,7 @@ export function ProjectionControls({ token }: { token: string }) {
         run of show
       </h2>
 
-      <p className="mt-4 text-xs text-ash">scene — sets the mood label on the projection board</p>
+      <p className="mt-4 text-xs text-ash">scene: sets the mood label on the projection board</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {SCENES.map((s) => (
           <button

@@ -61,7 +61,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
       if (!res.ok) throw new Error(await res.text());
       setResult((await res.json()) as RegisterResult);
     } catch {
-      setError("check-in failed — try texting the number instead.");
+      setError("check-in failed, try texting the number instead.");
     } finally {
       setBusy(false);
     }
@@ -80,14 +80,14 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
           <GemIcon gem={p.gem} size={26} />
           <div>
             <p className="text-lg text-cloud">{p.gemLabel}</p>
-            <p className="text-xs text-ash">your gem — team up with other colors</p>
+            <p className="text-xs text-ash">your gem: team up with other colors</p>
           </div>
           <div className="ml-auto text-right">
             <p className="flex items-center justify-end gap-1.5 text-lg tabular-nums tracking-[0.15em] text-helio">
               <Hash className="h-3.5 w-3.5 text-ash" strokeWidth={1.5} aria-hidden />
               {p.gameId}
             </p>
-            <p className="text-xs text-ash">your game id — how others tag you</p>
+            <p className="text-xs text-ash">your game id: how others tag you</p>
           </div>
         </div>
 
@@ -95,7 +95,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
           <KeyRound className="h-4 w-4 shrink-0 text-helio" strokeWidth={1.5} aria-hidden />
           <div>
             <p className="tracking-wide text-cloud">{p.secretWord}</p>
-            <p className="text-xs text-ash">your secret word — pair it with someone to form a phrase</p>
+            <p className="text-xs text-ash">your secret word: pair it with someone to form a phrase</p>
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
               Text <span className="tabular-nums tracking-wide text-helio">{phoneNumber}</span> to
               play. Compare your <span className="text-helio">{p.gemLabel}</span> gem with others on
               the live board. Keep game id <span className="tabular-nums">{p.gameId}</span> and
-              secret word handy — missions may ask for them.
+              secret word handy; missions may ask for them.
             </p>
           </div>
         ) : null}
@@ -138,7 +138,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
     <div className="mt-10">
       <p className="mb-5 text-center text-sm leading-relaxed text-ash">
         Connect to your personal agent. You&apos;ll get a color gem, a secret word, and your first
-        mission — then play all night by text.
+        mission, then play all night by text.
       </p>
 
       {smsHref ? (
@@ -153,14 +153,14 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
           <span className="mt-1 block text-xl tabular-nums tracking-[0.1em] text-cloud">
             {phoneNumber}
           </span>
-          <span className="mt-1 block text-[11px] text-ash">opens your messages — just hit send</span>
+          <span className="mt-1 block text-[11px] text-ash">opens your messages, just hit send</span>
           <span className="mt-2 block text-[11px] leading-relaxed text-ash/80">
-            iPhone: use iMessage (blue bubble). Green SMS replies need 10DLC — not live yet.
+            iPhone: use iMessage (blue bubble). Green SMS replies need 10DLC, not live yet.
           </span>
         </a>
       ) : (
         <div className="reticle border border-nyx-line bg-nyx-soft px-6 py-5 text-center text-sm text-ash">
-          event number not provisioned yet — use web check-in below.
+          event number not provisioned yet, use web check-in below.
         </div>
       )}
 
@@ -188,13 +188,13 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="mobile number — so your texts link up"
+            placeholder="mobile number (so your texts link up)"
             inputMode="tel"
             className="border border-nyx-line bg-nyx px-4 py-3 text-cloud outline-none placeholder:text-ash/60 focus:border-helio/50"
           />
           <p className="text-[11px] leading-relaxed text-ash">
             By tapping check in, you agree to receive recurring automated text messages from{" "}
-            <span className="text-cloud">Ariadne</span> (Dedalus Labs) about {EVENT_NAME} —
+            <span className="text-cloud">Ariadne</span> (Dedalus Labs) about {EVENT_NAME}:
             check-in, missions, and drink orders. Consent is not a condition of entry. Message
             frequency varies. Msg &amp; data rates may apply. Reply{" "}
             <span className="text-cloud">STOP</span> to opt out, <span className="text-cloud">HELP</span>{" "}

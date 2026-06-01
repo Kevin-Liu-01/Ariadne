@@ -65,7 +65,7 @@ export async function POST(req: Request): Promise<Response> {
     return new Response("ok (rate-limited)", { status: 200 });
   }
 
-  // Voice is synchronous against a ~30s turn timeout — stream an interim chunk
+  // Voice is synchronous against a ~30s turn timeout; stream an interim chunk
   // immediately so the caller never hears silence while the brain thinks.
   if (interaction.channel === "voice") {
     return voiceStream(bb, interaction, webhookId);

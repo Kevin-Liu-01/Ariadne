@@ -42,7 +42,7 @@ export function AlertsPanel({ token }: { token: string }) {
       </div>
       <ul className="mt-4 space-y-2">
         {alerts.length === 0 ? (
-          <li className="text-sm text-ash">no alerts — all quiet.</li>
+          <li className="text-sm text-ash">no alerts, all quiet.</li>
         ) : (
           alerts.map((a) => (
             <li
@@ -52,7 +52,7 @@ export function AlertsPanel({ token }: { token: string }) {
               <span className="h-2 w-2 shrink-0 rounded-full bg-gem-garnet animate-pulse-slow" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-cloud">{a.reason}</p>
-                <p className="text-xs tabular-nums tracking-[0.12em] text-ash">{a.gameId ?? "—"}</p>
+                <p className="text-xs tabular-nums tracking-[0.12em] text-ash">{a.gameId ?? "n/a"}</p>
               </div>
               <button
                 type="button"
