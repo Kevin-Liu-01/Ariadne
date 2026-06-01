@@ -29,11 +29,6 @@ export default function OperatorPage() {
             <Lock className="h-4 w-4 text-helio" strokeWidth={1.5} aria-hidden />
             {PRODUCT_NAME} · operator
           </h1>
-          <p className="mt-1 text-xs leading-relaxed text-ash">
-            Staff console: bar queue, run-of-show, roster, and guest alerts. Paste the production
-            token from Vercel env <span className="text-cloud">ARIADNE_OPERATOR_TOKEN</span>, or open
-            a staff link with <span className="text-cloud">?token=...</span> on this URL.
-          </p>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
