@@ -1,8 +1,6 @@
 "use client";
 
 import { Lock, LogOut } from "lucide-react";
-import { PRODUCT_NAME } from "@/constants/event";
-import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { SiteNav } from "@/components/site-nav";
 import { AlertsPanel } from "@/app/operator/alerts-panel";
 import { ConnectionBanner } from "@/app/operator/connection-banner";
@@ -22,12 +20,9 @@ export default function OperatorPage() {
         <div className="relative z-[2] w-full max-w-sm animate-rise">
           <SiteNav className="mb-6 justify-center" />
           <div className="border border-nyx-line bg-nyx-soft p-6">
-          <div className="mb-4 flex justify-center">
-            <LabyrinthThread size={60} />
-          </div>
           <h1 className="flex items-center justify-center gap-2 text-lg font-semibold">
             <Lock className="h-4 w-4 text-helio" strokeWidth={1.5} aria-hidden />
-            {PRODUCT_NAME} · operator
+            operator console
           </h1>
           <input
             value={input}
@@ -53,22 +48,19 @@ export default function OperatorPage() {
   return (
     <main className="relative min-h-screen flex-1 bg-nyx px-10 py-8 scanlines">
       <div className="relative z-[2] mx-auto w-full max-w-[1600px]">
-        <header className="flex flex-col gap-4 border-b border-nyx-line pb-5">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight">
-              <LabyrinthThread size={40} />
-              {PRODUCT_NAME} · operator
-            </h1>
-            <button
-              type="button"
-              onClick={lock}
-              className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-ash hover:text-cloud"
-            >
-              <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-              lock
-            </button>
-          </div>
-          <SiteNav />
+        <header className="border-b border-nyx-line pb-4">
+          <SiteNav
+            actions={
+              <button
+                type="button"
+                onClick={lock}
+                className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-ash hover:text-cloud"
+              >
+                <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                lock
+              </button>
+            }
+          />
         </header>
 
         <div className="mt-5 space-y-4">

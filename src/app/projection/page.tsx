@@ -3,9 +3,8 @@
 import { Crown, Hourglass, Target, Users, Wine } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { EVENT_NAME, PRODUCT_NAME } from "@/constants/event";
+import { EVENT_NAME } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
-import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { SiteNav } from "@/components/site-nav";
 import { GemIcon } from "@/components/gem-icon";
 import type { ProjectionSnapshot, TileState } from "@/domain/projection";
@@ -145,32 +144,26 @@ export default function ProjectionPage() {
 
   return (
     <main className="relative flex min-h-screen flex-col bg-nyx px-10 py-8 scanlines">
-      <header className="relative z-[2] flex flex-col gap-4 border-b border-nyx-line pb-5">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <LabyrinthThread size={48} />
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight">{PRODUCT_NAME}</h1>
-              <p className="mt-0.5 text-xs uppercase tracking-[0.35em] text-ash">{EVENT_NAME}</p>
-              <p className="mt-1 text-sm uppercase tracking-[0.25em] text-helio">
-                scene · {formatScene(scene)}
-              </p>
+      <header className="relative z-[2] border-b border-nyx-line pb-4">
+        <SiteNav
+          actions={
+            <div className="flex flex-wrap items-end gap-8">
+              <Stat label="checked in" value={stats.checkedIn} Icon={Users} />
+              <Stat label="missions solved" value={stats.missionsCompleted} Icon={Target} accent="helio" />
+              <Stat label="drinks pouring" value={stats.drinksActive} Icon={Wine} accent="topaz" />
+              <span
+                className={cn(
+                  "mb-1.5 h-2.5 w-2.5 rounded-full",
+                  connected ? "bg-gem-peridot animate-pulse-slow" : "bg-gem-garnet",
+                )}
+                title={connected ? "live" : "reconnecting"}
+              />
             </div>
-          </div>
-          <div className="flex flex-wrap items-end gap-8">
-            <Stat label="checked in" value={stats.checkedIn} Icon={Users} />
-            <Stat label="missions solved" value={stats.missionsCompleted} Icon={Target} accent="helio" />
-            <Stat label="drinks pouring" value={stats.drinksActive} Icon={Wine} accent="topaz" />
-            <span
-              className={cn(
-                "mb-2 h-2.5 w-2.5 rounded-full",
-                connected ? "bg-gem-peridot animate-pulse-slow" : "bg-gem-garnet",
-              )}
-              title={connected ? "live" : "reconnecting"}
-            />
-          </div>
-        </div>
-        <SiteNav />
+          }
+        />
+        <p className="mt-3 text-[11px] uppercase tracking-[0.3em] text-ash">
+          {EVENT_NAME} · scene · {formatScene(scene)}
+        </p>
       </header>
 
       {showPuzzle ? (
