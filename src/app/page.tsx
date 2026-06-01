@@ -1,4 +1,4 @@
-import { KeyRound, LayoutGrid, MessageSquare, QrCode, SlidersHorizontal, Target, Wine } from "lucide-react";
+import { BookOpen, KeyRound, LayoutGrid, MessageSquare, QrCode, SlidersHorizontal, Target, Wine } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { EVENT_NAME, PRODUCT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/event";
@@ -25,6 +25,13 @@ const LINKS: NavLink[] = [
     Icon: QrCode,
     primary: true,
     hint: "Text or web check-in: get your gem and first mission.",
+  },
+  {
+    href: "/play",
+    label: "How to play",
+    note: "rules + missions",
+    Icon: BookOpen,
+    hint: "Gems, missions, drinks, and how the labyrinth works.",
   },
   {
     href: "/projection",
@@ -68,12 +75,14 @@ const STEPS: { Icon: LucideIcon; title: string; body: string }[] = [
 export default function Home() {
   return (
     <main className="flex flex-col">
-      {/* Hero: cloud bento walls flanking the wordmark */}
+      {/* Hero: photo bento walls flanking the wordmark */}
       <section className="grid min-h-screen grid-cols-1 gap-2 p-2 lg:h-screen lg:grid-cols-[1fr_1.5fr_1fr]">
-        <div className="hidden grid-cols-2 grid-rows-6 gap-2 lg:grid">
+        <div className="hidden grid-cols-2 grid-rows-8 gap-2 lg:grid">
           <BentoCell bg="bgimg-nyx-lines" label="NYX // LINES" className="col-span-2 row-span-2" />
-          <BentoCell bg="bgimg-cloud-sky" label="CLOUD" tone="veil" className="row-span-2" />
-          <BentoCell bg="bgimg-hero-smoke" label="SMOKE" className="row-span-2" />
+          <BentoCell bg="bgimg-event-nytw" label="NY TECH WEEK" tone="veil" className="row-span-2" />
+          <BentoCell bg="bgimg-event-runway" label="RUN(WAY)TIME" tone="veil" className="row-span-2" />
+          <BentoCell bg="bgimg-event-byoa" label="BYOA" tone="veil" className="row-span-2" />
+          <BentoCell bg="bgimg-event-a2a" label="DEDALUS ARCHIVES" className="row-span-2" />
           <BentoCell bg="bgimg-cloud-lines" label="CIRRUS" tone="veil" className="col-span-2 row-span-2" />
         </div>
 
@@ -134,10 +143,11 @@ export default function Home() {
           </div>
         </section>
 
-        <div className="hidden grid-cols-2 grid-rows-6 gap-2 lg:grid">
+        <div className="hidden grid-cols-2 grid-rows-8 gap-2 lg:grid">
           <BentoCell bg="bgimg-hero-sky" label="RUN(WAY)TIME" tone="veil" className="col-span-2 row-span-3" />
           <BentoCell bg="bgimg-nyx-waves" label="NYX // WAVE" className="row-span-3" />
-          <BentoCell bg="bgimg-cloud-sky" label="HELIO" tone="veil" className="row-span-3" />
+          <BentoCell bg="bgimg-event-team" label="THE THREAD" tone="veil" className="row-span-3" />
+          <BentoCell bg="bgimg-cloud-lines" label="CIRRUS" tone="veil" className="col-span-2 row-span-2" />
         </div>
       </section>
 

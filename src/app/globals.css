@@ -120,20 +120,14 @@ body {
   --rl: 14px;
 }
 
-/* Faint targeting grid behind the room board. */
+/* Horizontal ledger lines behind HUD surfaces (no vertical grid). */
 .hud-grid {
-  background-image:
-    linear-gradient(
-      to right,
-      color-mix(in srgb, var(--color-nyx-line) 70%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--color-nyx-line) 70%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 44px 44px;
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-nyx-line) 70%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 100% 44px;
 }
 
 /* Scanline veil for the cinematic surveillance feel. */
@@ -184,7 +178,12 @@ body {
 .bgimg-cloud-lines,
 .bgimg-cloud-sky,
 .bgimg-hero-sky,
-.bgimg-hero-smoke {
+.bgimg-hero-smoke,
+.bgimg-event-runway,
+.bgimg-event-nytw,
+.bgimg-event-team,
+.bgimg-event-byoa,
+.bgimg-event-a2a {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -206,6 +205,26 @@ body {
 }
 .bgimg-hero-smoke {
   background-image: url("/brand/hero-smoke.webp");
+}
+.bgimg-event-runway {
+  background-image: url("/brand/event-runway.png");
+  background-position: center 20%;
+}
+.bgimg-event-nytw {
+  background-image: url("/brand/event-nytw.png");
+  background-position: center top;
+}
+.bgimg-event-team {
+  background-image: url("/brand/event-team.png");
+  background-position: center 35%;
+}
+.bgimg-event-byoa {
+  background-image: url("/brand/event-byoa.png");
+  background-position: center;
+}
+.bgimg-event-a2a {
+  background-image: url("/brand/event-a2a.png");
+  background-position: center;
 }
 
 @keyframes ariadne-rise {
