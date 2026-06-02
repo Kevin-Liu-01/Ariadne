@@ -1,6 +1,6 @@
 "use client";
 
-import { Disc3, Lock, LogOut, Tablet } from "lucide-react";
+import { Disc3, Lock, LogOut, Sparkles, Tablet } from "lucide-react";
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
 import { AlertsPanel } from "@/app/operator/alerts-panel";
@@ -68,6 +68,14 @@ export default function OperatorPage() {
                 >
                   <Disc3 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
                   dj
+                </Link>
+                <Link
+                  href="/visuals"
+                  target="_blank"
+                  className="flex items-center gap-1.5 border border-nyx-line px-2.5 py-1.5 text-[10px] uppercase tracking-widest text-ash transition-colors hover:border-helio/50 hover:text-cloud"
+                >
+                  <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                  stage
                 </Link>
                 <button
                   type="button"
