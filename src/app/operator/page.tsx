@@ -1,6 +1,7 @@
 "use client";
 
-import { Lock, LogOut } from "lucide-react";
+import { Disc3, Lock, LogOut, Tablet } from "lucide-react";
+import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
 import { AlertsPanel } from "@/app/operator/alerts-panel";
 import { ConnectionBanner } from "@/app/operator/connection-banner";
@@ -51,14 +52,32 @@ export default function OperatorPage() {
         <header className="border-b border-nyx-line pb-4">
           <SiteNav
             actions={
-              <button
-                type="button"
-                onClick={lock}
-                className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-ash hover:text-cloud"
-              >
-                <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-                lock
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href="/bar"
+                  target="_blank"
+                  className="flex items-center gap-1.5 border border-nyx-line px-2.5 py-1.5 text-[10px] uppercase tracking-widest text-ash transition-colors hover:border-helio/50 hover:text-cloud"
+                >
+                  <Tablet className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                  bar
+                </Link>
+                <Link
+                  href="/dj"
+                  target="_blank"
+                  className="flex items-center gap-1.5 border border-nyx-line px-2.5 py-1.5 text-[10px] uppercase tracking-widest text-ash transition-colors hover:border-helio/50 hover:text-cloud"
+                >
+                  <Disc3 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                  dj
+                </Link>
+                <button
+                  type="button"
+                  onClick={lock}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] uppercase tracking-widest text-ash transition-colors hover:text-cloud"
+                >
+                  <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                  lock
+                </button>
+              </div>
             }
           />
         </header>

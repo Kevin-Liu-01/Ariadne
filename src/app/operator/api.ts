@@ -30,6 +30,14 @@ export interface OperatorAlert {
   createdAt: string;
 }
 
+export interface OperatorSongRequest {
+  id: string;
+  rawText: string;
+  status: "requested" | "accepted" | "rejected" | "played";
+  createdAt: string;
+  guest: { gameId: string; displayName: string | null } | null;
+}
+
 export interface OperatorParticipant {
   id: string;
   gameId: string;
