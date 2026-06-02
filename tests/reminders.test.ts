@@ -92,6 +92,23 @@ describe("planReminders (gentle, idempotent)", () => {
     expect(planned[0].text).toContain("Negroni");
   });
 
+  it("chases a second waiting drink by name once the first was already nudged", () => {
+    const planned = planReminders(
+      ctx({
+        guests: [guest()],
+        readyOrders: [
+          { id: "drk_1", participantId: "par_1", label: "Negroni", readyAtMs: ago(20) },
+          { id: "drk_2", participantId: "par_1", label: "Espresso Martini", readyAtMs: ago(6) },
+        ],
+        history: [{ participantId: "par_1", kind: "pickup", refId: "drk_1", sentAt: new Date(ago(15)).toISOString() }],
+      }),
+    );
+    expect(planned).toHaveLength(1);
+    expect(planned[0].kind).toBe("pickup");
+    expect(planned[0].refId).toBe("drk_2");
+    expect(planned[0].text).toContain("Espresso Martini");
+  });
+
   it("chases a missing name once, then never again", () => {
     const nameless = guest({ displayName: null, createdAtMs: ago(20) });
     const first = planReminders(ctx({ guests: [nameless] }));

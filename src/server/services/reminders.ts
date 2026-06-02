@@ -56,9 +56,10 @@ export interface ReminderCaps {
 
 const MIN = 60_000;
 
-// "Within reason": one unprompted text per kind per guest for the whole night,
-// never while they are mid-conversation, never two in a row. If a guest ignores a
-// nudge they probably are not playing, so we say it once and then leave them be.
+// "Within reason": name and progress get one unprompted text each for the whole
+// night (ignore it and you are probably not playing, so we stop). Pickup is the
+// exception at 2: it is gated per drink, so this chases up to two waiting drinks,
+// each named once. Never mid-conversation, never two in a row.
 export const DEFAULT_CAPS: ReminderCaps = {
   activeWindowMs: 5 * MIN,
   quietGapMs: 10 * MIN,
@@ -68,7 +69,7 @@ export const DEFAULT_CAPS: ReminderCaps = {
   activityGapMs: 30 * MIN,
   nameCap: 1,
   activityCap: 1,
-  pickupCap: 1,
+  pickupCap: 2,
   perSweepCap: 60,
 };
 
