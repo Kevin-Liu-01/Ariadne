@@ -43,53 +43,59 @@ const fakeChat: ChatFn = async (req) => {
   if (/lost|stolen|hurt|someone|harass|emergency/i.test(user)) {
     return toolCall("flag_operator", { reason: user });
   }
-  if (/\b(i'?m|i am)\b/i.test(user)) {
-    const name = user.replace(/.*\b(i'?m|i am)\b\s*/i, "").trim();
-    return toolCall("check_in", name ? { name } : {});
+  const email = user.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
+  if (email) return toolCall("check_in", { email: email[0] });
+  if (/vodka|drink|soda|martini|beer|wine/i.test(user)) {
+    return toolCall("order_drink", { text: user });
   }
   if (/\b(join|check in|hey|hello|hi)\b/i.test(user)) {
     return toolCall("check_in", {});
   }
-  if (/^[a-z'-]{2,30}$/i.test(user.trim())) {
-    return toolCall("check_in", { name: user.trim() });
-  }
-  if (/vodka|drink|soda|martini|beer|wine/i.test(user)) {
-    return toolCall("order_drink", { text: user });
-  }
   return content("tell me more.");
 };
 
+// Pre-check-in via the service (which does not gate) for tests whose subject is a
+// later action, not the door. demo@dedaluslabs.ai is on the test waitlist CSV.
+async function seed(bb: Awaited<ReturnType<typeof freshBackbone>>, phone: string, name: string): Promise<void> {
+  await bb.registration.register({
+    phone,
+    externalConversationId: `conv_${phone}`,
+    channel: "sms",
+    name,
+    email: `${name.toLowerCase()}@dedaluslabs.ai`,
+  });
+}
+
 describe("conversational agent (mocked model)", () => {
-  it("checks a guest in via the check_in tool and relays the canonical reply", async () => {
+  it("threads a guest in when they give a waitlisted email", async () => {
     const bb = await freshBackbone(fakeChat);
-    const reply = await bb.brain.process(inbound("+1700000001", "I'm Zoe"));
-    const zoe = await bb.repos.participants.findByPhone("test-event", "+1700000001");
-    expect(zoe).toBeTruthy();
-    expect(zoe?.displayName).toBe("Zoe");
-    expect(reply.participantId).toBe(zoe?.id);
-    expect(reply.text.toLowerCase()).toContain("welcome, zoe");
-    expect(reply.text).toContain(zoe?.gameId ?? "??");
+    const reply = await bb.brain.process(inbound("+1700000001", "demo@dedaluslabs.ai"));
+    const guest = await bb.repos.participants.findByPhone("test-event", "+1700000001");
+    expect(guest).toBeTruthy();
+    expect(guest?.email).toBe("demo@dedaluslabs.ai");
+    expect(guest?.displayName).toBe("Demo Guest"); // pulled from the waitlist
+    expect(reply.participantId).toBe(guest?.id);
+    expect(reply.text.toLowerCase()).toContain("welcome");
+    expect(reply.text).toContain(guest?.gameId ?? "??");
   });
 
-  it("asks for a name before check-in when none is given", async () => {
+  it("refuses an email that is not on the list and checks no one in", async () => {
+    const bb = await freshBackbone(fakeChat);
+    const reply = await bb.brain.process(inbound("+1700000009", "stranger@nope.com"));
+    expect(await bb.repos.participants.findByPhone("test-event", "+1700000009")).toBeNull();
+    expect(reply.text.toLowerCase()).toContain("can't find that email");
+  });
+
+  it("asks for the signup email before checking anyone in", async () => {
     const bb = await freshBackbone(fakeChat);
     const reply = await bb.brain.process(inbound("+1700000005", "hey"));
     expect(await bb.repos.participants.findByPhone("test-event", "+1700000005")).toBeNull();
-    expect(reply.text.toLowerCase()).toContain("what should i call you");
-  });
-
-  it("threads in after the guest replies with their name", async () => {
-    const bb = await freshBackbone(fakeChat);
-    await bb.brain.process(inbound("+1700000006", "JOIN"));
-    const reply = await bb.brain.process(inbound("+1700000006", "Kevin"));
-    const guest = await bb.repos.participants.findByPhone("test-event", "+1700000006");
-    expect(guest?.displayName).toBe("Kevin");
-    expect(reply.text.toLowerCase()).toContain("welcome, kevin");
+    expect(reply.text.toLowerCase()).toContain("email you signed up with");
   });
 
   it("routes a drink request through the order_drink tool", async () => {
     const bb = await freshBackbone(fakeChat);
-    await bb.brain.process(inbound("+1700000002", "I'm Max"));
+    await seed(bb, "+1700000002", "Max");
     const reply = await bb.brain.process(inbound("+1700000002", "can I get a vodka soda"));
     expect(await bb.drinks.listActive()).toHaveLength(1);
     expect(reply.text.toLowerCase()).toContain("locked");
@@ -97,14 +103,14 @@ describe("conversational agent (mocked model)", () => {
 
   it("just chats when no tool applies", async () => {
     const bb = await freshBackbone(fakeChat);
-    await bb.brain.process(inbound("+1700000003", "I'm Ivy"));
+    await seed(bb, "+1700000003", "Ivy");
     const reply = await bb.brain.process(inbound("+1700000003", "what is this place?"));
     expect(reply.text).toBe("tell me more.");
   });
 
   it("escalates a real-world problem to the operator via flag_operator", async () => {
     const bb = await freshBackbone(fakeChat);
-    await bb.brain.process(inbound("+1700000004", "I'm Sam"));
+    await seed(bb, "+1700000004", "Sam");
     await bb.brain.process(inbound("+1700000004", "I lost my coat somewhere"));
     expect(await bb.repos.operatorAlerts.listOpen("test-event")).toHaveLength(1);
   });

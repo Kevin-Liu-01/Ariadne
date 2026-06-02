@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS participants (
   game_id       TEXT NOT NULL,
   display_name  TEXT,
   phone         TEXT,
+  email         TEXT,
   gem           TEXT NOT NULL,
   secret_word   TEXT NOT NULL,
   station_id    TEXT,
@@ -21,8 +22,11 @@ CREATE TABLE IF NOT EXISTS participants (
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
 );
+-- Added after launch; ALTER keeps existing deploys in sync (CREATE above covers fresh DBs).
+ALTER TABLE participants ADD COLUMN IF NOT EXISTS email TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_participants_event_game ON participants(event_id, game_id);
 CREATE INDEX IF NOT EXISTS idx_participants_phone ON participants(event_id, phone);
+CREATE INDEX IF NOT EXISTS idx_participants_email ON participants(event_id, email);
 
 CREATE TABLE IF NOT EXISTS conversations (
   id                 TEXT PRIMARY KEY,

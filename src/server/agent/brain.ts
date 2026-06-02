@@ -74,7 +74,7 @@ export class AgentBrain {
 
   private grounding(participant: Participant | null, conversation: Conversation): string {
     if (!participant) {
-      return "CURRENT GUEST: not checked in yet. Ask their name, then call check_in with it. Do not check them in without a name.";
+      return "CURRENT GUEST: not checked in yet. Open warmly: 'Welcome to Dedalus Run(way)time. Let's thread you in.' Ask for the email they signed up with, then call check_in with that email. If check_in returns not_on_list, gently tell them that email is not on tonight's list and you cannot thread them in. If it returns needs_name, ask their first name. Never check anyone in without a waitlisted email.";
     }
     const nameLine = participant.displayName
       ? ` Name: ${participant.displayName}.`

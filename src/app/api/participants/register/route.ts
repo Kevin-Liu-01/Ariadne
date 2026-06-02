@@ -1,13 +1,16 @@
 import { z } from "zod";
 import { GEMS } from "@/constants/gems";
+import { normalizeEmail } from "@/domain/email";
 import { normalizePhone } from "@/domain/phone";
 import { getBackbone } from "@/server/backbone";
+import { waitlistLookup } from "@/server/door/waitlist";
 import { json, problem } from "@/server/http/respond";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const RegisterBody = z.object({
+  email: z.string().trim().min(3).max(120),
   name: z.string().trim().min(1).max(80).optional(),
   phone: z.string().trim().max(32).optional(),
   category: z.string().trim().max(60).optional(),
@@ -23,12 +26,18 @@ export async function POST(req: Request): Promise<Response> {
     return problem(422, "invalid registration");
   }
 
+  // The waitlist is the door: no approved email, no check-in.
+  const email = normalizeEmail(input.email);
+  const listing = waitlistLookup(email);
+  if (!listing.onList) return problem(403, "not on the waitlist");
+
   const bb = getBackbone();
   const result = await bb.registration.register({
     phone: input.phone ? normalizePhone(input.phone) || null : null,
     externalConversationId: null,
     channel: input.channel ?? null,
-    name: input.name ?? null,
+    name: input.name ?? listing.name ?? null,
+    email,
     category: input.category ?? null,
     stationId: input.stationId ?? null,
   });

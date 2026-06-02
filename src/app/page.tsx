@@ -1,4 +1,4 @@
-import { BookOpen, KeyRound, LayoutGrid, MessageSquare, QrCode, SlidersHorizontal, Target, Wine } from "lucide-react";
+import { ArrowRight, BookOpen, KeyRound, LayoutGrid, MessageSquare, QrCode, SlidersHorizontal, Target, Wine } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { EVENT_NAME, PRODUCT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/event";
@@ -96,37 +96,39 @@ export default function Home() {
               in, get a gem and secret word, solve the labyrinth, and order drinks, all by text.
             </p>
 
-            <nav className="mt-10 grid w-full gap-2">
-              {LINKS.map((l) => (
+            <nav className="mt-10 w-full">
+              {LINKS.filter((l) => l.primary).map((l) => (
                 <Link
                   key={l.href}
                   href={l.href}
-                  className={cn(
-                    "group block border px-5 py-3 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5",
-                    l.primary
-                      ? "border-helio/50 bg-helio/10 hover:bg-helio/15"
-                      : "border-nyx-line/70 bg-nyx/60 hover:border-helio/50 hover:bg-nyx/40",
-                  )}
+                  className="group flex items-center justify-between gap-3 border border-helio/50 bg-helio/15 px-6 py-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-helio/25"
                 >
-                  <span className="flex items-center justify-between">
-                    <span className="flex items-center gap-3">
-                      <l.Icon
-                        className={cn(
-                          "h-4 w-4 transition-colors",
-                          l.primary ? "text-helio" : "text-ash group-hover:text-helio",
-                        )}
-                        strokeWidth={1.5}
-                        aria-hidden
-                      />
-                      <span className="text-base text-cloud">{l.label}</span>
-                    </span>
-                    <span className="text-[10px] uppercase tracking-[0.25em] text-ash group-hover:text-helio">
-                      {l.note}
+                  <span className="flex items-center gap-3">
+                    <l.Icon className="h-6 w-6 text-helio" strokeWidth={1.5} aria-hidden />
+                    <span className="text-left">
+                      <span className="block text-xl font-medium text-cloud">{l.label}</span>
+                      <span className="block text-[11px] uppercase tracking-[0.25em] text-helio">{l.note}</span>
                     </span>
                   </span>
-                  <p className="mt-1.5 text-xs text-ash group-hover:text-cloud/80">{l.hint}</p>
+                  <ArrowRight
+                    className="h-5 w-5 shrink-0 text-helio transition-transform group-hover:translate-x-1"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
                 </Link>
               ))}
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                {LINKS.filter((l) => !l.primary).map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    className="group flex items-center gap-2 border border-nyx-line/70 bg-nyx/50 px-4 py-2.5 text-sm text-ash backdrop-blur-sm transition-colors hover:border-helio/50 hover:text-cloud"
+                  >
+                    <l.Icon className="h-4 w-4 text-ash transition-colors group-hover:text-helio" strokeWidth={1.5} aria-hidden />
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
             </nav>
 
             <p className="mt-10 flex items-center gap-2 text-xs text-ash/60">

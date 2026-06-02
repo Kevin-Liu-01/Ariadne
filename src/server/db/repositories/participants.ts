@@ -10,6 +10,7 @@ interface ParticipantRow {
   game_id: string;
   display_name: string | null;
   phone: string | null;
+  email: string | null;
   gem: string;
   secret_word: string;
   station_id: string | null;
@@ -27,6 +28,7 @@ function toParticipant(row: ParticipantRow): Participant {
     gameId: row.game_id,
     displayName: row.display_name,
     phone: row.phone,
+    email: row.email,
     gem: row.gem as GemId,
     secretWord: row.secret_word,
     stationId: row.station_id,
@@ -46,14 +48,15 @@ export class ParticipantsRepository extends BaseRepository {
   async insert(p: Participant): Promise<void> {
     await this.db.query(
       `INSERT INTO participants
-        (id, event_id, game_id, display_name, phone, gem, secret_word, station_id, score, eliminated, photo_url, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        (id, event_id, game_id, display_name, phone, email, gem, secret_word, station_id, score, eliminated, photo_url, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
       [
         p.id,
         p.eventId,
         p.gameId,
         p.displayName,
         p.phone,
+        p.email,
         p.gem,
         p.secretWord,
         p.stationId,
@@ -64,6 +67,14 @@ export class ParticipantsRepository extends BaseRepository {
         p.updatedAt,
       ],
     );
+  }
+
+  async findByEmail(eventId: string, email: string): Promise<Participant | null> {
+    const rows = await this.db.query<ParticipantRow>(
+      `SELECT * FROM participants WHERE event_id = $1 AND email = $2`,
+      [eventId, email.toLowerCase()],
+    );
+    return rows[0] ? toParticipant(rows[0]) : null;
   }
 
   async findById(id: string): Promise<Participant | null> {

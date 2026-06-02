@@ -5,6 +5,16 @@
  * No em dashes; the agent persona/policy lives in prompts.ts.
  */
 
+import { EVENT_NAME } from "@/constants/event";
+
+export function checkinAskEmailCopy(): string {
+  return `Welcome to Dedalus ${EVENT_NAME}. Let's thread you in. What's the email you signed up with?`;
+}
+
+export function notOnListCopy(): string {
+  return "I can't find that email on tonight's list. Send it once more to be sure, or grab a door host if you think it's a mistake. I can't thread you in until it's on the list.";
+}
+
 export function welcomeCopy(p: {
   name?: string | null;
   gemLabel: string;

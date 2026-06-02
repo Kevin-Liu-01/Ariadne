@@ -2,6 +2,7 @@ import {
   alreadyHereCopy,
   askNameCopy,
   badNameCopy,
+  checkinAskEmailCopy,
   drinkClarifyCopy,
   drinkQueuedCopy,
   drinkUnavailableCopy,
@@ -10,6 +11,7 @@ import {
   missionDeliverCopy,
   missionPartnerInvalidCopy,
   missionWrongCopy,
+  notOnListCopy,
   pickupConfirmedCopy,
   songQueuedCopy,
   welcomeCopy,
@@ -17,7 +19,9 @@ import {
 import type { InboundChannel } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import { assertNever } from "@/lib/assert";
+import { extractEmail, isEmail, normalizeEmail } from "@/domain/email";
 import { cleanDisplayName } from "@/domain/profanity";
+import { waitlistLookup } from "@/server/door/waitlist";
 import type { Conversation, Participant } from "@/domain/types";
 import type { Repositories } from "@/server/db/repositories";
 import type { ConversationService } from "@/server/services/conversations";
@@ -95,10 +99,24 @@ function titleName(raw: string): string {
   return raw[0].toUpperCase() + raw.slice(1).toLowerCase();
 }
 
+/** Strict arg lookup: only the named keys, no "any string value" fallback (that would grab the email). */
+function argString(args: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const v = args[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
+
 function resolveName(args: Record<string, unknown>, userText: string): string | null {
-  const raw = pickText(args, ["name", "guest_name"]) || guessName(userText);
-  if (!raw) return null;
-  return raw.trim() || null;
+  return argString(args, ["name", "guest_name"]) || guessName(userText);
+}
+
+/** Pull the signup email from a tool arg or the guest's message. */
+function resolveEmail(args: Record<string, unknown>, userText: string): string | null {
+  const fromArgs = argString(args, ["email", "e_mail", "address"]);
+  if (fromArgs && isEmail(fromArgs)) return normalizeEmail(fromArgs);
+  return extractEmail(fromArgs) ?? extractEmail(userText);
 }
 
 /** Resolve the live conversation + participant for this phone, fresh each call. */
@@ -126,26 +144,27 @@ const checkIn: Tool = {
     function: {
       name: "check_in",
       description:
-        "Thread a guest into the event: assigns their color gem, secret word, game id, and first mission. Requires their name. If they have not given one, ask first and do not call this until they do.",
+        "Thread a guest into the event: assigns their color gem, secret word, game id, and first mission. Requires the email they signed up with, and it must be on the waitlist. Pass a name too if they gave one (otherwise the signup name is used). If they have not given an email yet, ask first and do not call this until they do.",
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "guest's first name (required for new check-ins)" },
+          email: { type: "string", description: "the email the guest signed up with (required for new check-ins)" },
+          name: { type: "string", description: "guest's first name if they offered one" },
           category: { type: "string", description: "RSVP cohort if known (engineers/founders/artists/...)" },
         },
-        required: ["name"],
+        required: ["email"],
       },
     },
   },
   execute: async (args, ctx) => {
-    const rawName = resolveName(args, ctx.userText);
-    const displayName = rawName ? cleanDisplayName(rawName) : null;
-    if (rawName && !displayName) return { needs_name: true, say: badNameCopy() };
-
     const { participant: existing } = await resolve(ctx);
+
+    // Returning guest: already threaded in, no email gate. Save a name if it was missing.
     if (existing) {
-      if (!existing.displayName && displayName) {
-        const updated = await ctx.repos.participants.setDisplayName(existing.id, displayName);
+      const offered = resolveName(args, ctx.userText);
+      const offeredName = offered ? cleanDisplayName(offered) : null;
+      if (!existing.displayName && offeredName) {
+        const updated = await ctx.repos.participants.setDisplayName(existing.id, offeredName);
         const p = updated ?? existing;
         return {
           is_new: false,
@@ -167,13 +186,24 @@ const checkIn: Tool = {
       };
     }
 
-    if (!displayName) return { needs_name: true, say: askNameCopy() };
+    // New guest: the waitlist email is the gate.
+    const email = resolveEmail(args, ctx.userText);
+    if (!email) return { needs_email: true, say: checkinAskEmailCopy() };
+
+    const listing = waitlistLookup(email);
+    if (!listing.onList) return { not_on_list: true, email, say: notOnListCopy() };
+
+    const rawName = resolveName(args, ctx.userText) ?? listing.name;
+    const displayName = rawName ? cleanDisplayName(rawName) : null;
+    if (rawName && !displayName) return { needs_name: true, email, say: badNameCopy() };
+    if (!displayName) return { needs_name: true, email, say: askNameCopy() };
 
     const result = await ctx.registration.register({
       phone: ctx.from,
       externalConversationId: ctx.externalConversationId,
       channel: ctx.channel,
       name: displayName,
+      email,
       category: pickText(args, ["category", "cohort"]) || null,
     });
     const p = result.participant;

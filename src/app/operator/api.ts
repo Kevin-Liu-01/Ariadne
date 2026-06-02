@@ -30,6 +30,15 @@ export interface OperatorAlert {
   createdAt: string;
 }
 
+export interface OperatorDoorEntry {
+  email: string;
+  name: string | null;
+  checkedIn: boolean;
+  gameId: string | null;
+  displayName: string | null;
+  gemLabel: string | null;
+}
+
 export interface OperatorSongRequest {
   id: string;
   rawText: string;

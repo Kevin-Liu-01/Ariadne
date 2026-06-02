@@ -1,0 +1,6 @@
+email,name
+# Replace the rows below with the real waitlist export. Header must stay "email,name".
+# Lines starting with # and blank lines are ignored. Email match is case-insensitive.
+# Name is optional; if present the agent skips asking for it.
+demo@dedaluslabs.ai,Demo Guest
+windsor@dedaluslabs.ai,Windsor Nguyen

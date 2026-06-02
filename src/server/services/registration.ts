@@ -16,6 +16,7 @@ export interface RegisterInput {
   channel: InboundChannel | null;
   stationId?: string | null;
   name?: string | null;
+  email?: string | null;
   category?: string | null;
 }
 
@@ -113,6 +114,7 @@ export class RegistrationService {
       gameId,
       displayName: cleanDisplayName(input.name),
       phone: input.phone,
+      email: input.email ? input.email.trim().toLowerCase() : null,
       gem,
       secretWord,
       stationId: input.stationId ?? null,

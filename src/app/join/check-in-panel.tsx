@@ -36,6 +36,7 @@ interface Props {
 
 export function CheckInPanel({ phoneNumber, stationId }: Props) {
   const [mode, setMode] = useState<"home" | "web">("home");
+  const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
@@ -53,11 +54,16 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          email: email.trim(),
           name: name.trim() || undefined,
           phone: phone.trim() || undefined,
           stationId: stationId ?? undefined,
         }),
       });
+      if (res.status === 403) {
+        setError("That email isn't on tonight's list. Double-check it, or see a door host.");
+        return;
+      }
       if (!res.ok) throw new Error(await res.text());
       setResult((await res.json()) as RegisterResult);
     } catch {
@@ -179,6 +185,14 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
 
       {mode === "web" ? (
         <form onSubmit={submitWeb} className="mt-4 grid gap-3 animate-rise">
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            required
+            placeholder="email you signed up with"
+            className="border border-nyx-line bg-nyx px-4 py-3 text-cloud outline-none placeholder:text-ash/60 focus:border-helio/50"
+          />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
