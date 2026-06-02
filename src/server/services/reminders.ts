@@ -56,8 +56,9 @@ export interface ReminderCaps {
 
 const MIN = 60_000;
 
-// "Within reason": at most one unprompted text per guest per ~10 min, never while
-// they are mid-conversation, never two in a row, capped per night.
+// "Within reason": one unprompted text per kind per guest for the whole night,
+// never while they are mid-conversation, never two in a row. If a guest ignores a
+// nudge they probably are not playing, so we say it once and then leave them be.
 export const DEFAULT_CAPS: ReminderCaps = {
   activeWindowMs: 5 * MIN,
   quietGapMs: 10 * MIN,
@@ -65,9 +66,9 @@ export const DEFAULT_CAPS: ReminderCaps = {
   nameDelayMs: 3 * MIN,
   activityIdleMs: 25 * MIN,
   activityGapMs: 30 * MIN,
-  nameCap: 2,
-  activityCap: 3,
-  pickupCap: 2,
+  nameCap: 1,
+  activityCap: 1,
+  pickupCap: 1,
   perSweepCap: 60,
 };
 

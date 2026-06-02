@@ -108,9 +108,10 @@ export function sceneBroadcastCopy(sceneId: string, missionPrompt?: string | nul
 
 export function progressNudgeCopy(p: { engaged: boolean; score: number; missionPrompt: string | null }): string {
   const move = p.missionPrompt ? ` Your move: ${p.missionPrompt}` : " Stay close to the screen.";
-  return p.engaged
+  const lead = p.engaged
     ? `You're at ${p.score} points.${move}`
     : `You're threaded in but haven't made a move yet.${move}`;
+  return `${lead} Text HELP anytime.`;
 }
 
 export function pickupCheckCopy(label: string): string {
@@ -118,7 +119,7 @@ export function pickupCheckCopy(label: string): string {
 }
 
 export function nameNudgeCopy(): string {
-  return "Still with me? Tell me your name and I'll thread you into the game.";
+  return "Still with me? Tell me your name and I'll thread you into the game. Text HELP anytime.";
 }
 
 export function songQueuedCopy(text: string): string {

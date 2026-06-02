@@ -92,17 +92,16 @@ describe("planReminders (gentle, idempotent)", () => {
     expect(planned[0].text).toContain("Negroni");
   });
 
-  it("chases a missing name, but respects the per-night cap", () => {
+  it("chases a missing name once, then never again", () => {
     const nameless = guest({ displayName: null, createdAtMs: ago(20) });
-    expect(planReminders(ctx({ guests: [nameless] }))[0]?.kind).toBe("name");
+    const first = planReminders(ctx({ guests: [nameless] }));
+    expect(first[0]?.kind).toBe("name");
+    expect(first[0]?.text).toContain("HELP");
 
     const capped = planReminders(
       ctx({
         guests: [nameless],
-        history: [
-          { participantId: "par_1", kind: "name", refId: null, sentAt: new Date(ago(40)).toISOString() },
-          { participantId: "par_1", kind: "name", refId: null, sentAt: new Date(ago(30)).toISOString() },
-        ],
+        history: [{ participantId: "par_1", kind: "name", refId: null, sentAt: new Date(ago(40)).toISOString() }],
       }),
     );
     expect(capped).toHaveLength(0);
@@ -111,6 +110,17 @@ describe("planReminders (gentle, idempotent)", () => {
   it("nudges an idle player with an active mission, but not a faded one", () => {
     expect(planReminders(ctx({ guests: [guest({ lastActiveMs: ago(40) })] }))[0]?.kind).toBe("activity");
     expect(planReminders(ctx({ guests: [guest({ lastActiveMs: ago(40), eliminated: true })] }))).toHaveLength(0);
+  });
+
+  it("nudges game progress once, then never again", () => {
+    const idle = guest({ lastActiveMs: ago(40) });
+    const repeat = planReminders(
+      ctx({
+        guests: [idle],
+        history: [{ participantId: "par_1", kind: "activity", refId: null, sentAt: new Date(ago(35)).toISOString() }],
+      }),
+    );
+    expect(repeat).toHaveLength(0);
   });
 
   it("applies the per-sweep blast ceiling, pickups first", () => {
