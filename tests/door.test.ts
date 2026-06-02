@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { extractEmail, normalizeEmail } from "@/domain/email";
-import { waitlistLookup } from "@/server/door/waitlist";
+import { setWaitlistForTests, waitlistLookup } from "@/server/door/waitlist";
+
+beforeAll(() => {
+  setWaitlistForTests([
+    { email: "demo@dedaluslabs.ai", name: "Demo Guest" },
+    { email: "windsor@dedaluslabs.ai", name: "Windsor Nguyen" },
+  ]);
+});
 
 describe("waitlist door gate", () => {
   it("matches a listed email case-insensitively and returns the signup name", () => {

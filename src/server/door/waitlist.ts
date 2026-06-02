@@ -11,8 +11,15 @@ export interface WaitlistEntry {
 // Parsed once per process. The CSV is committed (src/server/door/waitlist.csv) and
 // bundled via next.config outputFileTracingIncludes so it ships to the serverless fn.
 let cache: Map<string, WaitlistEntry> | null = null;
+let testOverride: Map<string, WaitlistEntry> | null = null;
+
+/** Tests inject a deterministic list so they never depend on the live event CSV. */
+export function setWaitlistForTests(entries: WaitlistEntry[] | null): void {
+  testOverride = entries ? new Map(entries.map((e) => [normalizeEmail(e.email), e])) : null;
+}
 
 function load(): Map<string, WaitlistEntry> {
+  if (testOverride) return testOverride;
   if (cache) return cache;
   const map = new Map<string, WaitlistEntry>();
   let text = "";

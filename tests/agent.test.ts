@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import type { ChatFn, ChatResponse } from "@/server/partners/dedalus/types";
+import { setWaitlistForTests } from "@/server/door/waitlist";
 import { freshBackbone, inbound } from "./helpers";
+
+beforeAll(() => {
+  setWaitlistForTests([{ email: "demo@dedaluslabs.ai", name: "Demo Guest" }]);
+});
 
 function content(text: string): ChatResponse {
   return {

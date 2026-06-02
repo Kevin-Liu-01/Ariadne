@@ -1,10 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { FLOWS } from "@/constants/event";
 import type { ChatFn, ChatResponse } from "@/server/partners/dedalus/types";
+import { setWaitlistForTests } from "@/server/door/waitlist";
 import { type ReminderCaps, ReminderService } from "@/server/services/reminders";
 import { freshBackbone, inbound } from "./helpers";
 
 const EVENT = "test-event";
+
+beforeAll(() => {
+  setWaitlistForTests([
+    { email: "demo@dedaluslabs.ai", name: "Demo Guest" },
+    { email: "windsor@dedaluslabs.ai", name: "Windsor Nguyen" },
+  ]);
+});
 
 function content(text: string): ChatResponse {
   return { id: "x", choices: [{ index: 0, message: { role: "assistant", content: text }, finish_reason: "stop" }] };
