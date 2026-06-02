@@ -149,6 +149,7 @@ body {
 .bgimg-hero-smoke,
 .bgimg-event-runway,
 .bgimg-event-team,
+.bgimg-event-group,
 .bgimg-event-byoa {
   background-size: cover;
   background-position: center;
@@ -176,6 +177,9 @@ body {
 }
 .bgimg-hero-smoke {
   background-image: url("/brand/hero-smoke.webp");
+}
+.bgimg-event-group {
+  background-image: url("/brand/event-group.png");
 }
 .bgimg-event-runway {
   background-image: url("/brand/event-runway.png");
