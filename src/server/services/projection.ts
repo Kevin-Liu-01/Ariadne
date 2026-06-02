@@ -1,5 +1,6 @@
 import { GEMS } from "@/constants/gems";
 import { DEFAULT_PUZZLE_ID, PUZZLE_BY_ID, puzzleById, toPublicPuzzle } from "@/constants/puzzles";
+import { env } from "@/lib/env";
 import { now } from "@/lib/time";
 import { DEFAULT_SCENE, type ProjectionSnapshot, type TileState } from "@/domain/projection";
 import type { ProjectionEvent, ProjectionEventType } from "@/domain/types";
@@ -56,6 +57,7 @@ export class ProjectionService {
     }));
     return {
       eventId: this.eventId,
+      eventPhone: env.agentphone.phoneNumber,
       scene,
       puzzle,
       latestSeq,

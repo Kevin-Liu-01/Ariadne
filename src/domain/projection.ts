@@ -15,6 +15,8 @@ export interface TileState {
 /** Full board state. The frontend recovers from this on reload/reconnect. */
 export interface ProjectionSnapshot {
   eventId: string;
+  /** Public event line guests text to join; shown on the arrival board. */
+  eventPhone: string;
   scene: string;
   /** The image-puzzle currently posed to the room (answers never included). */
   puzzle: PublicPuzzle;
