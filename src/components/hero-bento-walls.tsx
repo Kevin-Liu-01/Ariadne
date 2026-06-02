@@ -33,14 +33,14 @@ export function HeroBentoLeft() {
 /**
  * Right wall: hero sky anchors the top; the group photo fills the middle band.
  *
- * Row budget (12): hero sky 5 | group 4 | nyx-waves+smoke 3
+ * Row budget (12): hero sky 5 | group 4 | cloud+smoke 3
  */
 export function HeroBentoRight() {
   return (
     <BentoWall>
       <BentoCell bg="bgimg-hero-sky" tone="veil" className="col-span-2 row-span-5" />
       <BentoCell bg="bgimg-event-group" tone="veil" className="col-span-2 row-span-4" />
-      <BentoCell bg="bgimg-nyx-waves" className="row-span-3" />
+      <BentoCell bg="bgimg-cloud-sky" tone="deep" className="row-span-3" />
       <BentoCell bg="bgimg-hero-smoke" tone="veil" className="row-span-3" />
     </BentoWall>
   );

@@ -1,10 +1,19 @@
 import { cn } from "@/lib/utils";
 
+type Tone = "deep" | "dark" | "veil" | "none";
+
+/** Scrim strength per tone, idle + on hover. `deep` keeps a light asset reading as dark UI. */
+const TONE_SCRIM: Record<Exclude<Tone, "none">, string> = {
+  deep: "bg-nyx/75 group-hover:bg-nyx/55",
+  dark: "bg-nyx/55 group-hover:bg-nyx/30",
+  veil: "bg-nyx/25 group-hover:bg-nyx/10",
+};
+
 interface BentoCellProps {
   /** A `bgimg-*` brand background class from globals.css. */
   bg: string;
   /** How heavily to scrim the image so the wall reads as cohesive dark UI. */
-  tone?: "dark" | "veil" | "none";
+  tone?: Tone;
   /** `contain` shows the full asset (posters); default is cover crop. */
   fit?: "cover" | "contain";
   className?: string;
@@ -22,12 +31,7 @@ export function BentoCell({ bg, tone = "dark", fit = "cover", className }: Bento
       )}
     >
       {tone !== "none" ? (
-        <div
-          className={cn(
-            "absolute inset-0 transition-colors duration-500",
-            tone === "dark" ? "bg-nyx/55 group-hover:bg-nyx/30" : "bg-nyx/25 group-hover:bg-nyx/10",
-          )}
-        />
+        <div className={cn("absolute inset-0 transition-colors duration-500", TONE_SCRIM[tone])} />
       ) : null}
     </div>
   );
