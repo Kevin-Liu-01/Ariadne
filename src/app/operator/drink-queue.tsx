@@ -1,8 +1,9 @@
 "use client";
 
-import { Check, Hand, Pencil, Play, Wine, X } from "lucide-react";
+import { Check, Hand, Pencil, Play, Tablet, Wine, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { DRINK_STATUSES } from "@/constants/drinks";
 import { authedFetch, type OperatorOrder } from "@/app/operator/api";
 import { DrinkEditor } from "@/app/operator/drink-editor";
@@ -194,10 +195,18 @@ export function DrinkQueue({ token }: { token: string }) {
           <Wine className="h-4 w-4" strokeWidth={1.5} aria-hidden />
           bar queue
         </h2>
-        <div className="flex flex-wrap gap-3 text-[10px] uppercase tracking-widest text-ash">
+        <div className="flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-widest text-ash">
           <span className="text-gem-topaz">{statusCounts.queued} queued</span>
           <span className="text-gem-aquamarine">{statusCounts.in_progress} making</span>
           <span className="text-gem-peridot">{statusCounts.ready} ready</span>
+          <Link
+            href="/bar"
+            target="_blank"
+            className="flex items-center gap-1.5 border border-nyx-line px-2 py-1 text-ash transition-colors hover:border-helio/50 hover:text-cloud"
+          >
+            <Tablet className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+            bar display
+          </Link>
         </div>
       </div>
       {errorCopy ? <p className="mt-3 text-xs text-red-400">{errorCopy}</p> : null}
