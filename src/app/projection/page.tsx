@@ -151,7 +151,7 @@ export default function ProjectionPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen flex-col bg-nyx px-10 py-8 scanlines">
+    <main className="relative flex min-h-dvh flex-col bg-nyx px-10 py-8 scanlines">
       <header className="relative z-[2] border-b border-nyx-line pb-4">
         <SiteNav
           actions={

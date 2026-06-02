@@ -13,7 +13,7 @@ export default async function JoinPage({
 }) {
   const sp = await searchParams;
   return (
-    <main className="relative flex min-h-screen flex-1 flex-col bg-nyx px-6 py-8 scanlines">
+    <main className="relative flex min-h-dvh flex-1 flex-col bg-nyx px-6 py-8 scanlines">
       <SiteNav className="relative z-[2] justify-center" />
       <div className="relative z-[2] flex flex-1 flex-col items-center justify-center">
         <div className="w-full max-w-md animate-rise">

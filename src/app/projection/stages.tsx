@@ -159,7 +159,7 @@ function PuzzleStage({ view }: { view: BoardView }) {
           <img
             src={view.puzzleImage}
             alt="decode this"
-            className="max-h-[46vh] w-auto border border-nyx-line object-contain blur-[1.5px] contrast-125"
+            className="max-h-[46dvh] w-auto border border-nyx-line object-contain blur-[1.5px] contrast-125"
           />
         ) : (
           <div className={cn("flex h-56 w-56 items-center justify-center border", accent.border)}>

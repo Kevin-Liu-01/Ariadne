@@ -36,7 +36,7 @@ export default function PlayPage() {
   const phone = env.agentphone.phoneNumber;
 
   return (
-    <main className="relative min-h-screen bg-nyx px-10 py-10 scanlines">
+    <main className="relative min-h-dvh bg-nyx px-10 py-10 scanlines">
       <div className="relative z-[2] mx-auto w-full max-w-3xl animate-rise">
         <SiteNav className="mb-8 justify-center" />
         <div className="flex justify-center">

@@ -76,7 +76,7 @@ export default function Home() {
   return (
     <main className="flex flex-col">
       {/* Hero: photo bento walls flanking the wordmark */}
-      <section className="grid min-h-screen grid-cols-1 gap-2 p-2 lg:h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)]">
+      <section className="grid min-h-dvh grid-cols-1 gap-2 p-2 lg:h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)]">
         <HeroBentoLeft />
 
         <section className="bgimg-nyx-waves relative flex flex-col items-center justify-center overflow-hidden border border-nyx-line/70 px-6 py-16 text-center">

@@ -47,7 +47,7 @@ export function OperatorEditModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[88vh] w-full max-w-lg flex-col border border-nyx-line bg-nyx-soft shadow-2xl animate-rise"
+        className="flex max-h-[88dvh] w-full max-w-lg flex-col border border-nyx-line bg-nyx-soft shadow-2xl animate-rise"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-start justify-between gap-4 border-b border-nyx-line p-5">
