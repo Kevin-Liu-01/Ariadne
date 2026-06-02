@@ -31,15 +31,15 @@ export function HeroBentoLeft() {
 }
 
 /**
- * Right wall: ultrawide team photo spans full width; hero sky anchors the top.
+ * Right wall: hero sky anchors the top; a nyx-waves band fills the middle.
  *
- * Row budget (12): hero sky 5 | team 4 | waves+smoke 3
+ * Row budget (12): hero sky 5 | nyx-waves 4 | nyx-waves+smoke 3
  */
 export function HeroBentoRight() {
   return (
     <BentoWall>
       <BentoCell bg="bgimg-hero-sky" tone="veil" className="col-span-2 row-span-5" />
-      <BentoCell bg="bgimg-event-team" tone="veil" className="col-span-2 row-span-4" />
+      <BentoCell bg="bgimg-nyx-waves" className="col-span-2 row-span-4" />
       <BentoCell bg="bgimg-nyx-waves" className="row-span-3" />
       <BentoCell bg="bgimg-hero-smoke" tone="veil" className="row-span-3" />
     </BentoWall>
