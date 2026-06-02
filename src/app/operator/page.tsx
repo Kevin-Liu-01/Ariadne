@@ -16,29 +16,29 @@ export default function OperatorPage() {
 
   if (!token) {
     return (
-      <main className="relative flex flex-1 items-center justify-center bg-nyx px-10 scanlines">
-        <div className="relative z-[2] w-full max-w-sm animate-rise">
-          <SiteNav className="mb-6 justify-center" />
-          <div className="border border-nyx-line bg-nyx-soft p-6">
-          <h1 className="flex items-center justify-center gap-2 text-lg font-semibold">
-            <Lock className="h-4 w-4 text-helio" strokeWidth={1.5} aria-hidden />
-            operator console
-          </h1>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && unlock()}
-            type="password"
-            placeholder="operator token"
-            className="mt-4 w-full border border-nyx-line bg-nyx px-4 py-3 text-cloud outline-none focus:border-helio/50"
-          />
-          <button
-            type="button"
-            onClick={unlock}
-            className="mt-3 w-full bg-helio px-4 py-3 font-medium uppercase tracking-wide text-nyx"
-          >
-            unlock
-          </button>
+      <main className="relative flex min-h-screen flex-1 flex-col bg-nyx px-6 py-8 scanlines">
+        <SiteNav className="relative z-[2] justify-center" />
+        <div className="relative z-[2] flex flex-1 items-center justify-center">
+          <div className="w-full max-w-sm animate-rise border border-nyx-line bg-nyx-soft p-6">
+            <h1 className="flex items-center justify-center gap-2 text-lg font-semibold">
+              <Lock className="h-4 w-4 text-helio" strokeWidth={1.5} aria-hidden />
+              operator console
+            </h1>
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && unlock()}
+              type="password"
+              placeholder="operator token"
+              className="mt-4 w-full border border-nyx-line bg-nyx px-4 py-3 text-cloud outline-none focus:border-helio/50"
+            />
+            <button
+              type="button"
+              onClick={unlock}
+              className="mt-3 w-full bg-helio px-4 py-3 font-medium uppercase tracking-wide text-nyx"
+            >
+              unlock
+            </button>
           </div>
         </div>
       </main>
