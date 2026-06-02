@@ -73,7 +73,56 @@ export function drinkUnavailableCopy(label: string): string {
 }
 
 export function helpCopy(): string {
-  return "I'm Ariadne, your thread through the night.\n\n• Text your mission answer to solve it\n• Text MISSION for your current move\n• Name a drink and I'll send it to the bar\n\nFind other guests by their game ID.";
+  return "I'm Ariadne, your thread through the night.\n\n• Text your mission answer to solve it\n• Text MISSION for your current move\n• Text STATUS for your gem, word, ID, and score\n• Name a drink and I'll send it to the bar\n• Text a song name and I'll pass it to the DJ\n• Text HELP anytime\n\nFind other guests by their game ID.";
+}
+
+/** Announced when the scene flips on the projection board. Returns null for scenes we don't blast. */
+export function sceneBroadcastCopy(sceneId: string, missionPrompt?: string | null): string | null {
+  switch (sceneId) {
+    case "runway":
+      return "The runway is live. Eyes up, the thread is holding. 🪽";
+    case "missions": {
+      const move = missionPrompt ? `\n\nYour move: ${missionPrompt}` : "";
+      return `Missions are live.${move}\n\nWant music? Text me a song name and I'll pass it to the DJ.`;
+    }
+    case "puzzle":
+      return "Look at the big screen. Decode the image and text me what it is: a myth, object, place, or source.";
+    case "elimination":
+      return "The final push. Stay sharp, find your partners, and don't fade out.";
+    case "finale":
+      return "We've reached the finale. Last call at the bar. Take a bow. 🪽";
+    default:
+      return null;
+  }
+}
+
+export function progressNudgeCopy(p: { engaged: boolean; score: number; missionPrompt: string | null }): string {
+  const move = p.missionPrompt ? ` Your move: ${p.missionPrompt}` : " Stay close to the screen.";
+  return p.engaged
+    ? `You're at ${p.score} points.${move}`
+    : `You're threaded in but haven't made a move yet.${move}`;
+}
+
+export function pickupCheckCopy(label: string): string {
+  return `Did you grab your ${label} from the bar? Text yes once you have it.`;
+}
+
+export function nameNudgeCopy(): string {
+  return "Still with me? Tell me your name and I'll thread you into the game.";
+}
+
+export function songQueuedCopy(text: string): string {
+  return `Sent "${text}" to the DJ. They'll give it a thumbs up or down shortly.`;
+}
+
+export function songDecisionCopy(text: string, accepted: boolean): string {
+  return accepted
+    ? `Your pick "${text}" made the DJ's queue. 🪽`
+    : `The DJ passed on "${text}" this time. Send me another and I'll try again.`;
+}
+
+export function pickupConfirmedCopy(label: string): string {
+  return `Enjoy your ${label}. 🪽`;
 }
 
 export function notCheckedInCopy(): string {

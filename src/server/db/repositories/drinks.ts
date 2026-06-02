@@ -91,6 +91,24 @@ export class DrinkOrdersRepository extends BaseRepository {
     return rows.map(toDrinkOrder);
   }
 
+  /** Orders made and waiting for pickup, oldest first. The sweep nudges stale ones. */
+  async listReady(eventId: string): Promise<DrinkOrder[]> {
+    const rows = await this.db.query<DrinkOrderRow>(
+      `SELECT * FROM drink_orders WHERE event_id = $1 AND status = 'ready' ORDER BY ready_at ASC`,
+      [eventId],
+    );
+    return rows.map(toDrinkOrder);
+  }
+
+  /** A guest's most recent ready order, for confirm_pickup. */
+  async findReadyByParticipant(participantId: string): Promise<DrinkOrder | null> {
+    const rows = await this.db.query<DrinkOrderRow>(
+      `SELECT * FROM drink_orders WHERE participant_id = $1 AND status = 'ready' ORDER BY ready_at DESC LIMIT 1`,
+      [participantId],
+    );
+    return rows[0] ? toDrinkOrder(rows[0]) : null;
+  }
+
   async countOpenByParticipant(participantId: string): Promise<number> {
     const rows = await this.db.query<{ c: number }>(
       `SELECT COUNT(*)::int AS c FROM drink_orders

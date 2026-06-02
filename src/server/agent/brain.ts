@@ -35,6 +35,8 @@ export class AgentBrain {
       event.from,
       event.channel,
     );
+    // Stamp activity so the reminder sweep leaves mid-conversation guests alone.
+    await this.repos.conversations.touch(conversation.id);
     const participant = await this.lookup(conversation, event.from);
 
     // Strip any em/en dash the model slips in: the brand voice never uses one.

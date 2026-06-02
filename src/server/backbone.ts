@@ -10,6 +10,7 @@ import { MissionService } from "@/server/services/missions";
 import { ParticipantAdminService } from "@/server/services/participant-admin";
 import { ProjectionService } from "@/server/services/projection";
 import { RegistrationService } from "@/server/services/registration";
+import { ReminderService } from "@/server/services/reminders";
 import { getDedalusChat } from "@/server/partners/dedalus/client";
 import type { ChatFn } from "@/server/partners/dedalus/types";
 
@@ -30,6 +31,7 @@ export class Backbone {
   readonly drinks: DrinkService;
   readonly missions: MissionService;
   readonly participantAdmin: ParticipantAdminService;
+  readonly reminders: ReminderService;
   readonly runner: AgentRunner;
   readonly brain: AgentBrain;
 
@@ -52,6 +54,7 @@ export class Backbone {
       this.projection,
     );
     this.participantAdmin = new ParticipantAdminService(this.repos, this.projection);
+    this.reminders = new ReminderService(this.eventId, this.repos, this.missions);
 
     // Default model call hits the Dedalus gateway, resolved lazily so constructing
     // a Backbone never requires DEDALUS_API_KEY (tests inject their own `chat`).

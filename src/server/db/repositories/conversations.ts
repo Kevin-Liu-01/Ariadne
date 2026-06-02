@@ -78,6 +78,20 @@ export class ConversationsRepository extends BaseRepository {
     return rows[0] ? toConversation(rows[0]) : null;
   }
 
+  /** Every linked conversation for the event, newest first. The sweep maps these by participant. */
+  async listByEvent(eventId: string): Promise<Conversation[]> {
+    const rows = await this.db.query<ConversationRow>(
+      `SELECT * FROM conversations WHERE event_id = $1 AND participant_id IS NOT NULL ORDER BY updated_at DESC`,
+      [eventId],
+    );
+    return rows.map(toConversation);
+  }
+
+  /** Stamp activity so the reminder sweep can tell who is mid-conversation and leave them alone. */
+  async touch(id: string): Promise<void> {
+    await this.db.query(`UPDATE conversations SET updated_at = $1 WHERE id = $2`, [now(), id]);
+  }
+
   async setParticipant(id: string, participantId: string): Promise<void> {
     await this.db.query(`UPDATE conversations SET participant_id = $1, updated_at = $2 WHERE id = $3`, [
       participantId,

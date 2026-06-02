@@ -5,10 +5,13 @@ import {
   drinkClarifyCopy,
   drinkQueuedCopy,
   drinkUnavailableCopy,
+  helpCopy,
   missionCorrectCopy,
   missionDeliverCopy,
   missionPartnerInvalidCopy,
   missionWrongCopy,
+  pickupConfirmedCopy,
+  songQueuedCopy,
   welcomeCopy,
 } from "@/constants/copy";
 import type { InboundChannel } from "@/constants/event";
@@ -308,6 +311,65 @@ const getStatus: Tool = {
   },
 };
 
+const confirmPickup: Tool = {
+  def: {
+    type: "function",
+    function: {
+      name: "confirm_pickup",
+      description:
+        "Mark the guest's ready drink as picked up. Call when the guest confirms they grabbed, got, or have their drink (e.g. 'yes', 'got it', 'thanks for the drink').",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  execute: async (_args, ctx) => {
+    const { participant } = await resolve(ctx);
+    if (!participant) return NOT_CHECKED_IN;
+    const order = await ctx.repos.drinkOrders.findReadyByParticipant(participant.id);
+    if (!order) return { picked_up: false, say: "I don't see a drink waiting for you right now." };
+    await ctx.drinks.updateStatus(order.id, "picked_up", null);
+    return { picked_up: true, label: order.label, say: pickupConfirmedCopy(order.label) };
+  },
+};
+
+const queueSong: Tool = {
+  def: {
+    type: "function",
+    function: {
+      name: "queue_song",
+      description:
+        "Send a guest's song request to the DJ booth. Pass the song title or artist verbatim. The DJ accepts or rejects it; the guest is texted the outcome.",
+      parameters: {
+        type: "object",
+        properties: { text: { type: "string", description: "the song or artist the guest wants" } },
+        required: ["text"],
+      },
+    },
+  },
+  execute: async (args, ctx) => {
+    const { participant } = await resolve(ctx);
+    if (!participant) return NOT_CHECKED_IN;
+    const text = pickText(args, ["text", "song", "title", "request", "track", "artist"]) || ctx.userText;
+    if (!text.trim()) {
+      return { status: "clarify", say: "What song? Text me a title or artist and I'll send it to the DJ." };
+    }
+    await ctx.repos.songRequests.create(ctx.eventId, participant.id, text.trim());
+    return { status: "queued", say: songQueuedCopy(text.trim()) };
+  },
+};
+
+const showHelp: Tool = {
+  def: {
+    type: "function",
+    function: {
+      name: "help",
+      description:
+        "List everything the guest can do (mission answers, drinks, song requests, status). Call when they ask for help or what they can do.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  execute: async () => ({ say: helpCopy() }),
+};
+
 const flagOperator: Tool = {
   def: {
     type: "function",
@@ -340,6 +402,9 @@ const TOOLS: Record<string, Tool> = {
   order_drink: orderDrink,
   answer_mission: answerMission,
   get_status: getStatus,
+  confirm_pickup: confirmPickup,
+  queue_song: queueSong,
+  help: showHelp,
   flag_operator: flagOperator,
 };
 

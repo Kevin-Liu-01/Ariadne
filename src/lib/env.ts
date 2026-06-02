@@ -47,6 +47,10 @@ export const env = {
   get agentToken(): string {
     return process.env.ARIADNE_AGENT_TOKEN ?? "";
   },
+  /** Shared secret the reminder sweep cron must present. Vercel Cron sends it as a bearer token. */
+  get cronSecret(): string {
+    return process.env.CRON_SECRET ?? "";
+  },
   get disableOutbound(): boolean {
     return process.env.ARIADNE_DISABLE_OUTBOUND === "1";
   },

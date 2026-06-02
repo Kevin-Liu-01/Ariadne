@@ -158,6 +158,15 @@ export class MissionEventsRepository extends BaseRepository {
     await this.db.query(`DELETE FROM mission_events WHERE participant_id = $1`, [participantId]);
   }
 
+  /** Distinct participants who have submitted at least one answer. Spots never-engaged guests. */
+  async submittedParticipantIds(eventId: string): Promise<string[]> {
+    const rows = await this.db.query<{ participant_id: string }>(
+      `SELECT DISTINCT participant_id FROM mission_events WHERE event_id = $1`,
+      [eventId],
+    );
+    return rows.map((r) => r.participant_id);
+  }
+
   async listByParticipant(participantId: string): Promise<MissionEvent[]> {
     const rows = await this.db.query<MissionEventRow>(
       `SELECT * FROM mission_events WHERE participant_id = $1 ORDER BY created_at ASC`,

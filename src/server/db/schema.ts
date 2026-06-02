@@ -142,6 +142,32 @@ CREATE TABLE IF NOT EXISTS fuser_assets (
   created_at      TEXT NOT NULL
 );
 
+-- Append-only log of proactive texts Ariadne has sent a guest (scene broadcasts,
+-- game nudges, name/pickup reconciliation). The reminder sweep reads this to stay
+-- idempotent and to throttle: never two in a row, capped per night.
+CREATE TABLE IF NOT EXISTS reminders (
+  id             TEXT PRIMARY KEY,
+  event_id       TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  kind           TEXT NOT NULL,
+  ref_id         TEXT,
+  sent_at        TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_reminders_lookup ON reminders(event_id, participant_id, kind);
+
+-- Guest song requests routed to the DJ. The DJ screen accepts or rejects each;
+-- the guest is texted the outcome.
+CREATE TABLE IF NOT EXISTS song_requests (
+  id             TEXT PRIMARY KEY,
+  event_id       TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  raw_text       TEXT NOT NULL,
+  status         TEXT NOT NULL DEFAULT 'requested',
+  created_at     TEXT NOT NULL,
+  decided_at     TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_song_requests_status ON song_requests(event_id, status);
+
 -- Atomic per-event counters. Incremented inside the check-in transaction so each
 -- guest gets a distinct round-robin index: gem/word assignment stays even and
 -- race-free even when many guests check in at the same instant.
