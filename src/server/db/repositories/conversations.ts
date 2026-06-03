@@ -13,6 +13,7 @@ interface ConversationRow {
   channel: string | null;
   current_flow: string;
   current_mission_id: string | null;
+  contact_card_sent: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -27,6 +28,7 @@ function toConversation(row: ConversationRow): Conversation {
     channel: row.channel as InboundChannel | null,
     currentFlow: row.current_flow as Flow,
     currentMissionId: row.current_mission_id,
+    contactCardSent: row.contact_card_sent,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -40,8 +42,8 @@ export class ConversationsRepository extends BaseRepository {
   async insert(c: Conversation): Promise<void> {
     await this.db.query(
       `INSERT INTO conversations
-        (id, event_id, participant_id, external_id, phone, channel, current_flow, current_mission_id, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        (id, event_id, participant_id, external_id, phone, channel, current_flow, current_mission_id, contact_card_sent, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         c.id,
         c.eventId,
@@ -51,6 +53,7 @@ export class ConversationsRepository extends BaseRepository {
         c.channel,
         c.currentFlow,
         c.currentMissionId,
+        c.contactCardSent,
         c.createdAt,
         c.updatedAt,
       ],
@@ -90,6 +93,13 @@ export class ConversationsRepository extends BaseRepository {
   /** Stamp activity so the reminder sweep can tell who is mid-conversation and leave them alone. */
   async touch(id: string): Promise<void> {
     await this.db.query(`UPDATE conversations SET updated_at = $1 WHERE id = $2`, [now(), id]);
+  }
+
+  async markContactCardSent(id: string): Promise<void> {
+    await this.db.query(
+      `UPDATE conversations SET contact_card_sent = TRUE, updated_at = $1 WHERE id = $2`,
+      [now(), id],
+    );
   }
 
   async setParticipant(id: string, participantId: string): Promise<void> {

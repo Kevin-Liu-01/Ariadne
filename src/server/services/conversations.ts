@@ -44,6 +44,7 @@ export class ConversationService {
       channel,
       currentFlow: FLOWS.CHECKIN,
       currentMissionId: null,
+      contactCardSent: false,
       createdAt: now(),
       updatedAt: now(),
     };

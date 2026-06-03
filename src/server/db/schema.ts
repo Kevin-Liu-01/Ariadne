@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS conversations (
 CREATE INDEX IF NOT EXISTS idx_conversations_external ON conversations(external_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_phone ON conversations(event_id, phone);
 CREATE INDEX IF NOT EXISTS idx_conversations_participant ON conversations(participant_id);
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS contact_card_sent BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS partner_events (
   id          TEXT PRIMARY KEY,

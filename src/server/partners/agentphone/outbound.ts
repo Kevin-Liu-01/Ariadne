@@ -7,13 +7,18 @@ import { getAgentphoneClient, outboundEnabled } from "@/server/partners/agentpho
  * constrained (e.g. unregistered 10DLC) we log and return false — the operator
  * queue and projection board keep the room running regardless (per the PRD).
  */
-export async function sendGuestText(toNumber: string, text: string): Promise<boolean> {
+export async function sendGuestText(
+  toNumber: string,
+  text: string,
+  opts?: { mediaUrls?: string[] },
+): Promise<boolean> {
   if (!outboundEnabled()) return false;
   try {
     await getAgentphoneClient().sendMessage({
       agentId: env.agentphone.agentId,
       toNumber,
       body: text,
+      ...(opts?.mediaUrls?.length ? { mediaUrls: opts.mediaUrls } : {}),
     });
     return true;
   } catch (err) {

@@ -27,6 +27,13 @@ const LINKS: NavLink[] = [
     hint: "Text or web check-in: get your gem and first mission.",
   },
   {
+    href: "/sms",
+    label: "Save contact",
+    note: "text Ariadne",
+    Icon: MessageSquare,
+    hint: "Add Ariadne to your phone so our texts show with a name and photo.",
+  },
+  {
     href: "/play",
     label: "How to play",
     note: "rules + missions",

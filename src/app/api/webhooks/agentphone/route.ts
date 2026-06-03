@@ -4,6 +4,7 @@ import { now } from "@/lib/time";
 import type { BrainReply } from "@/server/agent/brain";
 import { getBackbone } from "@/server/backbone";
 import type { Backbone } from "@/server/backbone";
+import { ensureContactCard } from "@/server/partners/agentphone/contact-card";
 import { mirrorConversation, sendGuestText } from "@/server/partners/agentphone/outbound";
 import { normalizeAgentphone } from "@/server/partners/agentphone/normalize";
 import type { AgentphoneWebhookBody } from "@/server/partners/agentphone/types";
@@ -109,6 +110,7 @@ function voiceStream(bb: Backbone, interaction: InteractionEvent, webhookId: str
 }
 
 async function deliver(reply: BrainReply, interaction: InteractionEvent): Promise<void> {
+  await ensureContactCard(interaction.from, reply.conversationId);
   await sendGuestText(interaction.from, reply.text);
   if (interaction.externalConversationId && reply.participantId) {
     const conversation = await getBackbone().repos.conversations.findById(reply.conversationId);

@@ -31,6 +31,7 @@ export interface Conversation {
   channel: InboundChannel | null;
   currentFlow: Flow;
   currentMissionId: string | null;
+  contactCardSent: boolean;
   createdAt: string;
   updatedAt: string;
 }
