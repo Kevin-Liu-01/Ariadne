@@ -16,6 +16,7 @@
     "smoke": "tsx scripts/smoke.ts",
     "smoke:agent": "tsx scripts/smoke-agent.ts",
     "simulate": "tsx scripts/simulate-inbound.ts",
+    "migrate": "tsx scripts/migrate.ts",
     "tunnel": "cloudflared tunnel --url http://localhost:3939",
     "mcp": "tsx src/mcp/server.ts"
   },
