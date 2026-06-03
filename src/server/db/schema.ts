@@ -158,6 +158,8 @@ CREATE TABLE IF NOT EXISTS reminders (
   sent_at        TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_reminders_lookup ON reminders(event_id, participant_id, kind);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reminders_dedupe
+  ON reminders (event_id, participant_id, kind, COALESCE(ref_id, ''));
 
 -- Guest song requests routed to the DJ. The DJ screen accepts or rejects each;
 -- the guest is texted the outcome.

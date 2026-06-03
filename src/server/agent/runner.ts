@@ -17,6 +17,19 @@ export interface AgentInput {
 
 type ToolBase = Omit<ToolContext, "from" | "externalConversationId" | "channel" | "userText">;
 
+/** Tools whose `say` is complete guest copy; skip a second model pass that leaks meta-instructions. */
+const DIRECT_SAY_TOOLS = new Set(["help", "get_status"]);
+
+function directSayFromResults(results: Record<string, unknown>[]): string | null {
+  if (results.length === 0 || results.some((r) => r.error)) return null;
+  const lines = results
+    .map((r) => (typeof r.say === "string" ? r.say.trim() : ""))
+    .filter((s) => s.length > 0);
+  if (lines.length !== results.length) return null;
+  if (new Set(lines).size !== 1) return null;
+  return lines[0] ?? null;
+}
+
 /**
  * The conversational brain: an LLM tool-calling loop over the Dedalus gateway.
  * The model routes (chooses tools) and chats; the tools run deterministic
@@ -74,6 +87,7 @@ export class AgentRunner {
         break;
       }
 
+      const stepResults: Record<string, unknown>[] = [];
       for (const call of calls) {
         let result: Record<string, unknown>;
         try {
@@ -87,7 +101,14 @@ export class AgentRunner {
         } catch {
           result = { error: "tool_execution_failed" };
         }
+        stepResults.push(result);
         messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
+      }
+
+      const allDirect = calls.every((c) => DIRECT_SAY_TOOLS.has(c.function.name));
+      if (allDirect) {
+        const reply = directSayFromResults(stepResults);
+        if (reply) return reply;
       }
     }
 

@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { helpCopy } from "@/constants/copy";
 import type { ChatFn, ChatResponse } from "@/server/partners/dedalus/types";
 import { setWaitlistForTests } from "@/server/door/waitlist";
 import { freshBackbone, inbound } from "./helpers";
@@ -111,6 +112,38 @@ describe("conversational agent (mocked model)", () => {
     await seed(bb, "+1700000003", "Ivy");
     const reply = await bb.brain.process(inbound("+1700000003", "what is this place?"));
     expect(reply.text).toBe("tell me more.");
+  });
+
+  it("returns help copy on HELP without leaking model meta", async () => {
+    const leakyChat: ChatFn = async (req) => {
+      if (req.tool_choice === "none") {
+        return content(
+          "You're Ariadne, personal agent, but the user asked HELP. Tools used: help. Now respond in-character.",
+        );
+      }
+      return toolCall("help", {});
+    };
+    const bb = await freshBackbone(leakyChat);
+    await seed(bb, "+1700000010", "Val");
+    const reply = await bb.brain.process(inbound("+1700000010", "help"));
+    expect(reply.text).toBe(helpCopy());
+    expect(reply.text.toLowerCase()).not.toContain("tools used");
+  });
+
+  it("delivers help copy after help tool even when the model would meta-reply", async () => {
+    const leakyChat: ChatFn = async (req) => {
+      if (req.tool_choice === "none") {
+        return content("Tools used: help. Now respond in-character.");
+      }
+      const user = [...req.messages].reverse().find((m) => m.role === "user")?.content ?? "";
+      if (/what can i do/i.test(user)) return toolCall("help", {});
+      return content("hm");
+    };
+    const bb = await freshBackbone(leakyChat);
+    await seed(bb, "+1700000011", "Ren");
+    const reply = await bb.brain.process(inbound("+1700000011", "what can I do?"));
+    expect(reply.text).toBe(helpCopy());
+    expect(reply.text.toLowerCase()).not.toContain("in-character");
   });
 
   it("escalates a real-world problem to the operator via flag_operator", async () => {

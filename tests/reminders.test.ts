@@ -118,7 +118,7 @@ describe("planReminders (gentle, idempotent)", () => {
     const capped = planReminders(
       ctx({
         guests: [nameless],
-        history: [{ participantId: "par_1", kind: "name", refId: null, sentAt: new Date(ago(40)).toISOString() }],
+        history: [{ participantId: "par_1", kind: "name", refId: "name", sentAt: new Date(ago(40)).toISOString() }],
       }),
     );
     expect(capped).toHaveLength(0);
@@ -134,7 +134,7 @@ describe("planReminders (gentle, idempotent)", () => {
     const repeat = planReminders(
       ctx({
         guests: [idle],
-        history: [{ participantId: "par_1", kind: "activity", refId: null, sentAt: new Date(ago(35)).toISOString() }],
+        history: [{ participantId: "par_1", kind: "activity", refId: "activity", sentAt: new Date(ago(35)).toISOString() }],
       }),
     );
     expect(repeat).toHaveLength(0);

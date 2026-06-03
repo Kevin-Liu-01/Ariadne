@@ -31,6 +31,23 @@ export class RemindersRepository extends BaseRepository {
     );
   }
 
+  /** Insert only if this guest/kind/ref has not been logged yet. Returns false on duplicate. */
+  async tryRecord(
+    eventId: string,
+    participantId: string,
+    kind: string,
+    refId: string | null,
+  ): Promise<boolean> {
+    const rows = await this.db.query<{ id: string }>(
+      `INSERT INTO reminders (id, event_id, participant_id, kind, ref_id, sent_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [newId("rem"), eventId, participantId, kind, refId, now()],
+    );
+    return rows.length > 0;
+  }
+
   /** Every reminder for the event, newest first. The event lifetime is short, so this stays small. */
   async listByEvent(eventId: string): Promise<ReminderRecord[]> {
     const rows = await this.db.query<ReminderRow>(

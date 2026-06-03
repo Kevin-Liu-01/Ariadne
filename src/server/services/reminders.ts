@@ -143,8 +143,13 @@ function chooseForGuest(
     };
   }
 
-  if (!guest.displayName && nowMs - guest.createdAtMs >= caps.nameDelayMs && hist.count.name < caps.nameCap) {
-    candidates.name = { participantId: guest.id, phone: guest.phone, kind: "name", refId: null, text: nameNudgeCopy() };
+  if (
+    !guest.displayName &&
+    nowMs - guest.createdAtMs >= caps.nameDelayMs &&
+    hist.count.name < caps.nameCap &&
+    !hist.refs.has("name:name")
+  ) {
+    candidates.name = { participantId: guest.id, phone: guest.phone, kind: "name", refId: "name", text: nameNudgeCopy() };
   }
 
   if (scene && !guest.eliminated && !hist.refs.has(`scene:${scene.seq}`)) {
@@ -158,13 +163,14 @@ function chooseForGuest(
     !guest.eliminated &&
     guest.hasMission &&
     nowMs - guest.lastActiveMs >= caps.activityIdleMs &&
-    hist.count.activity < caps.activityCap
+    hist.count.activity < caps.activityCap &&
+    !hist.refs.has("activity:activity")
   ) {
     candidates.activity = {
       participantId: guest.id,
       phone: guest.phone,
       kind: "activity",
-      refId: null,
+      refId: "activity",
       text: progressNudgeCopy({ engaged: guest.engaged, score: guest.score, missionPrompt: guest.missionPrompt }),
     };
   }
@@ -224,9 +230,16 @@ export class ReminderService {
     const byKind: Record<ReminderKind, number> = { pickup: 0, name: 0, scene: 0, activity: 0 };
     let sent = 0;
     for (const send of planned) {
+      // Reserve the slot before sending so parallel cron sweeps cannot double-text.
+      const reserved = await this.repos.reminders.tryRecord(
+        this.eventId,
+        send.participantId,
+        send.kind,
+        send.refId,
+      );
+      if (!reserved) continue;
       const ok = await sendText(send.phone, send.text);
       if (!ok) continue;
-      await this.repos.reminders.record(this.eventId, send.participantId, send.kind, send.refId);
       byKind[send.kind] += 1;
       sent += 1;
     }

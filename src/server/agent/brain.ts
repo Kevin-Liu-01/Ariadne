@@ -1,3 +1,4 @@
+import { helpCopy } from "@/constants/copy";
 import { GEMS } from "@/constants/gems";
 import { MISSION_BY_ID } from "@/constants/missions";
 import { stripDashes } from "@/domain/text";
@@ -38,6 +39,15 @@ export class AgentBrain {
     // Stamp activity so the reminder sweep leaves mid-conversation guests alone.
     await this.repos.conversations.touch(conversation.id);
     const participant = await this.lookup(conversation, event.from);
+
+    if (/^\s*help\s*$/i.test(event.text.trim())) {
+      return {
+        text: stripDashes(helpCopy()),
+        channel: event.channel,
+        participantId: participant?.id ?? null,
+        conversationId: conversation.id,
+      };
+    }
 
     // Strip any em/en dash the model slips in: the brand voice never uses one.
     const text = stripDashes(
