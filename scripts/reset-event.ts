@@ -41,6 +41,7 @@ async function wipeEvent(db: Db): Promise<{ participants: number }> {
     "drink_orders",
     "reminders",
     "song_requests",
+    "announcements",
     "operator_alerts",
     "conversations",
     "participants",

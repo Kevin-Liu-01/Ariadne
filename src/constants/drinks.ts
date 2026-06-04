@@ -13,23 +13,17 @@ export interface MenuItem {
 }
 
 export const DRINK_MENU = [
-  { id: "vodka_soda", label: "Vodka Soda", aliases: ["vodka soda", "vodka and soda", "vodka & soda", "vodka"], category: "cocktail", available: true },
-  { id: "gin_tonic", label: "Gin & Tonic", aliases: ["gin tonic", "gin and tonic", "g and t", "gandt", "gt", "gin"], category: "cocktail", available: true },
-  { id: "espresso_martini", label: "Espresso Martini", aliases: ["espresso martini", "espresso", "espress martini", "ebar"], category: "cocktail", available: true },
-  { id: "negroni", label: "Negroni", aliases: ["negroni"], category: "cocktail", available: true },
-  { id: "aperol_spritz", label: "Aperol Spritz", aliases: ["aperol spritz", "aperol", "spritz"], category: "cocktail", available: true },
-  { id: "margarita", label: "Margarita", aliases: ["margarita", "marg", "marga"], category: "cocktail", available: true },
-  { id: "paloma", label: "Paloma", aliases: ["paloma"], category: "cocktail", available: true },
-  { id: "old_fashioned", label: "Old Fashioned", aliases: ["old fashioned", "oldfashioned", "old fashion"], category: "cocktail", available: true },
-  { id: "whiskey_sour", label: "Whiskey Sour", aliases: ["whiskey sour", "whisky sour", "sour"], category: "cocktail", available: true },
-  { id: "wingspan", label: "Wingspan (house mezcal)", aliases: ["wingspan", "house pour", "signature", "mezcal"], category: "cocktail", available: true },
-  { id: "house_red", label: "House Red", aliases: ["house red", "red wine", "red", "cabernet", "pinot noir"], category: "wine", available: true },
-  { id: "house_white", label: "House White", aliases: ["house white", "white wine", "white", "sauvignon", "chardonnay"], category: "wine", available: true },
-  { id: "beer", label: "Beer", aliases: ["beer", "lager", "ipa", "pilsner"], category: "beer", available: true },
-  { id: "shirley_temple", label: "Shirley Temple", aliases: ["shirley temple", "shirley", "mocktail"], category: "zero_proof", available: true },
-  { id: "club_soda", label: "Club Soda + Lime", aliases: ["club soda", "soda water", "sparkling water", "lime soda"], category: "zero_proof", available: true },
-  { id: "coke", label: "Coke", aliases: ["coke", "cola", "diet coke", "pepsi"], category: "zero_proof", available: true },
-  { id: "water", label: "Water", aliases: ["water", "still water", "h2o"], category: "zero_proof", available: true },
+  { id: "modelo", label: "Modelo", aliases: ["modelo", "modello", "mexican beer"], category: "beer", available: true },
+  { id: "stella", label: "Stella", aliases: ["stella", "stella artois"], category: "beer", available: true },
+  { id: "white_claw", label: "White Claw", aliases: ["white claw", "whiteclaw", "hard seltzer", "seltzer"], category: "beer", available: true },
+  { id: "house_red", label: "Red Wine (Bogus)", aliases: ["red wine", "red", "bogus", "house red"], category: "wine", available: true },
+  { id: "house_white", label: "White Wine (Oyster Bay)", aliases: ["white wine", "white", "oyster bay", "sauvignon blanc", "house white"], category: "wine", available: true },
+  { id: "sparkling_water", label: "Sparkling Water", aliases: ["sparkling water", "sparkling", "bubbly water", "soda water", "club soda"], category: "zero_proof", available: true },
+  { id: "still_water", label: "Still Water", aliases: ["still water", "water", "h2o"], category: "zero_proof", available: true },
+  { id: "red_bull", label: "Red Bull", aliases: ["red bull", "redbull", "energy drink"], category: "zero_proof", available: true },
+  { id: "machina_mule", label: "Machina Mule", aliases: ["machina mule", "machina", "mule", "moscow mule"], category: "cocktail", available: true },
+  { id: "margaraita", label: "Margar(AI)ta", aliases: ["margaraita", "margarita", "marg", "ai marg"], category: "cocktail", available: true },
+  { id: "cloud_hypervisor_fizz", label: "Cloud Hypervisor Fizz", aliases: ["cloud hypervisor fizz", "cloud fizz", "hypervisor", "fizz"], category: "cocktail", available: true },
 ] as const satisfies readonly MenuItem[];
 
 export type MenuItemId = (typeof DRINK_MENU)[number]["id"];

@@ -51,7 +51,7 @@ const fakeChat: ChatFn = async (req) => {
   }
   const email = user.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
   if (email) return toolCall("check_in", { email: email[0] });
-  if (/vodka|drink|soda|martini|beer|wine/i.test(user)) {
+  if (/drink|beer|wine|mule|machina|modelo|stella|claw|fizz|margar|red bull/i.test(user)) {
     return toolCall("order_drink", { text: user });
   }
   if (/\b(join|check in|hey|hello|hi)\b/i.test(user)) {
@@ -105,9 +105,9 @@ describe("conversational agent (mocked model)", () => {
   it("routes a drink request through the order_drink tool", async () => {
     const bb = await freshBackbone(fakeChat);
     await seed(bb, "+1700000002", "Max");
-    const reply = await bb.brain.process(inbound("+1700000002", "can I get a vodka soda"));
+    const reply = await bb.brain.process(inbound("+1700000002", "can I get a machina mule"));
     expect(await bb.drinks.listActive()).toHaveLength(1);
-    expect(reply.text.toLowerCase()).toMatch(/vodka|order received/);
+    expect(reply.text.toLowerCase()).toMatch(/machina|order received/);
   });
 
   it("just chats when no tool applies", async () => {

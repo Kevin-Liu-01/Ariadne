@@ -191,6 +191,18 @@ CREATE TABLE IF NOT EXISTS song_requests (
 );
 CREATE INDEX IF NOT EXISTS idx_song_requests_status ON song_requests(event_id, status);
 
+-- Operator-typed announcements broadcast to the room. We log each one with how
+-- many guests it reached so the console can show a sent history.
+CREATE TABLE IF NOT EXISTS announcements (
+  id          TEXT PRIMARY KEY,
+  event_id    TEXT NOT NULL,
+  body        TEXT NOT NULL,
+  recipients  INTEGER NOT NULL DEFAULT 0,
+  delivered   INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_announcements_event ON announcements(event_id, created_at);
+
 -- Atomic per-event counters. Incremented inside the check-in transaction so each
 -- guest gets a distinct round-robin index: gem/word assignment stays even and
 -- race-free even when many guests check in at the same instant.

@@ -48,7 +48,7 @@ const chat: ChatFn = async (req) => {
   if (email) return toolCall("check_in", { email: email[0] });
   if (/grabbed|picked it up|got it/i.test(user)) return toolCall("confirm_pickup", {});
   if (/\bplay\b|\bsong\b/i.test(user)) return toolCall("queue_song", { text: user });
-  if (/negroni|vodka|soda|beer|wine|margarita|whiskey/i.test(user)) return toolCall("order_drink", { text: user });
+  if (/mule|machina|modelo|stella|claw|fizz|margar|wine|beer|red bull/i.test(user)) return toolCall("order_drink", { text: user });
   if (/help/i.test(user)) return toolCall("help", {});
   return content("noted.");
 };
@@ -91,7 +91,7 @@ describe("end to end: a full night", () => {
     expect(help.text.toLowerCase()).toContain("song");
 
     // 3. BAR QUEUE: order -> operator makes + readies it -> guest confirms pickup.
-    const order = await bb.brain.process(inbound("+15550000002", "can I get a negroni"));
+    const order = await bb.brain.process(inbound("+15550000002", "can I get a machina mule"));
     expect(order.text.toLowerCase()).toContain("order received");
     const active = await bb.drinks.listActive();
     expect(active).toHaveLength(1);

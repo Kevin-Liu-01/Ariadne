@@ -47,6 +47,14 @@ export interface OperatorSongRequest {
   guest: { gameId: string; displayName: string | null } | null;
 }
 
+export interface OperatorAnnouncement {
+  id: string;
+  body: string;
+  recipients: number;
+  delivered: number;
+  createdAt: string;
+}
+
 export interface OperatorParticipant {
   id: string;
   gameId: string;

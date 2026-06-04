@@ -1,4 +1,5 @@
 import type { Db } from "@/server/db/connection";
+import { AnnouncementsRepository } from "@/server/db/repositories/announcements";
 import { ConversationsRepository } from "@/server/db/repositories/conversations";
 import { CountersRepository } from "@/server/db/repositories/counters";
 import { DrinkOrderEventsRepository, DrinkOrdersRepository } from "@/server/db/repositories/drinks";
@@ -21,13 +22,14 @@ export class Repositories {
   readonly partnerEvents: PartnerEventsRepository;
   readonly participantMissions: ParticipantMissionsRepository;
   readonly missionEvents: MissionEventsRepository;
+  readonly riddleSolves: RiddleSolvesRepository;
   readonly drinkOrders: DrinkOrdersRepository;
   readonly drinkOrderEvents: DrinkOrderEventsRepository;
   readonly projection: ProjectionEventsRepository;
   readonly operatorAlerts: OperatorAlertsRepository;
   readonly reminders: RemindersRepository;
-  readonly riddleSolves: RiddleSolvesRepository;
   readonly songRequests: SongRequestsRepository;
+  readonly announcements: AnnouncementsRepository;
   readonly counters: CountersRepository;
 
   constructor(private readonly db: Db) {
@@ -36,13 +38,14 @@ export class Repositories {
     this.partnerEvents = new PartnerEventsRepository(db);
     this.participantMissions = new ParticipantMissionsRepository(db);
     this.missionEvents = new MissionEventsRepository(db);
+    this.riddleSolves = new RiddleSolvesRepository(db);
     this.drinkOrders = new DrinkOrdersRepository(db);
     this.drinkOrderEvents = new DrinkOrderEventsRepository(db);
     this.projection = new ProjectionEventsRepository(db);
     this.operatorAlerts = new OperatorAlertsRepository(db);
     this.reminders = new RemindersRepository(db);
-    this.riddleSolves = new RiddleSolvesRepository(db);
     this.songRequests = new SongRequestsRepository(db);
+    this.announcements = new AnnouncementsRepository(db);
     this.counters = new CountersRepository(db);
   }
 

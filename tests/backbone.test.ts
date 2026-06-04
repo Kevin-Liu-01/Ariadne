@@ -42,7 +42,7 @@ describe("backbone services (deterministic core)", () => {
     const convFor = async () => conv(bb, solver.phone!);
 
     // drink: one cocktail voucher, queued to the bar.
-    const drink = await bb.drinks.createFromText(solver, (await convFor()).id, "vodka soda");
+    const drink = await bb.drinks.createFromText(solver, (await convFor()).id, "modelo");
     expect(drink.kind).toBe("queued");
     expect(await bb.drinks.listActive()).toHaveLength(1);
 

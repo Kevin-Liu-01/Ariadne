@@ -26,7 +26,7 @@ export function commandsIntroCopy(): string {
     `Reply with your quest answer to solve it`,
     `${CMD.mission}: current quest`,
     `${CMD.status}: color, word, ID, score, quests`,
-    `${CMD.drink}: bar menu (one cocktail voucher; beer, wine, soda, water unlimited)`,
+    `${CMD.drink}: bar menu (one cocktail voucher; beer, wine, non-alcoholic unlimited)`,
     `${CMD.song} [track]: DJ request`,
     `${CMD.help}: this list`,
   ]);
@@ -139,7 +139,7 @@ export function missionNeedsInputCopy(): string {
 }
 
 export function drinkQueuedCopy(label: string): string {
-  return `${label}: order received.\n\nReminder: one special cocktail voucher per guest. Beer, wine, soda, and water are unlimited at the bar.\n\nI'll text when it's ready.`;
+  return `${label}: order received.\n\nReminder: one special cocktail voucher per guest. Beer, wine, and non-alcoholic drinks are unlimited at the bar.\n\nI'll text when it's ready.`;
 }
 
 export function drinkClarifyCopy(): string {
@@ -147,7 +147,7 @@ export function drinkClarifyCopy(): string {
 }
 
 export function drinkMenuCopy(): string {
-  return `Tonight's bar:\n\n${menuSummary()}\n\nOne special cocktail voucher per guest. Beer, wine, soda, and water are unlimited.\n\nReply with one item.`;
+  return `Tonight's bar:\n\n${menuSummary()}\n\nOne special cocktail voucher per guest. Beer, wine, and non-alcoholic drinks are unlimited.\n\nReply with one item.`;
 }
 
 export function songPromptCopy(): string {
@@ -167,11 +167,11 @@ export function drinkUnavailableCopy(label: string): string {
 }
 
 export function drinkVoucherUsedCopy(): string {
-  return "You already used your one cocktail voucher. Beer, wine, soda, and water are still unlimited. Name one item.";
+  return "You already used your one cocktail voucher. Beer, wine, and non-alcoholic drinks are still unlimited. Name one item.";
 }
 
 export function cocktailsOutCopy(): string {
-  return "Cocktails are sold out for the night. Beer, wine, soda, and water are still unlimited.";
+  return "Cocktails are sold out for the night. Beer, wine, and non-alcoholic drinks are still unlimited.";
 }
 
 export function drinkInvalidQuantityCopy(): string {
@@ -180,8 +180,8 @@ export function drinkInvalidQuantityCopy(): string {
 
 export function drinkExpiredCopy(wasCocktail: boolean): string {
   return wasCocktail
-    ? "Your order expired. You used your cocktail voucher. Beer, wine, soda, and water are still free at the bar."
-    : "Your order expired. Beer, wine, soda, and water are still free at the bar.";
+    ? "Your order expired. You used your cocktail voucher. Beer, wine, and non-alcoholic drinks are still free at the bar."
+    : "Your order expired. Beer, wine, and non-alcoholic drinks are still free at the bar.";
 }
 
 export function helpCopy(): string {
@@ -268,6 +268,11 @@ export function hostRequestDeclinedCopy(): string {
 /** Shown with the first vCard attachment. */
 export function contactCardIntroCopy(): string {
   return `Save my contact from the card above.\n\nThen reply with the venue code printed inside ${EVENT_NAME}. You will see the code when you enter the venue.`;
+}
+
+/** Wraps an operator's typed announcement so guests see it as a venue notice, not a reply. */
+export function announcementCopy(body: string): string {
+  return `${EVENT_NAME} announcement:\n\n${body}`;
 }
 
 export function gemColorLabel(gem: GemId): string {

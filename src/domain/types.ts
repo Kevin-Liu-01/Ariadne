@@ -110,6 +110,7 @@ export type ProjectionEventType =
   | "drink_order.milestone"
   | "scene.changed"
   | "puzzle.changed"
+  | "announcement.posted"
   | "fuser_asset.added";
 
 export interface ProjectionEvent {

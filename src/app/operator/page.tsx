@@ -4,11 +4,13 @@ import { Disc3, Lock, LogOut, Sparkles, Tablet } from "lucide-react";
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
 import { AlertsPanel } from "@/app/operator/alerts-panel";
+import { AnnouncementsPanel } from "@/app/operator/announcements-panel";
 import { ConnectionBanner } from "@/app/operator/connection-banner";
 import { DrinkQueue } from "@/app/operator/drink-queue";
 import { GameProgress } from "@/app/operator/game-progress";
 import { ProjectionControls } from "@/app/operator/projection-controls";
 import { Roster } from "@/app/operator/roster";
+import { SongsPanel } from "@/app/operator/songs-panel";
 import { StatsRail } from "@/app/operator/stats-rail";
 import { useOperatorToken } from "@/app/operator/use-operator-token";
 
@@ -96,7 +98,12 @@ export default function OperatorPage() {
           <AlertsPanel token={token} />
         </div>
 
-        <div className="mt-6 grid gap-4 xl:grid-cols-2">
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <AnnouncementsPanel token={token} />
+          <SongsPanel token={token} />
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
           <DrinkQueue token={token} />
           <GameProgress token={token} />
         </div>

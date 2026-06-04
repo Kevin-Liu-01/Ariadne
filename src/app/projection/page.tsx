@@ -1,6 +1,6 @@
 "use client";
 
-import { Target, Users, Wine } from "lucide-react";
+import { Megaphone, Target, Users, Wine } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { EVENT_NAME } from "@/constants/event";
@@ -37,6 +37,7 @@ export default function ProjectionPage() {
   const [flash, setFlash] = useState<Record<string, number>>({});
   const [ripple, setRipple] = useState<Record<string, number>>({});
   const [vmSpawn, setVmSpawn] = useState<Record<string, boolean>>({});
+  const [announcement, setAnnouncement] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   // `?scene=` forces a stage on this screen only (preview / fixed side display); it never
   // touches the broadcast scene or writes anything.
@@ -51,6 +52,13 @@ export default function ProjectionPage() {
     let cancelled = false;
     let lastSeq = 0;
     let sceneLive = "arrival";
+    let announceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const showAnnouncement = (body: string, ms = 18000) => {
+      setAnnouncement(body);
+      if (announceTimer) clearTimeout(announceTimer);
+      announceTimer = setTimeout(() => setAnnouncement(null), ms);
+    };
 
     const pulseFlash = (gameId: string, ms = 2200) => {
       setFlash((f) => ({ ...f, [gameId]: Date.now() }));
@@ -99,6 +107,9 @@ export default function ProjectionPage() {
       }
       if (ev.type === "puzzle.changed" && typeof d.puzzleId === "string") {
         setPuzzle({ id: d.puzzleId, imageUrl: typeof d.imageUrl === "string" ? d.imageUrl : null });
+      }
+      if (ev.type === "announcement.posted" && typeof d.body === "string") {
+        showAnnouncement(d.body);
       }
       if (ev.type === "participant.checked_in" && gameId) {
         setTiles((prev) => ({
@@ -172,6 +183,7 @@ export default function ProjectionPage() {
       cancelled = true;
       clearInterval(pollTimer);
       clearInterval(healTimer);
+      if (announceTimer) clearTimeout(announceTimer);
     };
   }, []);
 
@@ -225,6 +237,18 @@ export default function ProjectionPage() {
       </header>
 
       <BoardStage scene={activeScene} view={view} />
+
+      {announcement ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] flex justify-center px-10 pb-10">
+          <div className="animate-rise flex max-w-4xl items-center gap-4 border border-helio/50 bg-nyx-soft/95 px-7 py-5 shadow-[0_0_60px_rgba(210,190,255,0.25)]">
+            <Megaphone className="h-7 w-7 shrink-0 text-helio" strokeWidth={1.5} aria-hidden />
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.4em] text-helio">{EVENT_NAME} announcement</p>
+              <p className="mt-1 text-2xl leading-snug text-cloud">{announcement}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

@@ -20,22 +20,22 @@ describe("operator admin: edit, change, delete", () => {
     const bb = await freshBackbone();
     const alice = await checkIn(bb, "+1000000001", "Alice");
     const conv = await bb.repos.conversations.findByPhone("test-event", "+1000000001");
-    const queued = await bb.drinks.createFromText(alice, conv?.id ?? null, "vodka soda");
+    const queued = await bb.drinks.createFromText(alice, conv?.id ?? null, "machina mule");
     if (queued.kind !== "queued") throw new Error("expected a queued order");
 
-    const edited = await bb.drinks.editItem(queued.order.id, "negroni", ["double"]);
-    expect(edited?.label).toBe("Negroni");
+    const edited = await bb.drinks.editItem(queued.order.id, "cloud_hypervisor_fizz", ["double"]);
+    expect(edited?.label).toBe("Cloud Hypervisor Fizz");
     expect(edited?.modifiers).toEqual(["double"]);
 
     const active = await bb.drinks.listActive();
     expect(active).toHaveLength(1);
-    expect(active[0]?.label).toBe("Negroni");
+    expect(active[0]?.label).toBe("Cloud Hypervisor Fizz");
   });
 
   it("rejects an unknown menu item on edit", async () => {
     const bb = await freshBackbone();
     const alice = await checkIn(bb, "+1000000001", "Alice");
-    const queued = await bb.drinks.createFromText(alice, null, "vodka soda");
+    const queued = await bb.drinks.createFromText(alice, null, "machina mule");
     if (queued.kind !== "queued") throw new Error("expected a queued order");
     expect(await bb.drinks.editItem(queued.order.id, "unicorn_tears", [])).toBeNull();
   });
@@ -43,7 +43,7 @@ describe("operator admin: edit, change, delete", () => {
   it("deletes a drink order", async () => {
     const bb = await freshBackbone();
     const alice = await checkIn(bb, "+1000000001", "Alice");
-    const queued = await bb.drinks.createFromText(alice, null, "vodka soda");
+    const queued = await bb.drinks.createFromText(alice, null, "machina mule");
     if (queued.kind !== "queued") throw new Error("expected a queued order");
 
     expect(await bb.drinks.remove(queued.order.id)).toBe(true);
@@ -82,7 +82,7 @@ describe("operator admin: edit, change, delete", () => {
     const bb = await freshBackbone();
     const alice = await checkIn(bb, "+1000000001", "Alice");
     const bob = await checkIn(bb, "+1000000002", "Bob");
-    await bb.drinks.createFromText(alice, null, "vodka soda");
+    await bb.drinks.createFromText(alice, null, "machina mule");
 
     expect((await bb.projection.snapshot()).stats.checkedIn).toBe(2);
 

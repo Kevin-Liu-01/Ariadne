@@ -34,23 +34,28 @@ export function parseDrink(text: string): DrinkMatch {
   return { item: best.item, modifiers, confidence };
 }
 
-/** True when the guest asked for more than one drink in a single message. */
+/**
+ * True when the guest asked for more than one drink in a single message: either a
+ * count word next to a drink noun ("two beers", "3 cocktails") or two distinct menu
+ * items named at once ("modelo and stella"). "double" is a modifier, not a count.
+ */
 export function isMultiDrinkOrder(text: string): boolean {
   const haystack = normalize(text);
-  if (/\b(?:two|2|three|3|four|4|couple|double)\b/u.test(haystack) && /\b(?:drink|cocktail|beer|wine|vodka|gin|martini|soda)\b/u.test(haystack)) {
-    return true;
-  }
-  let hits = 0;
+  const hasCount = /\b(?:two|three|four|five|2|3|4|5|couple)\b/u.test(haystack);
+  const hasDrinkNoun = /\b(?:drinks?|cocktails?|beers?|wines?|waters?|seltzers?|shots?|rounds?|margs?)\b/u.test(
+    haystack,
+  );
+  if (hasCount && hasDrinkNoun) return true;
+
+  let distinctItems = 0;
   for (const item of DRINK_MENU) {
-    for (const alias of item.aliases) {
-      if (alias.length < 4) continue;
-      if (containsPhrase(haystack, normalize(alias))) {
-        hits += 1;
-        break;
-      }
+    const matched = item.aliases.some((a) => a.length >= 4 && containsPhrase(haystack, normalize(a)));
+    if (matched) {
+      distinctItems += 1;
+      if (distinctItems > 1) return true;
     }
   }
-  return hits > 1;
+  return false;
 }
 
 /** Drop a modifier when a longer matched modifier already contains it ("rocks" vs "on the rocks"). */
