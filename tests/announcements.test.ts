@@ -61,3 +61,46 @@ describe("AnnouncementService.broadcast", () => {
     expect(result.delivered).toBe(1);
   });
 });
+
+describe("AnnouncementService.broadcastScene", () => {
+  it("texts the room the scene announcement, honoring pauses", async () => {
+    const bb = await freshBackbone();
+    await checkIn(bb, "+1000000001", "Aria");
+    await checkIn(bb, "+1000000002", "Bell");
+    const paused = await bb.repos.conversations.findByPhone(EVENT, "+1000000002");
+    await bb.repos.conversations.setTextsPaused(paused!.id, true);
+
+    const sent: { phone: string; text: string }[] = [];
+    const result = await bb.announcements.broadcastScene("game", async (phone, text) => {
+      sent.push({ phone, text });
+      return true;
+    });
+
+    expect(result.recipients).toBe(1);
+    expect(result.skippedPaused).toBe(1);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].phone).toBe("+1000000001");
+    expect(sent[0].text).toContain("The game is live");
+  });
+
+  it("is not recorded in the announcement history (the board already shows it)", async () => {
+    const bb = await freshBackbone();
+    await checkIn(bb, "+1000000001", "Aria");
+    await bb.announcements.broadcastScene("runway", async () => true);
+    expect(await bb.announcements.listRecent()).toHaveLength(0);
+  });
+
+  it("sends nothing for a scene with no guest-facing copy", async () => {
+    const bb = await freshBackbone();
+    await checkIn(bb, "+1000000001", "Aria");
+
+    const sent: string[] = [];
+    const result = await bb.announcements.broadcastScene("arrival", async (phone) => {
+      sent.push(phone);
+      return true;
+    });
+
+    expect(result.recipients).toBe(0);
+    expect(sent).toHaveLength(0);
+  });
+});

@@ -11,8 +11,9 @@ export const maxDuration = 60;
 
 /**
  * Proactive reminder sweep. A scheduler (Vercel Cron or any pinger) hits this every
- * minute with the CRON_SECRET. It scene-broadcasts, nudges idle players, and chases
- * missing names and unconfirmed pickups, then logs each send so it never spams.
+ * minute with the CRON_SECRET. It nudges idle players and chases missing names and
+ * unconfirmed pickups, then logs each send so it never spams. Scene-change texts are
+ * not here; they fire on the operator's scene action (see the operator projection route).
  */
 async function sweep(req: Request): Promise<Response> {
   if (!bearerOk(req, env.cronSecret)) return problem(401, "unauthorized");

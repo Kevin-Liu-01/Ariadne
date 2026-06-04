@@ -3,7 +3,6 @@ import { FLOWS } from "@/constants/event";
 import type { ChatFn, ChatResponse } from "@/server/partners/dedalus/types";
 import { setWaitlistForTests } from "@/server/door/waitlist";
 import { partnerQuestPoints } from "@/domain/scoring";
-import { type ReminderCaps, ReminderService } from "@/server/services/reminders";
 import { freshBackbone, inbound } from "./helpers";
 
 const EVENT = "test-event";
@@ -54,20 +53,6 @@ const chat: ChatFn = async (req) => {
   return content("noted.");
 };
 
-// Zeroed thresholds so a fresh guest is eligible immediately; activity off to isolate.
-const EAGER: ReminderCaps = {
-  activeWindowMs: 0,
-  quietGapMs: 0,
-  pickupDelayMs: 0,
-  nameDelayMs: 0,
-  activityIdleMs: Number.MAX_SAFE_INTEGER,
-  activityGapMs: 0,
-  nameCap: 2,
-  activityCap: 3,
-  pickupCap: 2,
-  perSweepCap: 60,
-};
-
 describe("end to end: a full night", () => {
   it("walks door, bar, songs, announcements, board, missions, and admin", async () => {
     const bb = await freshBackbone(chat);
@@ -113,18 +98,18 @@ describe("end to end: a full night", () => {
     expect(songs[0].status).toBe("requested");
     expect((await bb.repos.songRequests.setStatus(songs[0].id, "accepted"))?.status).toBe("accepted");
 
-    // 5. ANNOUNCEMENTS: operator flips the scene; the sweep broadcasts it once, to everyone.
+    // 5. SCENE ANNOUNCEMENT: flipping the scene texts the whole room immediately
+    // (on the operator action, not the cron). Reminders are the only cron texts.
     await bb.projection.emit("scene.changed", { scene: "game" });
-    const reminders = new ReminderService(EVENT, bb.repos, bb.missions, EAGER);
     const sent: { phone: string; text: string }[] = [];
     const spy = async (phone: string, text: string) => {
       sent.push({ phone, text });
       return true;
     };
-    const sweep = await reminders.run(spy);
-    expect(sweep.byKind.scene).toBe(2);
+    const scene = await bb.announcements.broadcastScene("game", spy);
+    expect(scene.recipients).toBe(2);
+    expect(scene.delivered).toBe(2);
     expect(sent.every((s) => s.text.includes("The game is live"))).toBe(true);
-    expect((await reminders.run(spy)).sent).toBe(0); // idempotent: no repeats
 
     // 6. MISSIONS: solve the word thread (give + wings), score lands on the board.
     const conv = await bb.repos.conversations.findByPhone(EVENT, "+15550000002");

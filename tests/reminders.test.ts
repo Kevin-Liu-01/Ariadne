@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { Backbone } from "@/server/backbone";
-import type { Participant } from "@/domain/types";
 import {
   DEFAULT_CAPS,
   type GuestSnapshot,
@@ -35,7 +33,6 @@ function guest(over: Partial<GuestSnapshot> = {}): GuestSnapshot {
 function ctx(over: Partial<SweepContext> = {}): SweepContext {
   return {
     nowMs: NOW,
-    scene: null,
     guests: [],
     readyOrders: [],
     history: [],
@@ -45,32 +42,16 @@ function ctx(over: Partial<SweepContext> = {}): SweepContext {
 }
 
 describe("planReminders (gentle, idempotent)", () => {
-  it("broadcasts a scene change to active guests once, then never again", () => {
-    const base = ctx({ scene: { seq: 7, id: "game" }, guests: [guest()] });
-    const first = planReminders(base);
-    expect(first).toHaveLength(1);
-    expect(first[0].kind).toBe("scene");
-    expect(first[0].text).toContain("The game is live");
-
-    const repeat = planReminders({
-      ...base,
-      history: [{ participantId: "par_1", kind: "scene", refId: "7", sentAt: new Date(ago(20)).toISOString() }],
-    });
-    expect(repeat).toHaveLength(0);
-  });
-
   it("sends nothing to a guest who paused texts", () => {
-    const planned = planReminders(
-      ctx({ scene: { seq: 7, id: "game" }, guests: [guest({ paused: true })] }),
-    );
-    expect(planned).toHaveLength(0);
+    const idlePaused = guest({ lastActiveMs: ago(40), paused: true });
+    expect(planReminders(ctx({ guests: [idlePaused] }))).toHaveLength(0);
   });
 
   it("never sends two in a row: a recent nudge suppresses the next", () => {
+    const idle = guest({ lastActiveMs: ago(40) }); // would earn an activity nudge
     const planned = planReminders(
       ctx({
-        scene: { seq: 7, id: "game" },
-        guests: [guest()],
+        guests: [idle],
         history: [{ participantId: "par_1", kind: "name", refId: null, sentAt: new Date(ago(2)).toISOString() }],
       }),
     );
@@ -78,19 +59,13 @@ describe("planReminders (gentle, idempotent)", () => {
   });
 
   it("leaves mid-conversation guests alone", () => {
-    const planned = planReminders(ctx({ scene: { seq: 7, id: "game" }, guests: [guest({ lastActiveMs: ago(1) })] }));
+    const planned = planReminders(ctx({ guests: [guest({ lastActiveMs: ago(1) })] }));
     expect(planned).toHaveLength(0);
   });
 
-  it("does not broadcast the arrival scene", () => {
-    const planned = planReminders(ctx({ scene: { seq: 1, id: "arrival" }, guests: [guest()] }));
-    expect(planned).toHaveLength(0);
-  });
-
-  it("prioritizes a waiting drink over a scene blast", () => {
+  it("sends a pickup nudge for a waiting drink", () => {
     const planned = planReminders(
       ctx({
-        scene: { seq: 7, id: "game" },
         guests: [guest()],
         readyOrders: [{ id: "drk_1", participantId: "par_1", label: "Negroni", readyAtMs: ago(6) }],
       }),
@@ -148,21 +123,18 @@ describe("planReminders (gentle, idempotent)", () => {
     expect(repeat).toHaveLength(0);
   });
 
-  it("applies the per-sweep blast ceiling, pickups first", () => {
-    const guests = Array.from({ length: 5 }, (_, i) => guest({ id: `par_${i}`, phone: `+100000000${i}` }));
+  it("applies the per-sweep blast ceiling", () => {
+    const guests = Array.from({ length: 5 }, (_, i) =>
+      guest({ id: `par_${i}`, phone: `+100000000${i}`, lastActiveMs: ago(40) }),
+    );
     const small: ReminderCaps = { ...DEFAULT_CAPS, perSweepCap: 2 };
-    const planned = planReminders(ctx({ scene: { seq: 7, id: "game" }, guests, caps: small }));
+    const planned = planReminders(ctx({ guests, caps: small }));
     expect(planned).toHaveLength(2);
   });
 });
 
-async function checkIn(bb: Backbone, phone: string, name: string): Promise<Participant> {
-  const r = await bb.registration.register({ phone, externalConversationId: `c_${phone}`, channel: "sms", name });
-  return r.participant;
-}
-
-// All thresholds at zero so just-checked-in guests qualify; activity off so we
-// isolate the scene-broadcast idempotency contract.
+// All thresholds at zero so a just-checked-in guest immediately qualifies for the
+// name nudge; this isolates the run()/logging/idempotency contract.
 const EAGER: ReminderCaps = {
   activeWindowMs: 0,
   quietGapMs: 0,
@@ -177,11 +149,11 @@ const EAGER: ReminderCaps = {
 };
 
 describe("ReminderService.run (integration)", () => {
-  it("broadcasts a scene change to every guest exactly once and logs it", async () => {
+  it("nudges every nameless guest exactly once and logs it", async () => {
     const bb = await freshBackbone();
-    await checkIn(bb, "+1000000001", "Alice");
-    await checkIn(bb, "+1000000002", "Bob");
-    await bb.projection.emit("scene.changed", { scene: "game" });
+    // Register without a name so the name nudge is the due reminder.
+    await bb.registration.register({ phone: "+1000000001", externalConversationId: "c_a", channel: "sms" });
+    await bb.registration.register({ phone: "+1000000002", externalConversationId: "c_b", channel: "sms" });
 
     const svc = new ReminderService(bb.eventId, bb.repos, bb.missions, EAGER);
     const sent: { phone: string; text: string }[] = [];
@@ -192,8 +164,8 @@ describe("ReminderService.run (integration)", () => {
 
     const first = await svc.run(spy);
     expect(first.sent).toBe(2);
-    expect(first.byKind.scene).toBe(2);
-    expect(sent.every((s) => s.text.includes("The game is live"))).toBe(true);
+    expect(first.byKind.name).toBe(2);
+    expect(sent.every((s) => s.text.includes("HELP"))).toBe(true);
     expect(await bb.repos.reminders.listByEvent(bb.eventId)).toHaveLength(2);
 
     const second = await svc.run(spy);

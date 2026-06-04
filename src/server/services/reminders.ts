@@ -1,16 +1,13 @@
 import { MISSION_BY_ID } from "@/constants/missions";
-import {
-  nameNudgeCopy,
-  pickupCheckCopy,
-  progressNudgeCopy,
-  sceneBroadcastCopy,
-} from "@/constants/copy";
+import { nameNudgeCopy, pickupCheckCopy, progressNudgeCopy } from "@/constants/copy";
 import type { Participant } from "@/domain/types";
 import type { ReminderRecord } from "@/server/db/repositories/reminders";
 import type { Repositories } from "@/server/db/repositories";
 import type { MissionService } from "@/server/services/missions";
 
-export type ReminderKind = "pickup" | "name" | "scene" | "activity";
+// Scene-change announcements fire on the operator action (see AnnouncementService);
+// the cron sweep only sends true reminders: pickup, missing name, and inactivity.
+export type ReminderKind = "pickup" | "name" | "activity";
 
 /** One proactive message Ariadne will send a guest. */
 export interface PlannedSend {
@@ -77,15 +74,14 @@ export const DEFAULT_CAPS: ReminderCaps = {
 
 export interface SweepContext {
   nowMs: number;
-  scene: { seq: number; id: string } | null;
   guests: GuestSnapshot[];
   readyOrders: ReadyOrderSnapshot[];
   history: ReminderRecord[];
   caps: ReminderCaps;
 }
 
-// Highest first: a waiting drink and a missing name beat informational blasts.
-const PRIORITY: ReminderKind[] = ["pickup", "name", "scene", "activity"];
+// Highest first: a waiting drink and a missing name beat an inactivity nudge.
+const PRIORITY: ReminderKind[] = ["pickup", "name", "activity"];
 
 interface GuestHistory {
   lastSentMs: number;
@@ -98,7 +94,7 @@ function indexHistory(history: ReminderRecord[]): Map<string, GuestHistory> {
   for (const r of history) {
     let h = map.get(r.participantId);
     if (!h) {
-      h = { lastSentMs: 0, count: { pickup: 0, name: 0, scene: 0, activity: 0 }, refs: new Set() };
+      h = { lastSentMs: 0, count: { pickup: 0, name: 0, activity: 0 }, refs: new Set() };
       map.set(r.participantId, h);
     }
     const t = Date.parse(r.sentAt);
@@ -111,7 +107,7 @@ function indexHistory(history: ReminderRecord[]): Map<string, GuestHistory> {
 
 const EMPTY_HISTORY: GuestHistory = {
   lastSentMs: 0,
-  count: { pickup: 0, name: 0, scene: 0, activity: 0 },
+  count: { pickup: 0, name: 0, activity: 0 },
   refs: new Set(),
 };
 
@@ -122,7 +118,7 @@ function chooseForGuest(
   hist: GuestHistory,
   readyByGuest: ReadyOrderSnapshot[],
 ): PlannedSend | null {
-  const { nowMs, caps, scene } = ctx;
+  const { nowMs, caps } = ctx;
   if (!guest.phone) return null;
   if (guest.paused) return null; // honored their "stop texting me" until they re-engage
   if (nowMs - guest.lastActiveMs < caps.activeWindowMs) return null; // mid-conversation
@@ -153,13 +149,6 @@ function chooseForGuest(
     !hist.refs.has("name:name")
   ) {
     candidates.name = { participantId: guest.id, phone: guest.phone, kind: "name", refId: "name", text: nameNudgeCopy() };
-  }
-
-  if (scene && !guest.eliminated && !hist.refs.has(`scene:${scene.seq}`)) {
-    const text = sceneBroadcastCopy(scene.id, guest.missionPrompt);
-    if (text) {
-      candidates.scene = { participantId: guest.id, phone: guest.phone, kind: "scene", refId: String(scene.seq), text };
-    }
   }
 
   if (
@@ -230,7 +219,7 @@ export class ReminderService {
   async run(sendText: SendText): Promise<SweepSummary> {
     const ctx = await this.snapshot();
     const planned = planReminders(ctx);
-    const byKind: Record<ReminderKind, number> = { pickup: 0, name: 0, scene: 0, activity: 0 };
+    const byKind: Record<ReminderKind, number> = { pickup: 0, name: 0, activity: 0 };
     let sent = 0;
     for (const send of planned) {
       // Reserve the slot before sending so parallel cron sweeps cannot double-text.
@@ -250,13 +239,12 @@ export class ReminderService {
   }
 
   private async snapshot(): Promise<SweepContext> {
-    const [participants, conversations, submittedIds, readyOrders, history, sceneEvent] = await Promise.all([
+    const [participants, conversations, submittedIds, readyOrders, history] = await Promise.all([
       this.repos.participants.listByEvent(this.eventId),
       this.repos.conversations.listByEvent(this.eventId),
       this.repos.missionEvents.submittedParticipantIds(this.eventId),
       this.repos.drinkOrders.listReady(this.eventId),
       this.repos.reminders.listByEvent(this.eventId),
-      this.repos.projection.lastOfType(this.eventId, "scene.changed"),
     ]);
 
     const convByParticipant = new Map<string, (typeof conversations)[number]>();
@@ -283,10 +271,8 @@ export class ReminderService {
       };
     });
 
-    const sceneId = typeof sceneEvent?.data.scene === "string" ? sceneEvent.data.scene : null;
     return {
       nowMs: Date.now(),
-      scene: sceneEvent && sceneId ? { seq: sceneEvent.seq, id: sceneId } : null,
       guests,
       readyOrders: readyOrders.map((o) => ({
         id: o.id,
