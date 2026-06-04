@@ -132,14 +132,12 @@ export class MissionService {
     const color = MISSION_BY_ID.get(COLOR_MISSION_ID);
     const word = MISSION_BY_ID.get(WORD_MISSION_ID);
 
-    if (color && !completed.has(COLOR_MISSION_ID)) {
-      if (fresh.length !== 3) {
-        return { kind: "incorrect", hint: color.hint };
-      }
-      const partnerGems = fresh.map((p) => p.gem);
-      if (isValidColorCombo(partnerGems)) {
-        return this.complete(participant, conversation, color, rawText, fresh.map((p) => p.gameId));
-      }
+    // Quests complete in any order, so route by what the message actually proves,
+    // not a fixed sequence. Exactly three partners forming a wheel triangle is a
+    // color solve; a named partner whose secret word appears is a word solve. A
+    // wrong count is only a failed *color* attempt when no word match is possible.
+    if (color && !completed.has(COLOR_MISSION_ID) && fresh.length === 3 && isValidColorCombo(fresh.map((p) => p.gem))) {
+      return this.complete(participant, conversation, color, rawText, fresh.map((p) => p.gameId));
     }
 
     if (word && !completed.has(WORD_MISSION_ID)) {

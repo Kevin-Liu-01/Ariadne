@@ -12,7 +12,8 @@ import { env, loadScriptEnv } from "@/lib/env";
 loadScriptEnv();
 
 import pg from "pg";
-import { riddlesForParticipant } from "@/domain/mission-parse";
+import { PUZZLE_BY_ID } from "@/constants/puzzles";
+import { clueForParticipant } from "@/domain/mission-parse";
 
 const BASE = "https://ariadne-runway.vercel.app";
 const SECRET = env.agentphone.webhookSecret;
@@ -97,7 +98,7 @@ const COLOR_GROUPS: Record<string, string[]> = {
 };
 
 const db = new pg.Client({ connectionString: env.databaseUrl });
-const CHILD_TABLES = ["mission_events", "participant_missions", "drink_orders", "operator_alerts"];
+const CHILD_TABLES = ["mission_events", "riddle_solves", "participant_missions", "drink_orders", "operator_alerts"];
 
 async function wipeEvent(): Promise<number> {
   const ids = (await db.query<{ id: string }>(`SELECT id FROM participants WHERE event_id = $1`, [EVENT])).rows.map((r) => r.id);
@@ -143,11 +144,11 @@ async function main(): Promise<void> {
   ok("color quest scored (all 6)", scored(await roster(), 100) === 6);
   await Promise.all(([["give", "wings"], ["drip", "ship"], ["run", "way"]] as const).flatMap(([a, b]) => (byWord[a] && byWord[b] ? [sendText(byWord[a].phone, `${a} ${b} ${byWord[b].gameId}`), sendText(byWord[b].phone, `${b} ${a} ${byWord[a].gameId}`)] : [])));
   ok("word match scored (all 6)", scored(await roster(), 250) === 6);
-  for (const r of clean) {
-    for (const riddle of riddlesForParticipant(r.gameId)) await sendText(r.phone, riddle.answers[0]);
-  }
-  // color (100) + riddle (3x50) = 250 minimum, regardless of whether word scored.
-  ok("riddle quest scored (all 6)", scored(await roster(), 250) === 6);
+  await Promise.all(clean.map((r) => sendText(r.phone, clueForParticipant(r.gameId).answers[0])));
+  ok("clue quest scored (all 6)", scored(await roster(), 370) === 6);
+  const puzId = ((await projection()).puzzle as { id: string }).id;
+  await Promise.all(clean.map((r) => sendText(r.phone, PUZZLE_BY_ID.get(puzId)?.answers[0] ?? "labyrinth")));
+  ok("image puzzle scored (all 6)", scored(await roster(), 490) === 6, `puzzle=${puzId}`);
 
   // ---- LOAD: 25 concurrent web check-ins (pure infra: Vercel + Supabase) ----
   const N = 25;

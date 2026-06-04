@@ -62,12 +62,12 @@ function ArrivalStage({ view }: { view: BoardView }) {
           {view.eventPhone}
         </p>
         <p className="mt-3 text-sm text-ash">
-          Ariadne threads you a gem, a secret word, and your first mission.
+          Ariadne gives you a gem, a secret word, and your first mission.
         </p>
       </div>
       <div className="flex flex-col items-center gap-3">
         <p className={cn("text-6xl font-extralight tabular-nums", accent.text)}>{view.stats.checkedIn}</p>
-        <p className="text-xs uppercase tracking-[0.3em] text-ash">threaded in so far</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-ash">checked in so far</p>
         {view.ordered.length > 0 ? (
           <div className="mt-2 flex max-w-2xl flex-wrap justify-center gap-2">
             {view.ordered.map((t) => (

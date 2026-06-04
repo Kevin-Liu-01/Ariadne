@@ -99,8 +99,10 @@ export function statusCopy(p: {
   questsDone: number;
   questsTotal: number;
   currentQuest: string | null;
+  locked?: boolean;
 }): string {
   const head = `${gameStateBlock(p)}\n\nQuests: ${p.questsDone}/${p.questsTotal} complete`;
+  if (p.locked) return `${head}\n\nReply with the venue code inside ${EVENT_NAME} to start playing.`;
   return p.currentQuest ? `${head}\n\n${p.currentQuest}` : `${head}\n\nAll three quests complete. Stay near the screen.`;
 }
 

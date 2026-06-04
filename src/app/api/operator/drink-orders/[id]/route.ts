@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DRINK_STATUSES, isCocktailItem } from "@/constants/drinks";
+import { COCKTAIL_MENU_IDS, DRINK_STATUSES } from "@/constants/drinks";
 import { drinkExpiredCopy, drinkReadyCopy } from "@/constants/copy";
 import { env } from "@/lib/env";
 import { getBackbone } from "@/server/backbone";
@@ -43,28 +43,15 @@ export async function PATCH(
   if (body.status) {
     const updated = await bb.drinks.updateStatus(id, body.status, body.note ?? null);
     if (!updated) return problem(404, "order not found");
-    // Notify when ready (max 3 texts per order) or once when it expires (best-effort).
+    // Guest texts are best-effort and sent once per transition: ready when it can
+    // be picked up, a single expiry notice when an unclaimed order is removed.
     if (body.status === "ready") {
-      const prefix = `ready:${id}:`;
-      const sent = await bb.repos.reminders.countByKindRefPrefix(
-        bb.eventId,
-        updated.participantId,
-        "drink_ready",
-        prefix,
-      );
-      if (sent < 3) {
-        const ok = await sendToParticipant(updated.participantId, drinkReadyCopy(updated.label));
-        if (ok) {
-          await bb.repos.reminders.record(
-            bb.eventId,
-            updated.participantId,
-            "drink_ready",
-            `${prefix}${sent + 1}`,
-          );
-        }
-      }
+      void sendToParticipant(updated.participantId, drinkReadyCopy(updated.label));
     } else if (body.status === "expired") {
-      void sendToParticipant(updated.participantId, drinkExpiredCopy(isCocktailItem(updated.menuItemId)));
+      void sendToParticipant(
+        updated.participantId,
+        drinkExpiredCopy(COCKTAIL_MENU_IDS.includes(updated.menuItemId)),
+      );
     }
     return json(updated);
   }

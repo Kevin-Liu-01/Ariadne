@@ -27,6 +27,7 @@ function guest(over: Partial<GuestSnapshot> = {}): GuestSnapshot {
     engaged: true,
     hasMission: true,
     missionPrompt: "find a matching gem",
+    paused: false,
     ...over,
   };
 }
@@ -49,13 +50,20 @@ describe("planReminders (gentle, idempotent)", () => {
     const first = planReminders(base);
     expect(first).toHaveLength(1);
     expect(first[0].kind).toBe("scene");
-    expect(first[0].text).toContain("Missions are live");
+    expect(first[0].text).toContain("The game is live");
 
     const repeat = planReminders({
       ...base,
       history: [{ participantId: "par_1", kind: "scene", refId: "7", sentAt: new Date(ago(20)).toISOString() }],
     });
     expect(repeat).toHaveLength(0);
+  });
+
+  it("sends nothing to a guest who paused texts", () => {
+    const planned = planReminders(
+      ctx({ scene: { seq: 7, id: "missions" }, guests: [guest({ paused: true })] }),
+    );
+    expect(planned).toHaveLength(0);
   });
 
   it("never sends two in a row: a recent nudge suppresses the next", () => {
@@ -185,7 +193,7 @@ describe("ReminderService.run (integration)", () => {
     const first = await svc.run(spy);
     expect(first.sent).toBe(2);
     expect(first.byKind.scene).toBe(2);
-    expect(sent.every((s) => s.text.includes("Missions are live"))).toBe(true);
+    expect(sent.every((s) => s.text.includes("The game is live"))).toBe(true);
     expect(await bb.repos.reminders.listByEvent(bb.eventId)).toHaveLength(2);
 
     const second = await svc.run(spy);

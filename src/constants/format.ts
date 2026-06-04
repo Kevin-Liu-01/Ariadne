@@ -8,7 +8,7 @@ export const CMD = {
   song: "SONG",
 } as const;
 
-export const BULLET = "▸ ";
+export const BULLET = "❖ ";
 
 export function commandList(lines: string[]): string {
   return lines.map((l) => `${BULLET}${l}`).join("\n");

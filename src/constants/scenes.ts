@@ -22,9 +22,9 @@ export interface Scene {
 export const SCENES = [
   {
     id: "arrival",
-    note: "Doors open. Guests text in, get their gem, secret word, and first mission. Board shows the join line and who has threaded in.",
+    note: "Doors open. Guests text in, get their gem, secret word, and first mission. Board shows the join line and who has checked in.",
     headline: "Doors are open",
-    tagline: "Text the line to thread into the labyrinth.",
+    tagline: "Text the line to step into the labyrinth.",
     accent: "aquamarine",
   },
   {

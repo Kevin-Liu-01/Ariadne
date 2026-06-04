@@ -83,6 +83,13 @@ export class AgentBrain {
       return makeReply(pauseTextsCopy());
     }
 
+    // Any other message from a paused guest means they are back: resume so the
+    // proactive sweep can reach them again. (HELP above never resumes.)
+    if (participant && conversationNow.textsPaused) {
+      await this.repos.conversations.setTextsPaused(conversationNow.id, false);
+      conversationNow = (await this.repos.conversations.findById(conversationNow.id)) ?? conversationNow;
+    }
+
     if (participant) {
       if (/^status$/i.test(command) || /^score$/i.test(command) || /what'?s\s+my\s+score/i.test(command)) {
         return makeReply(await this.statusText(participant, conversationNow));
@@ -120,10 +127,6 @@ export class AgentBrain {
       return makeReply(next ? `Color quest skipped.\n\nNext:\n${next}` : "Color quest skipped.");
     }
 
-    if (participant && conversationNow.textsPaused && !/^help$/i.test(command)) {
-      await this.repos.conversations.setTextsPaused(conversationNow.id, false);
-    }
-
     const text = stripDashes(
       await this.runner.run({
         from: event.from,
@@ -148,9 +151,8 @@ export class AgentBrain {
   }
 
   private async statusText(participant: Participant, conversation: Conversation): Promise<string> {
-    const delivered = await this.missions.deliverCurrent(participant, conversation);
     const progress = await this.missions.questProgress(participant.id);
-    return statusCopy({
+    const base = {
       name: participant.displayName,
       gemLabel: GEMS[participant.gem].label,
       word: participant.secretWord,
@@ -158,6 +160,15 @@ export class AgentBrain {
       score: participant.score,
       questsDone: progress.done,
       questsTotal: progress.total,
+    };
+    // Before the venue code, show state but never assign a quest (deliverCurrent
+    // mutates), so STATUS can't leak the game past the run-of-show gate.
+    if (!conversation.gameUnlocked) {
+      return statusCopy({ ...base, currentQuest: null, locked: true });
+    }
+    const delivered = await this.missions.deliverCurrent(participant, conversation);
+    return statusCopy({
+      ...base,
       currentQuest: delivered
         ? missionDeliverCopy({ title: delivered.mission.title, prompt: delivered.prompt })
         : null,

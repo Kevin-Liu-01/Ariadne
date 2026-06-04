@@ -38,7 +38,7 @@ export interface MissionTemplate {
  * the two-word phrase.
  *
  * The brand slogans lead (assembled, they spell the event's lines), followed by
- * the Run(way)time atmospheric word bank (Scenario 3). Pairs are laid out [a, b]
+ * the Run(time)way atmospheric word bank (Scenario 3). Pairs are laid out [a, b]
  * and handed out in order (see `assignSecretWord`), so both halves land early and
  * the match stays solvable. Some words appear in more than one pair (e.g. "open");
  * `wordsPair` accepts any listed pairing, so that's fine.
@@ -56,7 +56,7 @@ export const WORD_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["open", "call"],
   ["night", "circuit"],
   ["cloud", "native"],
-  // Run(way)time atmospheric word bank: tech + myth pairs.
+  // Run(time)way atmospheric word bank: tech + myth pairs.
   ["agents", "run"],
   ["models", "train"],
   ["prompts", "branch"],
@@ -171,7 +171,7 @@ export const MISSIONS: readonly MissionTemplate[] = [
     type: "color_quest",
     title: "Color Quest",
     promptCopy:
-      "Color Quest: your gem is a color on the wheel. Find three guests with three different colors that form a triangle: all primaries (red, yellow, blue) or all secondaries (purple, green, orange). Hint: what three hues sit evenly on the color wheel? Text me all four game IDs, yours included.",
+      "Your gem is a color on the wheel. Find three guests whose colors form a triangle: all primaries (red, yellow, blue) or all secondaries (purple, green, orange). Hint: what three hues sit evenly across the color wheel? Text me their three game IDs.",
     points: 100,
     requiresPartner: true,
     projectionEffect: "constellation",

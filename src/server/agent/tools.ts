@@ -31,6 +31,7 @@ import { assertNever } from "@/lib/assert";
 import { extractEmail, isEmail, normalizeEmail } from "@/domain/email";
 import { cleanDisplayName } from "@/domain/profanity";
 import { waitlistLookup } from "@/server/door/waitlist";
+import { summarizeHostIssue } from "@/server/agent/host-issue";
 import type { Conversation, Participant } from "@/domain/types";
 import type { Repositories } from "@/server/db/repositories";
 import type { ConversationService } from "@/server/services/conversations";
@@ -370,8 +371,11 @@ const getStatus: Tool = {
   execute: async (_args, ctx) => {
     const { conversation, participant } = await resolve(ctx);
     if (!participant) return NOT_CHECKED_IN;
-    const delivered = await ctx.missions.deliverCurrent(participant, conversation);
     const progress = await ctx.missions.questProgress(participant.id);
+    // Mirror the brain's STATUS gate: never assign a quest before the venue code.
+    const delivered = conversation.gameUnlocked
+      ? await ctx.missions.deliverCurrent(participant, conversation)
+      : null;
     return {
       gem: GEMS[participant.gem].label,
       secret_word: participant.secretWord,
@@ -390,6 +394,7 @@ const getStatus: Tool = {
         currentQuest: delivered
           ? missionDeliverCopy({ title: delivered.mission.title, prompt: delivered.prompt })
           : null,
+        locked: !conversation.gameUnlocked,
       }),
     };
   },
@@ -477,7 +482,7 @@ const flagOperator: Tool = {
       ctx.eventId,
       participant?.id ?? null,
       participant?.gameId ?? null,
-      reason,
+      summarizeHostIssue(reason),
     );
     return { flagged: true, say: hostRequestSubmittedCopy() };
   },

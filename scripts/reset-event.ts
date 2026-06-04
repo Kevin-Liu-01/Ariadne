@@ -36,6 +36,7 @@ async function wipeEvent(db: Db): Promise<{ participants: number }> {
   );
   for (const table of [
     "mission_events",
+    "riddle_solves",
     "participant_missions",
     "drink_orders",
     "reminders",

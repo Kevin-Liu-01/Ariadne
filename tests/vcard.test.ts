@@ -7,7 +7,7 @@ describe("vCard contact identity", () => {
       displayName: "Ariadne",
       phone: "+18159970034",
       organization: "Dedalus Labs",
-      title: "Run(way)time",
+      title: "Run(time)way",
       note: "the thread",
       url: "https://ariadne-runway.vercel.app",
     });
@@ -22,7 +22,7 @@ describe("vCard contact identity", () => {
       displayName: "Ariadne",
       phone: "+18159970034",
       organization: "Dedalus Labs",
-      title: "Run(way)time",
+      title: "Run(time)way",
       note: "the thread",
       url: "https://ariadne-runway.vercel.app",
       photoPng: png,

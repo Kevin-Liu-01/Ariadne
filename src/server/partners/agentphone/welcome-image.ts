@@ -9,7 +9,7 @@ export function welcomeImageMediaUrl(): string {
 
 /**
  * Send the brand image once per conversation, before the first text reply, so a
- * new guest sees Run(way)time before any words. Best-effort: if outbound is
+ * new guest sees Run(time)way before any words. Best-effort: if outbound is
  * constrained the room keeps running, and a transient failure leaves the flag
  * unset so the next message retries.
  */

@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { FLOWS } from "@/constants/event";
 import type { ChatFn, ChatResponse } from "@/server/partners/dedalus/types";
 import { setWaitlistForTests } from "@/server/door/waitlist";
 import { type ReminderCaps, ReminderService } from "@/server/services/reminders";
@@ -72,11 +73,11 @@ describe("end to end: a full night", () => {
 
     // 1. DOOR: a stranger is refused; a waitlisted email is admitted.
     const refused = await bb.brain.process(inbound("+15550000001", "hey it's stranger@nope.com"));
-    expect(refused.text.toLowerCase()).toContain("can't find that email");
+    expect(refused.text.toLowerCase()).toContain("not on tonight's list");
     expect(await bb.repos.participants.findByPhone(EVENT, "+15550000001")).toBeNull();
 
     const aliceReply = await bb.brain.process(inbound("+15550000002", "demo@dedaluslabs.ai"));
-    expect(aliceReply.text.toLowerCase()).toContain("welcome");
+    expect(aliceReply.text.toLowerCase()).toContain("checked in");
     const alice = await bb.repos.participants.findByPhone(EVENT, "+15550000002");
     expect(alice?.email).toBe("demo@dedaluslabs.ai");
     expect(alice?.displayName).toBe("Demo Guest"); // name pulled from the waitlist
@@ -121,14 +122,17 @@ describe("end to end: a full night", () => {
     };
     const sweep = await reminders.run(spy);
     expect(sweep.byKind.scene).toBe(2);
-    expect(sent.every((s) => s.text.includes("Missions are live"))).toBe(true);
+    expect(sent.every((s) => s.text.includes("The game is live"))).toBe(true);
     expect((await reminders.run(spy)).sent).toBe(0); // idempotent: no repeats
 
-    // 6. QUEST: solve the color quest (alice + bob form a valid combo); score lands on the board.
+    // 6. MISSIONS: solve the word thread (give + wings), score lands on the board.
     const conv = await bb.repos.conversations.findByPhone(EVENT, "+15550000002");
-    const result = await bb.missions.submit(alice!, conv!, `${alice!.gameId} ${bob!.gameId}`);
+    await bb.repos.participantMissions.assign(EVENT, alice!.id, "word-thread");
+    await bb.repos.conversations.setFlow(conv!.id, FLOWS.MISSION, "word-thread");
+    const onWord = await bb.repos.conversations.findById(conv!.id);
+    const result = await bb.missions.submit(alice!, onWord!, `give wings ${bob!.gameId}`);
     expect(result.kind).toBe("correct");
-    expect((await bb.repos.participants.findById(alice!.id))?.score).toBe(100);
+    expect((await bb.repos.participants.findById(alice!.id))?.score).toBe(150);
 
     // 7. BOARD: the projection snapshot reflects the room.
     const snap = await bb.projection.snapshot();

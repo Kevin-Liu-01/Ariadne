@@ -89,6 +89,18 @@ CREATE TABLE IF NOT EXISTS mission_events (
 );
 CREATE INDEX IF NOT EXISTS idx_mission_events_participant ON mission_events(participant_id);
 
+-- Per-guest progress on the riddle quest: one row per solved riddle. The quest
+-- completes once a guest has three rows. The composite PK makes markSolved's
+-- ON CONFLICT (participant_id, riddle_id) idempotent (guards double scoring).
+CREATE TABLE IF NOT EXISTS riddle_solves (
+  event_id       TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  riddle_id      TEXT NOT NULL,
+  created_at     TEXT NOT NULL,
+  PRIMARY KEY (participant_id, riddle_id)
+);
+CREATE INDEX IF NOT EXISTS idx_riddle_solves_event ON riddle_solves(event_id);
+
 CREATE TABLE IF NOT EXISTS drink_orders (
   id              TEXT PRIMARY KEY,
   event_id        TEXT NOT NULL,

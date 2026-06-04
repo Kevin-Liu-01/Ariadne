@@ -32,6 +32,8 @@ export interface GuestSnapshot {
   engaged: boolean;
   hasMission: boolean;
   missionPrompt: string | null;
+  /** Guest texted "stop texting me": no proactive nudges until they message again. */
+  paused: boolean;
 }
 
 export interface ReadyOrderSnapshot {
@@ -122,6 +124,7 @@ function chooseForGuest(
 ): PlannedSend | null {
   const { nowMs, caps, scene } = ctx;
   if (!guest.phone) return null;
+  if (guest.paused) return null; // honored their "stop texting me" until they re-engage
   if (nowMs - guest.lastActiveMs < caps.activeWindowMs) return null; // mid-conversation
   if (hist.lastSentMs > 0 && nowMs - hist.lastSentMs < caps.quietGapMs) return null; // no back-to-back
 
@@ -276,6 +279,7 @@ export class ReminderService {
         engaged: engaged.has(p.id),
         hasMission: missionId !== null,
         missionPrompt: this.missionPrompt(missionId, p),
+        paused: conv?.textsPaused ?? false,
       };
     });
 
