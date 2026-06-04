@@ -3,6 +3,7 @@ import type { GemId } from "@/constants/gems";
 import type { Backbone } from "@/server/backbone";
 import type { Conversation, Participant } from "@/domain/types";
 import { riddlesForParticipant } from "@/domain/mission-parse";
+import { QUEST_BASE, partnerQuestPoints, speedBonus } from "@/domain/scoring";
 import { freshBackbone } from "./helpers";
 
 const EVENT = "test-event";
@@ -50,22 +51,26 @@ describe("backbone services (deterministic core)", () => {
     // garnet=red, moonstone=Citrine yellow, aquamarine=blue. (topaz is orange, a secondary.)
     const triangle = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("aquamarine")!];
     const colorAnswer = triangle.map((p) => p.gameId).join(" ");
+    // The solver is the first to finish each quest (prior completions = 0).
+    const colorPts = partnerQuestPoints("color_quest", 0, 3);
     expect((await bb.missions.submit(solver, await convFor(), colorAnswer)).kind).toBe("correct");
-    expect((await bb.repos.participants.findById(solver.id))?.score).toBe(100);
+    expect((await bb.repos.participants.findById(solver.id))?.score).toBe(colorPts);
 
     // Word Quest: name a fresh partner and include their secret word (any order proves it).
     const wordPartner = byGem.get("peridot")!;
     const wordAnswer = `${wordPartner.secretWord} ${wordPartner.gameId}`;
+    const wordPts = partnerQuestPoints("word_match", 0, 1);
     expect((await bb.missions.submit(solver, await convFor(), wordAnswer)).kind).toBe("correct");
-    expect((await bb.repos.participants.findById(solver.id))?.score).toBe(250);
+    expect((await bb.repos.participants.findById(solver.id))?.score).toBe(colorPts + wordPts);
 
-    // Riddle Quest: solve all three assigned riddles (50 each).
+    // Riddle Quest: solve all three assigned riddles (base each, plus a speed bonus on completion).
     const riddles = riddlesForParticipant(solver.gameId);
     expect(riddles).toHaveLength(3);
     for (const riddle of riddles) {
       await bb.missions.submit(solver, await convFor(), riddle.answers[0]);
     }
-    expect((await bb.repos.participants.findById(solver.id))?.score).toBe(400);
+    const riddlePts = QUEST_BASE.riddle_quest * 3 + speedBonus(0);
+    expect((await bb.repos.participants.findById(solver.id))?.score).toBe(colorPts + wordPts + riddlePts);
 
     const snap = await bb.projection.snapshot();
     expect(snap.stats.missionsCompleted).toBe(3);

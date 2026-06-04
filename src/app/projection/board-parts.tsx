@@ -13,7 +13,6 @@ export interface BoardView {
   ordered: TileState[];
   stats: ProjectionSnapshot["stats"];
   sceneMeta: Scene;
-  puzzleImage: string | null;
   flash: Record<string, number>;
   /** Inbound SMS ripple timestamps (purple pulse, separate from mission flash). */
   ripple: Record<string, number>;

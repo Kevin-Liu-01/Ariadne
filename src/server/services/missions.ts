@@ -5,10 +5,10 @@ import {
   FIRST_MISSION_ID,
   MISSION_SEQUENCE,
   RIDDLE_MISSION_ID,
-  RIDDLE_POINTS_EACH,
   RIDDLE_QUEST_COUNT,
   type MissionTemplate,
 } from "@/constants/missions";
+import { QUEST_BASE, partnerQuestPoints, speedBonus } from "@/domain/scoring";
 import { newId } from "@/domain/ids";
 import {
   extractGameIds,
@@ -173,42 +173,41 @@ export class MissionService {
       return { kind: "incorrect", hint: riddle.hint };
     }
 
+    const riddleBase = QUEST_BASE.riddle_quest;
     const firstSolve = await this.repos.riddleSolves.markSolved(this.eventId, participant.id, match.id);
     await this.repos.participantMissions.assign(this.eventId, participant.id, RIDDLE_MISSION_ID);
     await this.repos.participantMissions.markSubmitted(participant.id, RIDDLE_MISSION_ID);
-    await this.recordEvent(
-      participant,
-      RIDDLE_MISSION_ID,
-      rawText,
-      [],
-      "correct",
-      firstSolve ? RIDDLE_POINTS_EACH : 0,
-    );
+    await this.recordEvent(participant, RIDDLE_MISSION_ID, rawText, [], "correct", firstSolve ? riddleBase : 0);
 
     if (firstSolve) {
-      const score = await this.repos.participants.addScore(participant.id, RIDDLE_POINTS_EACH);
+      const score = await this.repos.participants.addScore(participant.id, riddleBase);
       await this.projection.emit("score.updated", { gameId: participant.gameId, score });
     }
 
     const solvedCount = solvedBefore.size + (firstSolve ? 1 : 0);
     if (solvedCount >= RIDDLE_QUEST_COUNT) {
+      // Quickness bonus for finishing the riddle round, by how many already have.
+      const prior = await this.repos.participantMissions.completedCountForMission(this.eventId, RIDDLE_MISSION_ID);
+      const bonus = speedBonus(prior);
       const transitioned = await this.repos.participantMissions.markCompleted(
         participant.id,
         RIDDLE_MISSION_ID,
-        riddle.points,
+        riddleBase * RIDDLE_QUEST_COUNT + bonus,
       );
       if (transitioned) {
+        const score = await this.repos.participants.addScore(participant.id, bonus);
         await this.projection.emit("mission.completed", {
           gameId: participant.gameId,
           missionId: RIDDLE_MISSION_ID,
           title: riddle.title,
           effect: riddle.projectionEffect,
         });
+        await this.projection.emit("score.updated", { gameId: participant.gameId, score });
       }
       const next = await this.advance(participant, conversation);
       return {
         kind: "correct",
-        points: RIDDLE_POINTS_EACH,
+        points: riddleBase + (transitioned ? bonus : 0),
         nextPrompt: next ? this.renderPrompt(next, participant) : null,
       };
     }
@@ -231,18 +230,22 @@ export class MissionService {
     rawText: string,
     partnerGameIds: string[],
   ): Promise<MissionOutcome> {
+    // Score on the quickness of this solve and how many new partners it named.
+    const prior = await this.repos.participantMissions.completedCountForMission(this.eventId, mission.id);
+    const points = partnerQuestPoints(mission.type, prior, partnerGameIds.length);
+
     await this.repos.participantMissions.assign(this.eventId, participant.id, mission.id);
     await this.repos.participantMissions.markSubmitted(participant.id, mission.id);
-    await this.recordEvent(participant, mission.id, rawText, partnerGameIds, "correct", mission.points);
+    await this.recordEvent(participant, mission.id, rawText, partnerGameIds, "correct", points);
 
     const transitioned = await this.repos.participantMissions.markCompleted(
       participant.id,
       mission.id,
-      mission.points,
+      points,
     );
     if (!transitioned) return { kind: "already" };
 
-    const newScore = await this.repos.participants.addScore(participant.id, mission.points);
+    const newScore = await this.repos.participants.addScore(participant.id, points);
     await this.projection.emit("mission.completed", {
       gameId: participant.gameId,
       missionId: mission.id,
@@ -254,7 +257,7 @@ export class MissionService {
     const next = await this.advance(participant, conversation);
     return {
       kind: "correct",
-      points: mission.points,
+      points,
       nextPrompt: next ? this.renderPrompt(next, participant) : null,
     };
   }

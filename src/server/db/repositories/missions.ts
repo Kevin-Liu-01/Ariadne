@@ -95,6 +95,16 @@ export class ParticipantMissionsRepository extends BaseRepository {
     return rows[0]?.c ?? 0;
   }
 
+  /** How many guests have already completed this specific quest (drives the speed bonus). */
+  async completedCountForMission(eventId: string, missionId: string): Promise<number> {
+    const rows = await this.db.query<{ c: number }>(
+      `SELECT COUNT(*)::int AS c FROM participant_missions
+       WHERE event_id = $1 AND mission_id = $2 AND status = 'completed'`,
+      [eventId, missionId],
+    );
+    return rows[0]?.c ?? 0;
+  }
+
   async markSubmitted(participantId: string, missionId: string): Promise<void> {
     await this.db.query(
       `UPDATE participant_missions SET status = 'submitted', submitted_at = $1

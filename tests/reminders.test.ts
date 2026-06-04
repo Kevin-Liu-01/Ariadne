@@ -46,11 +46,11 @@ function ctx(over: Partial<SweepContext> = {}): SweepContext {
 
 describe("planReminders (gentle, idempotent)", () => {
   it("broadcasts a scene change to active guests once, then never again", () => {
-    const base = ctx({ scene: { seq: 7, id: "missions" }, guests: [guest()] });
+    const base = ctx({ scene: { seq: 7, id: "color" }, guests: [guest()] });
     const first = planReminders(base);
     expect(first).toHaveLength(1);
     expect(first[0].kind).toBe("scene");
-    expect(first[0].text).toContain("The game is live");
+    expect(first[0].text).toContain("Color Quest is live");
 
     const repeat = planReminders({
       ...base,
@@ -61,7 +61,7 @@ describe("planReminders (gentle, idempotent)", () => {
 
   it("sends nothing to a guest who paused texts", () => {
     const planned = planReminders(
-      ctx({ scene: { seq: 7, id: "missions" }, guests: [guest({ paused: true })] }),
+      ctx({ scene: { seq: 7, id: "color" }, guests: [guest({ paused: true })] }),
     );
     expect(planned).toHaveLength(0);
   });
@@ -69,7 +69,7 @@ describe("planReminders (gentle, idempotent)", () => {
   it("never sends two in a row: a recent nudge suppresses the next", () => {
     const planned = planReminders(
       ctx({
-        scene: { seq: 7, id: "missions" },
+        scene: { seq: 7, id: "color" },
         guests: [guest()],
         history: [{ participantId: "par_1", kind: "name", refId: null, sentAt: new Date(ago(2)).toISOString() }],
       }),
@@ -78,7 +78,7 @@ describe("planReminders (gentle, idempotent)", () => {
   });
 
   it("leaves mid-conversation guests alone", () => {
-    const planned = planReminders(ctx({ scene: { seq: 7, id: "missions" }, guests: [guest({ lastActiveMs: ago(1) })] }));
+    const planned = planReminders(ctx({ scene: { seq: 7, id: "color" }, guests: [guest({ lastActiveMs: ago(1) })] }));
     expect(planned).toHaveLength(0);
   });
 
@@ -90,7 +90,7 @@ describe("planReminders (gentle, idempotent)", () => {
   it("prioritizes a waiting drink over a scene blast", () => {
     const planned = planReminders(
       ctx({
-        scene: { seq: 7, id: "missions" },
+        scene: { seq: 7, id: "color" },
         guests: [guest()],
         readyOrders: [{ id: "drk_1", participantId: "par_1", label: "Negroni", readyAtMs: ago(6) }],
       }),
@@ -151,7 +151,7 @@ describe("planReminders (gentle, idempotent)", () => {
   it("applies the per-sweep blast ceiling, pickups first", () => {
     const guests = Array.from({ length: 5 }, (_, i) => guest({ id: `par_${i}`, phone: `+100000000${i}` }));
     const small: ReminderCaps = { ...DEFAULT_CAPS, perSweepCap: 2 };
-    const planned = planReminders(ctx({ scene: { seq: 7, id: "missions" }, guests, caps: small }));
+    const planned = planReminders(ctx({ scene: { seq: 7, id: "color" }, guests, caps: small }));
     expect(planned).toHaveLength(2);
   });
 });
@@ -181,7 +181,7 @@ describe("ReminderService.run (integration)", () => {
     const bb = await freshBackbone();
     await checkIn(bb, "+1000000001", "Alice");
     await checkIn(bb, "+1000000002", "Bob");
-    await bb.projection.emit("scene.changed", { scene: "missions" });
+    await bb.projection.emit("scene.changed", { scene: "color" });
 
     const svc = new ReminderService(bb.eventId, bb.repos, bb.missions, EAGER);
     const sent: { phone: string; text: string }[] = [];
@@ -193,7 +193,7 @@ describe("ReminderService.run (integration)", () => {
     const first = await svc.run(spy);
     expect(first.sent).toBe(2);
     expect(first.byKind.scene).toBe(2);
-    expect(sent.every((s) => s.text.includes("The game is live"))).toBe(true);
+    expect(sent.every((s) => s.text.includes("Color Quest is live"))).toBe(true);
     expect(await bb.repos.reminders.listByEvent(bb.eventId)).toHaveLength(2);
 
     const second = await svc.run(spy);

@@ -1,7 +1,7 @@
 import { EVENT_NAME } from "@/constants/event";
 
 /** Scenes where quests, drinks, and song requests are allowed (after venue code). */
-export const GAMEPLAY_SCENES = new Set(["missions", "runway", "puzzle", "elimination", "finale"]);
+export const GAMEPLAY_SCENES = new Set(["color", "word", "riddle", "runway", "finale"]);
 
 export function gameplayAllowed(scene: string): boolean {
   return GAMEPLAY_SCENES.has(scene);
@@ -17,12 +17,12 @@ export function runOfShowCopy(scene: string, gameUnlocked: boolean): string {
       return `The show has not started yet. You are on the list. Gameplay opens when staff advance the run of show and you have entered the venue code.`;
     case "runway":
       return `The runway is live. Gameplay is open. Reply MISSION, DRINK, STATUS, or SONG.`;
-    case "missions":
-      return `The game is live. Reply MISSION, DRINK, STATUS, or SONG.`;
-    case "puzzle":
-      return `Puzzle round is live. Watch the main screen and reply with your answer.`;
-    case "elimination":
-      return `Final round is live. Stay in the game.`;
+    case "color":
+      return `The Color Quest is live. Find three guests whose colors form a triangle, then text me their game IDs. Reply MISSION, DRINK, STATUS, or SONG.`;
+    case "word":
+      return `The Word Quest is live. Find the guest whose secret word completes a phrase with yours. Reply MISSION, DRINK, STATUS, or SONG.`;
+    case "riddle":
+      return `The riddle round is live. Solve your three riddles and text me the answers. Reply MISSION, DRINK, STATUS, or SONG.`;
     case "finale":
       return `Finale. Last call at the bar.`;
     default:

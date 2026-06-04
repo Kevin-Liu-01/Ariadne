@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { FLOWS } from "@/constants/event";
 import type { ChatFn, ChatResponse } from "@/server/partners/dedalus/types";
 import { setWaitlistForTests } from "@/server/door/waitlist";
+import { partnerQuestPoints } from "@/domain/scoring";
 import { type ReminderCaps, ReminderService } from "@/server/services/reminders";
 import { freshBackbone, inbound } from "./helpers";
 
@@ -113,7 +114,7 @@ describe("end to end: a full night", () => {
     expect((await bb.repos.songRequests.setStatus(songs[0].id, "accepted"))?.status).toBe("accepted");
 
     // 5. ANNOUNCEMENTS: operator flips the scene; the sweep broadcasts it once, to everyone.
-    await bb.projection.emit("scene.changed", { scene: "missions" });
+    await bb.projection.emit("scene.changed", { scene: "color" });
     const reminders = new ReminderService(EVENT, bb.repos, bb.missions, EAGER);
     const sent: { phone: string; text: string }[] = [];
     const spy = async (phone: string, text: string) => {
@@ -122,7 +123,7 @@ describe("end to end: a full night", () => {
     };
     const sweep = await reminders.run(spy);
     expect(sweep.byKind.scene).toBe(2);
-    expect(sent.every((s) => s.text.includes("The game is live"))).toBe(true);
+    expect(sent.every((s) => s.text.includes("Color Quest is live"))).toBe(true);
     expect((await reminders.run(spy)).sent).toBe(0); // idempotent: no repeats
 
     // 6. MISSIONS: solve the word thread (give + wings), score lands on the board.
@@ -132,11 +133,14 @@ describe("end to end: a full night", () => {
     const onWord = await bb.repos.conversations.findById(conv!.id);
     const result = await bb.missions.submit(alice!, onWord!, `give wings ${bob!.gameId}`);
     expect(result.kind).toBe("correct");
-    expect((await bb.repos.participants.findById(alice!.id))?.score).toBe(150);
+    // First to finish the word quest, one new partner: base + speed + one unique bonus.
+    expect((await bb.repos.participants.findById(alice!.id))?.score).toBe(
+      partnerQuestPoints("word_match", 0, 1),
+    );
 
     // 7. BOARD: the projection snapshot reflects the room.
     const snap = await bb.projection.snapshot();
-    expect(snap.scene).toBe("missions");
+    expect(snap.scene).toBe("color");
     expect(snap.stats.checkedIn).toBe(2);
     expect(snap.stats.missionsCompleted).toBe(1);
     expect(typeof snap.eventPhone).toBe("string"); // carried for the arrival board (empty without env)

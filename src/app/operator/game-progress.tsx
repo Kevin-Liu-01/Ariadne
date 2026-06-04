@@ -7,8 +7,6 @@ import { GemIcon } from "@/components/gem-icon";
 import { authedFetch, type OperatorParticipant } from "@/app/operator/api";
 import { cn } from "@/lib/utils";
 
-const MAX_MISSION_POINTS = MISSIONS.reduce((sum, m) => sum + m.points, 0);
-
 export function GameProgress({ token }: { token: string }) {
   const [people, setPeople] = useState<OperatorParticipant[]>([]);
   const [error, setError] = useState<"auth" | "offline" | null>(null);
@@ -121,8 +119,8 @@ export function GameProgress({ token }: { token: string }) {
           {gemCounts.size === 0 ? <span className="text-xs text-ash">waiting for gems</span> : null}
         </div>
         <p className="mt-3 text-xs leading-relaxed text-ash">
-          {MISSIONS.length} missions in the labyrinth · {MAX_MISSION_POINTS} max points if every thread
-          completes.
+          {MISSIONS.length} quests in the labyrinth · points scale with speed and the new people each
+          guest meets.
         </p>
       </div>
     </section>

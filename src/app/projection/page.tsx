@@ -32,7 +32,6 @@ export default function ProjectionPage() {
   const [tiles, setTiles] = useState<Tiles>({});
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
   const [scene, setScene] = useState("arrival");
-  const [puzzle, setPuzzle] = useState<{ id: string; imageUrl: string | null } | null>(null);
   const [eventPhone, setEventPhone] = useState("");
   const [flash, setFlash] = useState<Record<string, number>>({});
   const [ripple, setRipple] = useState<Record<string, number>>({});
@@ -86,7 +85,6 @@ export default function ProjectionPage() {
       setStats(snap.stats);
       sceneLive = snap.scene;
       setScene(snap.scene);
-      setPuzzle(snap.puzzle);
       setEventPhone(snap.eventPhone);
       setVmSpawn(vmForScene(snap.participants.map((t) => t.gameId), snap.scene));
       lastSeq = snap.latestSeq;
@@ -104,9 +102,6 @@ export default function ProjectionPage() {
             return prev;
           });
         }
-      }
-      if (ev.type === "puzzle.changed" && typeof d.puzzleId === "string") {
-        setPuzzle({ id: d.puzzleId, imageUrl: typeof d.imageUrl === "string" ? d.imageUrl : null });
       }
       if (ev.type === "announcement.posted" && typeof d.body === "string") {
         showAnnouncement(d.body);
@@ -200,7 +195,6 @@ export default function ProjectionPage() {
     ordered,
     stats,
     sceneMeta: meta,
-    puzzleImage: puzzle?.imageUrl && puzzle.imageUrl !== "" ? puzzle.imageUrl : null,
     flash,
     ripple,
     vmSpawn,
