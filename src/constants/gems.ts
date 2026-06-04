@@ -16,12 +16,12 @@ export interface Gem {
 // stable DB key; `label`/`hex` are what guests see. The yellow gem keeps the id
 // "moonstone" (so existing rows stay valid) but presents as Citrine, a yellow stone.
 export const GEMS = {
-  amethyst: { id: "amethyst", label: "Amethyst", hex: "#D2BEFF", rsvp: "founders" }, // purple
-  garnet: { id: "garnet", label: "Garnet", hex: "#A20000", rsvp: "engineers" }, // red
-  moonstone: { id: "moonstone", label: "Citrine", hex: "#F4C430", rsvp: "artists" }, // yellow
-  peridot: { id: "peridot", label: "Peridot", hex: "#C3D95A", rsvp: "growth" }, // green
-  aquamarine: { id: "aquamarine", label: "Aquamarine", hex: "#ADD8E6", rsvp: "product" }, // blue
-  topaz: { id: "topaz", label: "Topaz", hex: "#FFAB57", rsvp: "other" }, // orange
+  amethyst: { id: "amethyst", label: "Amethyst", hex: "#8B5CF6", rsvp: "founders" }, // purple
+  garnet: { id: "garnet", label: "Garnet", hex: "#E12D39", rsvp: "engineers" }, // red
+  moonstone: { id: "moonstone", label: "Citrine", hex: "#FFD23F", rsvp: "artists" }, // yellow
+  peridot: { id: "peridot", label: "Peridot", hex: "#43B049", rsvp: "growth" }, // green
+  aquamarine: { id: "aquamarine", label: "Aquamarine", hex: "#2E86DE", rsvp: "product" }, // blue
+  topaz: { id: "topaz", label: "Topaz", hex: "#FB8B24", rsvp: "other" }, // orange
 } as const satisfies Record<string, Gem>;
 
 export type GemId = "amethyst" | "garnet" | "moonstone" | "peridot" | "aquamarine" | "topaz";

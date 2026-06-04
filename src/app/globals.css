@@ -42,12 +42,12 @@
   --color-cloud: #f5f5f5;
   --color-ash: #8a8a8a;
 
-  --color-gem-amethyst: #d2beff;
-  --color-gem-garnet: #a20000;
-  --color-gem-moonstone: #f4c430;
-  --color-gem-peridot: #c3d95a;
-  --color-gem-aquamarine: #add8e6;
-  --color-gem-topaz: #ffab57;
+  --color-gem-amethyst: #8b5cf6;
+  --color-gem-garnet: #e12d39;
+  --color-gem-moonstone: #ffd23f;
+  --color-gem-peridot: #43b049;
+  --color-gem-aquamarine: #2e86de;
+  --color-gem-topaz: #fb8b24;
 
   /* Nacelle everywhere; --font-mono points at the same family so no monospace renders. */
   --font-sans: "Nacelle", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
