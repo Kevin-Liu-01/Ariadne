@@ -3,14 +3,14 @@ import type { GemId } from "@/constants/gems";
 /** Color-wheel role for the Color Quest (primary or secondary triangle). */
 export type WheelHue = "red" | "yellow" | "blue" | "purple" | "green" | "orange";
 
-/** Map each gem to a wheel color for the triangle quest. */
+/** Map each gem to its wheel color. Matches the gem hex shown to guests. */
 export const GEM_WHEEL_HUE: Record<GemId, WheelHue> = {
   garnet: "red",
-  topaz: "yellow",
+  moonstone: "yellow", // the yellow Citrine gem
   aquamarine: "blue",
   amethyst: "purple",
   peridot: "green",
-  moonstone: "orange",
+  topaz: "orange",
 };
 
 const PRIMARY: readonly WheelHue[] = ["red", "yellow", "blue"];

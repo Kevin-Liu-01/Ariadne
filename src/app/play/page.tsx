@@ -13,7 +13,7 @@ const STEPS: { Icon: LucideIcon; title: string; body: string }[] = [
   {
     Icon: MessageSquare,
     title: "Text to check in",
-    body: "Text the event line. Ariadne threads you in with a color gem, a secret word, and your four-letter game ID.",
+    body: "Text the event line. Ariadne checks you in with a color gem, a secret word, and your four-letter game ID.",
   },
   {
     Icon: Target,

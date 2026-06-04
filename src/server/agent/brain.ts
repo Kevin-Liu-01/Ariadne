@@ -2,6 +2,7 @@ import {
   checkedInAwaitingCodeCopy,
   commandsIntroCopy,
   drinkMenuCopy,
+  gemColorLabel,
   helpCopy,
   hostRequestDeclinedCopy,
   hostRequestNeedIssueCopy,
@@ -154,7 +155,7 @@ export class AgentBrain {
     const progress = await this.missions.questProgress(participant.id);
     const base = {
       name: participant.displayName,
-      gemLabel: GEMS[participant.gem].label,
+      gemLabel: gemColorLabel(participant.gem),
       word: participant.secretWord,
       gameId: participant.gameId,
       score: participant.score,
@@ -218,7 +219,7 @@ export class AgentBrain {
     const prompt = mission ? this.missions.renderPrompt(mission, participant) : "";
     return welcomeCopy({
       name: participant.displayName ?? "Guest",
-      gemLabel: GEMS[participant.gem].label,
+      gemLabel: gemColorLabel(participant.gem),
       word: participant.secretWord,
       gameId: participant.gameId,
       missionPrompt: prompt,
@@ -288,6 +289,6 @@ export class AgentBrain {
       ? ` Active mission: ${mission.title}. ${this.missions.renderPrompt(mission, participant)}`
       : " No active mission.";
     const commands = `\nCommands for the guest:\n${commandsIntroCopy()}`;
-    return `${PROMPT_INJECTION_GUARD}\nCURRENT GUEST:${nameLine} Color ${GEMS[participant.gem].label}, secret word "${participant.secretWord}", game id ${participant.gameId}, score ${participant.score}.${unlockLine}${missionLine}${commands}`;
+    return `${PROMPT_INJECTION_GUARD}\nCURRENT GUEST:${nameLine} Color ${gemColorLabel(participant.gem)}, secret word "${participant.secretWord}", game id ${participant.gameId}, score ${participant.score}.${unlockLine}${missionLine}${commands}`;
   }
 }

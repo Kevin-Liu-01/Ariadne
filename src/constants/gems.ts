@@ -11,13 +11,17 @@ export interface Gem {
   readonly rsvp: string; // the cohort this gem quietly encodes
 }
 
+// The six gems are the six color-wheel hues so the Color Quest triangles work:
+// red/yellow/blue (primary) and purple/green/orange (secondary). The `id` is the
+// stable DB key; `label`/`hex` are what guests see. The yellow gem keeps the id
+// "moonstone" (so existing rows stay valid) but presents as Citrine, a yellow stone.
 export const GEMS = {
-  amethyst: { id: "amethyst", label: "Amethyst", hex: "#D2BEFF", rsvp: "founders" },
-  garnet: { id: "garnet", label: "Garnet", hex: "#A20000", rsvp: "engineers" },
-  moonstone: { id: "moonstone", label: "Moonstone", hex: "#F5F5F5", rsvp: "artists" },
-  peridot: { id: "peridot", label: "Peridot", hex: "#C3D95A", rsvp: "growth" },
-  aquamarine: { id: "aquamarine", label: "Aquamarine", hex: "#ADD8E6", rsvp: "product" },
-  topaz: { id: "topaz", label: "Topaz", hex: "#FFAB57", rsvp: "other" },
+  amethyst: { id: "amethyst", label: "Amethyst", hex: "#D2BEFF", rsvp: "founders" }, // purple
+  garnet: { id: "garnet", label: "Garnet", hex: "#A20000", rsvp: "engineers" }, // red
+  moonstone: { id: "moonstone", label: "Citrine", hex: "#F4C430", rsvp: "artists" }, // yellow
+  peridot: { id: "peridot", label: "Peridot", hex: "#C3D95A", rsvp: "growth" }, // green
+  aquamarine: { id: "aquamarine", label: "Aquamarine", hex: "#ADD8E6", rsvp: "product" }, // blue
+  topaz: { id: "topaz", label: "Topaz", hex: "#FFAB57", rsvp: "other" }, // orange
 } as const satisfies Record<string, Gem>;
 
 export type GemId = "amethyst" | "garnet" | "moonstone" | "peridot" | "aquamarine" | "topaz";

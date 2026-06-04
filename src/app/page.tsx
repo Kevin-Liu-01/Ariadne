@@ -27,6 +27,13 @@ const LINKS: NavLink[] = [
     hint: "Text or web check-in: get your gem and first mission.",
   },
   {
+    href: "/sms",
+    label: "Save contact",
+    note: "text Ariadne",
+    Icon: MessageSquare,
+    hint: "Add Ariadne to your phone so our texts show with a name and photo.",
+  },
+  {
     href: "/play",
     label: "How to play",
     note: "rules + missions",
@@ -53,7 +60,7 @@ const STEPS: { Icon: LucideIcon; title: string; body: string }[] = [
   {
     Icon: MessageSquare,
     title: "Text to check in",
-    body: "Text the event line. Ariadne threads you in with a color gem, a secret word, and your game ID.",
+    body: "Text the event line. Ariadne checks you in with a color gem, a secret word, and your game ID.",
   },
   {
     Icon: Target,
@@ -182,8 +189,9 @@ export default function Home() {
             Six gems move through the room
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-ash">
-            Everyone is threaded a color at check-in. We never say why. Find the colors that complete
-            yours: a matched pair, or two that mix into a third, to solve the constellation.
+            Everyone gets a color at check-in. We never say why. Each gem is a hue on the color
+            wheel; find three guests whose colors form a triangle, all primaries or all secondaries,
+            to solve the constellation.
           </p>
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {Object.values(GEMS).map((gem) => (

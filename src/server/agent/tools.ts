@@ -11,6 +11,7 @@ import {
   drinkQueuedCopy,
   drinkUnavailableCopy,
   drinkVoucherUsedCopy,
+  gemColorLabel,
   helpCopy,
   hostRequestSubmittedCopy,
   missionCorrectCopy,
@@ -169,7 +170,7 @@ const checkIn: Tool = {
   execute: async (args, ctx) => {
     const { participant: existing } = await resolve(ctx);
 
-    // Returning guest: already threaded in, no email gate. Save a name if it was missing.
+    // Returning guest: already checked in, no email gate. Save a name if it was missing.
     if (existing) {
       const offered = resolveName(args, ctx.userText);
       const offeredName = offered ? cleanDisplayName(offered) : null;
@@ -183,7 +184,7 @@ const checkIn: Tool = {
           game_id: p.gameId,
           say: alreadyHereCopy({
             name: p.displayName,
-            gemLabel: GEMS[p.gem].label,
+            gemLabel: gemColorLabel(p.gem),
             word: p.secretWord,
             gameId: p.gameId,
             score: p.score,
@@ -196,7 +197,7 @@ const checkIn: Tool = {
         game_id: existing.gameId,
         say: alreadyHereCopy({
           name: existing.displayName,
-          gemLabel: GEMS[existing.gem].label,
+          gemLabel: gemColorLabel(existing.gem),
           word: existing.secretWord,
           gameId: existing.gameId,
           score: existing.score,
@@ -239,13 +240,13 @@ const checkIn: Tool = {
     const say = result.isNew
       ? checkedInAwaitingCodeCopy({
           name: p.displayName ?? "Guest",
-          gemLabel: GEMS[p.gem].label,
+          gemLabel: gemColorLabel(p.gem),
           word: p.secretWord,
           gameId: p.gameId,
         })
       : alreadyHereCopy({
           name: p.displayName,
-          gemLabel: GEMS[p.gem].label,
+          gemLabel: gemColorLabel(p.gem),
           word: p.secretWord,
           gameId: p.gameId,
           score: p.score,
@@ -385,7 +386,7 @@ const getStatus: Tool = {
       current_mission: delivered?.prompt ?? null,
       say: statusCopy({
         name: participant.displayName,
-        gemLabel: GEMS[participant.gem].label,
+        gemLabel: gemColorLabel(participant.gem),
         word: participant.secretWord,
         gameId: participant.gameId,
         score: participant.score,

@@ -6,8 +6,6 @@
  * mission prompt is sent.
  */
 
-import type { GemId } from "@/constants/gems";
-
 export type MissionType = "color_quest" | "word_match" | "riddle_quest";
 
 export type ValidationRule =
@@ -157,12 +155,6 @@ export const WORD_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["portals", "open"],
   ["worlds", "merge"],
   ["futures", "branch"],
-];
-
-/** Primary or secondary color-wheel triangle (validated in gem-wheel.ts). */
-export const COLOR_COMBOS: readonly (readonly GemId[])[] = [
-  ["garnet", "topaz", "aquamarine"],
-  ["amethyst", "peridot", "moonstone"],
 ];
 
 export const MISSIONS: readonly MissionTemplate[] = [

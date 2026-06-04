@@ -8,6 +8,7 @@ import { EVENT_NAME } from "@/constants/event";
 import { BULLET, CMD, commandList } from "@/constants/format";
 import type { GemId } from "@/constants/gems";
 import { GEMS } from "@/constants/gems";
+import { GEM_WHEEL_HUE } from "@/domain/gem-wheel";
 
 export function gameStateBlock(p: {
   name?: string | null;
@@ -275,7 +276,7 @@ export function announcementCopy(body: string): string {
   return `${EVENT_NAME} announcement:\n\n${body}`;
 }
 
+/** Gem name with its wheel hue, e.g. "Citrine (yellow)", so guests can play the color quest. */
 export function gemColorLabel(gem: GemId): string {
-  const hue = GEMS[gem].label;
-  return hue;
+  return `${GEMS[gem].label} (${GEM_WHEEL_HUE[gem]})`;
 }

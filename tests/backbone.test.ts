@@ -47,7 +47,8 @@ describe("backbone services (deterministic core)", () => {
     expect(await bb.drinks.listActive()).toHaveLength(1);
 
     // Color Quest: name three guests whose gems form the primary triangle (red/yellow/blue).
-    const triangle = [byGem.get("garnet")!, byGem.get("topaz")!, byGem.get("aquamarine")!];
+    // garnet=red, moonstone=Citrine yellow, aquamarine=blue. (topaz is orange, a secondary.)
+    const triangle = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("aquamarine")!];
     const colorAnswer = triangle.map((p) => p.gameId).join(" ");
     expect((await bb.missions.submit(solver, await convFor(), colorAnswer)).kind).toBe("correct");
     expect((await bb.repos.participants.findById(solver.id))?.score).toBe(100);

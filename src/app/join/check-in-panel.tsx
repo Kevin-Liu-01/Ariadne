@@ -79,7 +79,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
       <div className="mt-10 border border-nyx-line bg-nyx-soft p-6 animate-rise">
         <p className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-helio">
           <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-          {result.isNew ? "you're threaded in" : "already in"}
+          {result.isNew ? "you're checked in" : "already in"}
         </p>
 
         <div className="mt-4 flex items-center gap-3">
