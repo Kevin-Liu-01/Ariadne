@@ -34,8 +34,31 @@ export const DRINK_MENU = [
 
 export type MenuItemId = (typeof DRINK_MENU)[number]["id"];
 
-export const DRINK_STATUSES = ["queued", "in_progress", "ready", "picked_up", "cancelled"] as const;
+// "expired" closes a ready order the guest never picked up (distinct from an operator
+// "cancelled", which is a mistake/void). An expired cocktail still spends the voucher.
+export const DRINK_STATUSES = ["queued", "in_progress", "ready", "picked_up", "cancelled", "expired"] as const;
 export type DrinkStatus = (typeof DRINK_STATUSES)[number];
+
+/** Cocktails are voucher-gated: one free cocktail per guest. Beer, wine, and zero-proof are unlimited. */
+export const COCKTAIL_VOUCHER_PER_GUEST = 1;
+/** Total cocktail vouchers for the night. When spent, cocktails close and the operator is alerted. */
+export const COCKTAIL_VOUCHER_LIMIT = 150;
+
+const MENU_BY_ID: ReadonlyMap<string, MenuItem> = new Map(DRINK_MENU.map((d) => [d.id, d]));
+
+export function menuItemById(id: string): MenuItem | null {
+  return MENU_BY_ID.get(id) ?? null;
+}
+
+/** True if the menu item is a cocktail (the voucher-limited category). */
+export function isCocktailItem(id: string): boolean {
+  return menuItemById(id)?.category === "cocktail";
+}
+
+/** Menu ids in the voucher-limited cocktail category. */
+export const COCKTAIL_MENU_IDS: readonly string[] = DRINK_MENU.filter(
+  (d) => d.category === "cocktail",
+).map((d) => d.id);
 
 const CATEGORY_LABELS: Record<MenuItem["category"], string> = {
   cocktail: "Cocktails",

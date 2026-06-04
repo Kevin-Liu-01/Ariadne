@@ -28,9 +28,10 @@ export async function PATCH(
   const updated = await getBackbone().repos.songRequests.setStatus(id, body.status);
   if (!updated) return problem(404, "request not found");
 
-  // Tell the guest the verdict (best-effort) when the DJ accepts or rejects.
-  if (body.status === "accepted" || body.status === "rejected") {
-    void sendToParticipant(updated.participantId, songDecisionCopy(updated.rawText, body.status === "accepted"));
+  // Only ping the guest on an accept. Rejections are silent: the DJ just skips
+  // it in the queue and the guest is never told no.
+  if (body.status === "accepted") {
+    void sendToParticipant(updated.participantId, songDecisionCopy(updated.rawText, true));
   }
   return json(updated);
 }

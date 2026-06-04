@@ -45,6 +45,7 @@ export class ConversationService {
       currentFlow: FLOWS.CHECKIN,
       currentMissionId: null,
       contactCardSent: false,
+      welcomeImageSent: false,
       createdAt: now(),
       updatedAt: now(),
     };

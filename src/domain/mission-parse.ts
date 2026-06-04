@@ -52,9 +52,37 @@ export function isValidColorCombo(gems: readonly GemId[]): boolean {
   return false;
 }
 
-/** Deterministically assign one labyrinth clue to a guest by game id (stable, no stored state). */
-export function clueForParticipant(gameId: string): Clue {
-  let hash = 0;
-  for (const ch of gameId) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return CLUES[hash % CLUES.length];
+/**
+ * Deterministically assign 3 distinct riddles to a guest from the pool of 8,
+ * stable across calls (no stored state) so the same guest always gets the same
+ * three. A linear-congruential walk seeded by the game id picks distinct indices.
+ */
+export function riddlesForParticipant(gameId: string, count = 3): Clue[] {
+  let seed = 0;
+  for (const ch of gameId) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+  const picks: Clue[] = [];
+  const used = new Set<number>();
+  let h = seed || 1;
+  while (picks.length < Math.min(count, CLUES.length)) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    const idx = h % CLUES.length;
+    if (used.has(idx)) continue;
+    used.add(idx);
+    picks.push(CLUES[idx]);
+  }
+  return picks;
+}
+
+/** Find which of a guest's assigned riddles a message answers (by id), if any. */
+export function matchRiddleAnswer(riddles: readonly Clue[], normalizedText: string): Clue | null {
+  for (const r of riddles) {
+    if (r.answers.some((a) => containsRiddleAnswer(normalizedText, a))) return r;
+  }
+  return null;
+}
+
+function containsRiddleAnswer(normalizedText: string, answer: string): boolean {
+  const tokens = normalizedText.split(/\s+/u).filter(Boolean);
+  const target = answer.toLowerCase().replace(/[^a-z0-9]+/gu, "");
+  return tokens.some((t) => t.replace(/[^a-z0-9]+/gu, "") === target);
 }

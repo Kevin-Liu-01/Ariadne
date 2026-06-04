@@ -37,6 +37,10 @@ export const env = {
       "http://localhost:3939";
     return base.replace(/\/$/, "");
   },
+  /** Brand image AgentPhone sends as the guest's first bubble, before the first reply. */
+  get welcomeImageUrl(): string {
+    return process.env.ARIADNE_WELCOME_IMAGE_URL ?? `${env.publicBaseUrl}/brand/welcome.png`;
+  },
   /** Postgres connection string (Supabase pooler). Read by prod routes + scripts. */
   get databaseUrl(): string {
     return process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL ?? "";

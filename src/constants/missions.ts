@@ -8,14 +8,16 @@
 
 import type { GemId } from "@/constants/gems";
 
-export type MissionType = "color_quest" | "word_match" | "clue_quest" | "puzzle";
+export type MissionType = "color_quest" | "word_match" | "riddle_quest";
 
 export type ValidationRule =
   | { kind: "color_combo" }
-  | { kind: "word_pair" }
-  | { kind: "clue" }
-  | { kind: "image_puzzle" }
-  | { kind: "answer_key"; answers: readonly string[] };
+  | { kind: "word_collab" }
+  | { kind: "riddle_set" };
+
+/** Points per riddle solved. Three riddles complete the quest for the total below. */
+export const RIDDLE_POINTS_EACH = 50;
+export const RIDDLE_QUEST_COUNT = 3;
 
 export interface MissionTemplate {
   readonly id: string;
@@ -175,7 +177,7 @@ export const MISSIONS: readonly MissionTemplate[] = [
   {
     id: "color-constellation",
     type: "color_quest",
-    title: "Constellation",
+    title: "Color Quest",
     promptCopy:
       "Your gem is a color. Find the guests whose colors complete yours: a matched pair, or colors that mix into a third. Text me everyone's game IDs, yours included.",
     points: 100,
@@ -187,37 +189,25 @@ export const MISSIONS: readonly MissionTemplate[] = [
   {
     id: "word-thread",
     type: "word_match",
-    title: "The Thread",
+    title: "Word Quest",
     promptCopy:
-      'Your word is "{word}". Somewhere here is the guest who completes it. Find them, then text me the full phrase and their game ID.',
+      "Team up with any other guest you haven't paired with yet. Ask them their secret word, then text me their game ID and that word.",
     points: 150,
     requiresPartner: true,
     projectionEffect: "thread",
-    validation: { kind: "word_pair" },
-    hint: "find the guest whose word completes yours, then text the phrase and their game ID.",
+    validation: { kind: "word_collab" },
+    hint: "find a new partner, ask their secret word, then text me their game ID and that word.",
   },
   {
-    id: "clue-labyrinth",
-    type: "clue_quest",
-    title: "The Labyrinth",
-    promptCopy: "A riddle from the labyrinth: {clue} Text me the one word it points to.",
-    points: 120,
+    id: "riddle-labyrinth",
+    type: "riddle_quest",
+    title: "Riddle Quest",
+    promptCopy: "Three riddles from the labyrinth. Solve each and text me the one-word answer.",
+    points: RIDDLE_POINTS_EACH * RIDDLE_QUEST_COUNT,
     requiresPartner: false,
-    projectionEffect: "clue",
-    validation: { kind: "clue" },
+    projectionEffect: "labyrinth",
+    validation: { kind: "riddle_set" },
     hint: "one word, a systems term hiding a second, everyday meaning.",
-  },
-  {
-    id: "puzzle-decode",
-    type: "puzzle",
-    title: "Decode the Labyrinth",
-    promptCopy:
-      "Look at the big screen. The labyrinth is showing the room a cropped image. Text me what it is: name the myth, object, place, or source.",
-    points: 120,
-    requiresPartner: false,
-    projectionEffect: "puzzle",
-    validation: { kind: "image_puzzle" },
-    hint: "look harder. it's pulled from Greek myth, the Daedalus story, or our own merch. one clear name is enough.",
   },
 ] as const;
 
@@ -225,9 +215,10 @@ export const MISSION_BY_ID: ReadonlyMap<string, MissionTemplate> = new Map(
   MISSIONS.map((m) => [m.id, m]),
 );
 
-/** The mission handed out at check-in, then the order missions advance. */
+/** The three quests can be completed in any order; this is just a stable display order. */
 export const FIRST_MISSION_ID = "color-constellation";
 export const MISSION_SEQUENCE: readonly string[] = MISSIONS.map((m) => m.id);
+export const RIDDLE_MISSION_ID = "riddle-labyrinth";
 
 export const PARTICIPANT_MISSION_STATUSES = [
   "assigned",

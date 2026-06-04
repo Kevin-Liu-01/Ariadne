@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Backbone } from "@/server/backbone";
 import type { Conversation, Participant } from "@/domain/types";
-import { clueForParticipant } from "@/domain/mission-parse";
+import { riddlesForParticipant } from "@/domain/mission-parse";
 import { freshBackbone } from "./helpers";
 
 const EVENT = "test-event";
@@ -41,7 +41,7 @@ describe("backbone services (deterministic core)", () => {
     expect(drink.kind).toBe("queued");
     expect(await bb.drinks.listActive()).toHaveLength(1);
 
-    // mission 1: color constellation — alice (amethyst/purple) + bob (garnet/red) is a valid combo
+    // color quest: alice (amethyst/purple) + bob (garnet/red) is a valid combo
     const m1 = await bb.missions.submit(
       alice,
       await conv(bb, "+1000000001"),
@@ -50,24 +50,34 @@ describe("backbone services (deterministic core)", () => {
     expect(m1.kind).toBe("correct");
     expect((await bb.repos.participants.findById(alice.id))?.score).toBe(100);
 
-    // mission 2: word thread (give + wings)
-    expect(
-      (await bb.missions.submit(alice, await conv(bb, "+1000000001"), `give wings ${bob.gameId}`)).kind,
-    ).toBe("correct");
+    // word quest: pair with a NEW guest (carol, not bob who was used in color) and share her word
+    const m2 = await bb.missions.submit(
+      alice,
+      await conv(bb, "+1000000001"),
+      `${carol.gameId} ${carol.secretWord}`,
+    );
+    expect(m2.kind).toBe("correct");
     expect((await bb.repos.participants.findById(alice.id))?.score).toBe(250);
 
-    // mission 3 + 4: labyrinth clue (assigned per game id) + image puzzle (default = erechtheion)
-    const clue = clueForParticipant(alice.gameId);
-    expect(
-      (await bb.missions.submit(alice, await conv(bb, "+1000000001"), clue.answers[0])).kind,
-    ).toBe("correct");
-    expect((await bb.missions.submit(alice, await conv(bb, "+1000000001"), "temple")).kind).toBe(
-      "correct",
+    // reusing a partner is rejected: go talk to someone new
+    const dupe = await bb.missions.submit(
+      alice,
+      await conv(bb, "+1000000001"),
+      `${carol.gameId} ${carol.secretWord}`,
     );
-    expect((await bb.repos.participants.findById(alice.id))?.score).toBe(490);
+    expect(dupe.kind).toBe("duplicate_partner");
+
+    // riddle quest: solve alice's 3 riddles in any order, 50 points each
+    const riddles = riddlesForParticipant(alice.gameId);
+    let lastRiddle;
+    for (const r of riddles) {
+      lastRiddle = await bb.missions.submit(alice, await conv(bb, "+1000000001"), r.answers[0]);
+    }
+    expect(lastRiddle?.kind).toBe("correct");
+    expect((await bb.repos.participants.findById(alice.id))?.score).toBe(400);
 
     const snap = await bb.projection.snapshot();
-    expect(snap.stats.missionsCompleted).toBe(4);
+    expect(snap.stats.missionsCompleted).toBe(3);
     expect(snap.participants[0]?.gameId).toBe(alice.gameId);
   });
 

@@ -92,11 +92,11 @@ describe("conversational agent (mocked model)", () => {
     expect(reply.text.toLowerCase()).toContain("can't find that email");
   });
 
-  it("asks for the signup email before checking anyone in", async () => {
+  it("asks for the guest's name first before checking anyone in", async () => {
     const bb = await freshBackbone(fakeChat);
     const reply = await bb.brain.process(inbound("+1700000005", "hey"));
     expect(await bb.repos.participants.findByPhone("test-event", "+1700000005")).toBeNull();
-    expect(reply.text.toLowerCase()).toContain("email you signed up with");
+    expect(reply.text.toLowerCase()).toContain("first name");
   });
 
   it("routes a drink request through the order_drink tool", async () => {
@@ -104,7 +104,7 @@ describe("conversational agent (mocked model)", () => {
     await seed(bb, "+1700000002", "Max");
     const reply = await bb.brain.process(inbound("+1700000002", "can I get a vodka soda"));
     expect(await bb.drinks.listActive()).toHaveLength(1);
-    expect(reply.text.toLowerCase()).toContain("locked");
+    expect(reply.text.toLowerCase()).toContain("order received");
   });
 
   it("just chats when no tool applies", async () => {

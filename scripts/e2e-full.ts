@@ -1,7 +1,7 @@
 /**
  * Full multi-player end-to-end on a fresh in-memory DB driven by the REAL LLM
- * brain. Walks a roomful of guests through the entire cycle — check-in, all four
- * mission types, drinks, operator actions, projection, profanity — exactly as
+ * brain. Walks a roomful of guests through the entire cycle — check-in, all three
+ * quests (color, word, riddle), drinks, operator actions, projection, profanity — exactly as
  * the deployed code runs it, but isolated (no Supabase writes, no board
  * pollution) and deterministic (a clean DB gives a clean gem/word spread).
  *
@@ -11,8 +11,8 @@ import { loadScriptEnv } from "@/lib/env";
 
 loadScriptEnv();
 
-import { PUZZLES, PUZZLE_BY_ID } from "@/constants/puzzles";
-import { clueForParticipant } from "@/domain/mission-parse";
+import { PUZZLES } from "@/constants/puzzles";
+import { riddlesForParticipant } from "@/domain/mission-parse";
 import type { InboundChannel } from "@/constants/event";
 import type { InteractionEvent } from "@/domain/types";
 import { Backbone } from "@/server/backbone";
@@ -119,17 +119,14 @@ async function main(): Promise<void> {
   );
   ok("word match scored for all 6", (await scored(250)) === 6, `${await scored(250)}/6 at >=250`);
 
-  // ---- Phase 4: labyrinth clue (per-guest riddle) ----
-  await Promise.all(clean.map((p) => say(p.phone, clueForParticipant(p.gameId).answers[0])));
-  ok("clue quest scored for all 6", (await scored(370)) === 6, `${await scored(370)}/6 at >=370`);
+  // ---- Phase 4: riddle quest (each guest solves 3 of the 8 riddles, any order) ----
+  for (const p of clean) {
+    for (const riddle of riddlesForParticipant(p.gameId)) await say(p.phone, riddle.answers[0]);
+  }
+  // color (100) + riddle (3x50) = 250 minimum, regardless of whether word scored.
+  ok("riddle quest scored for all 6", (await scored(250)) === 6, `${await scored(250)}/6 at >=250`);
 
-  // ---- Phase 5: image puzzle (shared current puzzle) ----
-  const puzzleId = await bb.projection.currentPuzzleId();
-  const puzzleAnswer = PUZZLE_BY_ID.get(puzzleId)?.answers[0] ?? "labyrinth";
-  await Promise.all(clean.map((p) => say(p.phone, puzzleAnswer)));
-  ok("image puzzle scored for all 6 (full labyrinth solved)", (await scored(490)) === 6, `${await scored(490)}/6 at 490`);
-
-  // ---- Phase 6: drinks + operator queue ----
+  // ---- Phase 5: drinks + operator queue ----
   await say(byGem.garnet.phone, "can I get a vodka soda");
   await say(byGem.peridot.phone, "espresso martini please");
   const active = await bb.drinks.listActive();
@@ -150,8 +147,9 @@ async function main(): Promise<void> {
     ok("operator resolved the alert", open.length === 0, `${open.length} open after resolve`);
   }
 
-  // ---- Phase 8: scene + puzzle advance ----
+  // ---- Phase 8: scene + puzzle advance (projection board ambiance, not a quest) ----
   await bb.projection.emit("scene.changed", { scene: "runway" });
+  const puzzleId = await bb.projection.currentPuzzleId();
   const at = PUZZLES.findIndex((p) => p.id === puzzleId);
   const next = PUZZLES[(at + 1) % PUZZLES.length];
   await bb.projection.emit("puzzle.changed", { puzzleId: next.id, imageUrl: next.imageUrl ?? null });

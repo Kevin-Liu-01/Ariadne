@@ -1,8 +1,8 @@
 /**
- * Research-clue riddles for the labyrinth mission. Each riddle resolves to a
- * single systems term that hides a second, everyday meaning; `answers` lists the
- * accepted spellings/aliases. One clue is assigned per guest deterministically
- * (see `clueForParticipant` in domain/mission-parse). Product owns this content.
+ * The riddle pool for the riddle quest: 8 riddles total. Each resolves to a single
+ * systems term that hides a second, everyday meaning; `answers` lists the accepted
+ * spellings/aliases. Each guest gets 3 of these (see `riddlesForParticipant` in
+ * domain/mission-parse) and must solve all three. Product owns this content.
  */
 
 export interface Clue {
@@ -49,21 +49,10 @@ export const CLUES: readonly Clue[] = [
     answers: ["sleep"],
   },
   {
-    id: "boot",
-    prompt:
-      "This is what happens when a machine starts up. According to Flo Rida, one of these also comes with fur.",
-    answers: ["boot", "boots"],
-  },
-  {
     id: "session",
     prompt:
       "This is a protected container for context, state, or identity over a bounded interaction. Elsewhere, it's what a spa, Stripe, an art fair, and music producers have in common.",
     answers: ["session"],
-  },
-  {
-    id: "s3",
-    prompt: "Object storage often used for files, assets, and backups. Also, a 2026 Audi.",
-    answers: ["s3"],
   },
   {
     id: "automata",

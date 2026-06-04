@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/**": ["./src/server/door/waitlist.csv"],
   },
+  // Save-contact lives on the check-in page now; keep the old QR/link target alive.
+  async redirects() {
+    return [{ source: "/sms", destination: "/join", permanent: true }];
+  },
 };
 
 export default nextConfig;

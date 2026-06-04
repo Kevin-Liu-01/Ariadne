@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CheckCheck, LogOut, Wine } from "lucide-react";
+import { Check, Hand, LogOut, Trash2, Wine } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EVENT_NAME } from "@/constants/event";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
@@ -14,28 +14,64 @@ function guestName(order: OperatorOrder): string {
   return order.guest?.displayName ?? order.guest?.gameId ?? "Guest";
 }
 
+/**
+ * One order, one tap. The main button is the order's next step: "Ready" while a
+ * drink is being made, then "Picked up" once it's at the bar. Delete (for a drink
+ * the guest never collects) sits apart in the corner and asks to confirm, so it
+ * can't be hit by accident next to the main button.
+ */
 function DrinkCard({
   order,
   busy,
-  onDone,
+  onAdvance,
+  onDelete,
 }: {
   order: OperatorOrder;
   busy: boolean;
-  onDone: () => void;
+  onAdvance: () => void;
+  onDelete: () => void;
 }) {
   const CategoryIcon = drinkCategoryIcon(drinkCategoryForLabel(order.label));
   const making = TO_MAKE.has(order.status);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const t = setTimeout(() => setConfirmDelete(false), 3500);
+    return () => clearTimeout(t);
+  }, [confirmDelete]);
 
   return (
     <li
       className={cn(
-        "border p-5",
-        making
-          ? "border-nyx-line bg-nyx-soft/80"
-          : "border-gem-peridot/40 bg-gem-peridot/5",
+        "relative border p-5",
+        making ? "border-nyx-line bg-nyx-soft/80" : "border-gem-peridot/40 bg-gem-peridot/5",
       )}
     >
-      <div className="flex items-center gap-4">
+      <button
+        type="button"
+        onClick={() => {
+          if (confirmDelete) {
+            onDelete();
+            setConfirmDelete(false);
+          } else {
+            setConfirmDelete(true);
+          }
+        }}
+        disabled={busy}
+        aria-label={confirmDelete ? "confirm delete order" : "delete order"}
+        className={cn(
+          "absolute right-2 top-2 flex items-center gap-1 rounded-md px-2 py-1 text-[11px] uppercase tracking-widest transition-colors disabled:opacity-50",
+          confirmDelete
+            ? "bg-gem-garnet/90 font-semibold text-cloud"
+            : "text-ash/60 hover:text-gem-garnet",
+        )}
+      >
+        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+        {confirmDelete ? "confirm" : null}
+      </button>
+
+      <div className="flex items-center gap-4 pr-8">
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-nyx-line/70 text-ash">
           <CategoryIcon className="h-7 w-7" strokeWidth={1.5} aria-hidden />
         </span>
@@ -48,22 +84,27 @@ function DrinkCard({
             <p className="mt-0.5 truncate text-sm text-ash">{order.modifiers.join(", ")}</p>
           ) : null}
         </div>
-        {making ? (
-          <button
-            type="button"
-            onClick={onDone}
-            disabled={busy}
-            className="flex h-16 w-28 shrink-0 items-center justify-center gap-2 bg-gem-peridot text-lg font-bold uppercase tracking-wide text-nyx transition-opacity disabled:opacity-50"
-          >
-            <Check className="h-6 w-6" strokeWidth={3} aria-hidden />
-            Done
-          </button>
-        ) : (
-          <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium uppercase tracking-[0.15em] text-gem-peridot">
-            <CheckCheck className="h-5 w-5" strokeWidth={2} aria-hidden />
-            ready
-          </span>
-        )}
+        <button
+          type="button"
+          onClick={onAdvance}
+          disabled={busy}
+          className={cn(
+            "flex h-16 w-32 shrink-0 items-center justify-center gap-2 text-lg font-bold uppercase tracking-wide text-nyx transition-opacity disabled:opacity-50",
+            making ? "bg-gem-peridot" : "bg-helio",
+          )}
+        >
+          {making ? (
+            <>
+              <Check className="h-6 w-6" strokeWidth={3} aria-hidden />
+              Ready
+            </>
+          ) : (
+            <>
+              <Hand className="h-6 w-6" strokeWidth={2.5} aria-hidden />
+              Picked up
+            </>
+          )}
+        </button>
       </div>
     </li>
   );
@@ -94,13 +135,13 @@ export function BarBoard({ token, onLock }: { token: string; onLock: () => void 
     return () => clearInterval(t);
   }, [refresh]);
 
-  const markDone = useCallback(
-    async (id: string) => {
+  const setStatus = useCallback(
+    async (id: string, status: "ready" | "picked_up" | "expired") => {
       setBusyId(id);
       try {
         const res = await authedFetch(token, `/api/operator/drink-orders/${id}`, {
           method: "PATCH",
-          body: JSON.stringify({ status: "ready" }),
+          body: JSON.stringify({ status }),
         });
         if (res.ok) await refresh();
         else setError(res.status === 401 ? "auth" : "offline");
@@ -111,6 +152,12 @@ export function BarBoard({ token, onLock }: { token: string; onLock: () => void 
       }
     },
     [token, refresh],
+  );
+
+  /** The order's next step: make it (Ready), or hand it over (Picked up). */
+  const advance = useCallback(
+    (id: string, status: string) => setStatus(id, status === "ready" ? "picked_up" : "ready"),
+    [setStatus],
   );
 
   const sorted = useMemo(() => {
@@ -173,7 +220,8 @@ export function BarBoard({ token, onLock }: { token: string; onLock: () => void 
               key={order.id}
               order={order}
               busy={busyId === order.id}
-              onDone={() => markDone(order.id)}
+              onAdvance={() => advance(order.id, order.status)}
+              onDelete={() => setStatus(order.id, "expired")}
             />
           ))}
         </ul>

@@ -32,6 +32,7 @@ export interface Conversation {
   currentFlow: Flow;
   currentMissionId: string | null;
   contactCardSent: boolean;
+  welcomeImageSent: boolean;
   createdAt: string;
   updatedAt: string;
 }

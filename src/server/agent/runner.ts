@@ -17,9 +17,13 @@ export interface AgentInput {
 
 type ToolBase = Omit<ToolContext, "from" | "externalConversationId" | "channel" | "userText">;
 
-/** Tools whose `say` is complete guest copy; skip a second model pass that leaks meta-instructions. */
-const DIRECT_SAY_TOOLS = new Set(["help", "get_status"]);
-
+/**
+ * A tool's `say` is the complete, deterministic guest copy for that action. When
+ * every tool in a step returns the same clean `say` (no errors), return it
+ * verbatim and skip a second model pass: action replies stay crisp and
+ * structured, never wrapped in chatty preamble. Conversation still flows freely
+ * on turns where the model calls no tool.
+ */
 function directSayFromResults(results: Record<string, unknown>[]): string | null {
   if (results.length === 0 || results.some((r) => r.error)) return null;
   const lines = results
@@ -105,11 +109,8 @@ export class AgentRunner {
         messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
       }
 
-      const allDirect = calls.every((c) => DIRECT_SAY_TOOLS.has(c.function.name));
-      if (allDirect) {
-        const reply = directSayFromResults(stepResults);
-        if (reply) return reply;
-      }
+      const direct = directSayFromResults(stepResults);
+      if (direct) return direct;
     }
 
     // Tool budget spent (or empty reply): force one final spoken line.

@@ -1,19 +1,25 @@
 import {
+  allQuestsDoneCopy,
   alreadyHereCopy,
-  askNameCopy,
+  askEmailAfterNameCopy,
   badNameCopy,
-  checkinAskEmailCopy,
+  checkinAskNameCopy,
+  cocktailsOutCopy,
   drinkClarifyCopy,
   drinkQueuedCopy,
   drinkUnavailableCopy,
+  drinkVoucherUsedCopy,
   helpCopy,
   missionCorrectCopy,
   missionDeliverCopy,
+  missionDuplicatePartnerCopy,
   missionPartnerInvalidCopy,
   missionWrongCopy,
   notOnListCopy,
   pickupConfirmedCopy,
+  riddleProgressCopy,
   songQueuedCopy,
+  statusCopy,
   welcomeCopy,
 } from "@/constants/copy";
 import type { InboundChannel } from "@/constants/event";
@@ -144,7 +150,7 @@ const checkIn: Tool = {
     function: {
       name: "check_in",
       description:
-        "Thread a guest into the event: assigns their color gem, secret word, game id, and first mission. Requires the email they signed up with, and it must be on the waitlist. Pass a name too if they gave one (otherwise the signup name is used). If they have not given an email yet, ask first and do not call this until they do.",
+        "Start a guest's game: assigns their color gem, secret word, game id, and first quest. Check-in is two steps: first their first name, then the email they signed up with (must be on the waitlist). Call this as soon as you have either; it returns needs_name or needs_email to tell you what to ask next. Once you have both, pass the name AND the email together.",
       parameters: {
         type: "object",
         properties: {
@@ -186,17 +192,25 @@ const checkIn: Tool = {
       };
     }
 
-    // New guest: the waitlist email is the gate.
+    // New guest. Two steps: name first (message 1), then the waitlist email (message 2).
+    const name = resolveName(args, ctx.userText);
     const email = resolveEmail(args, ctx.userText);
-    if (!email) return { needs_email: true, say: checkinAskEmailCopy() };
 
+    if (!email) {
+      if (!name) return { needs_name: true, say: checkinAskNameCopy() };
+      const cleaned = cleanDisplayName(name);
+      if (!cleaned) return { needs_name: true, say: badNameCopy() };
+      return { needs_email: true, name: cleaned, say: askEmailAfterNameCopy(cleaned) };
+    }
+
+    // Email present: the waitlist is the gate.
     const listing = waitlistLookup(email);
     if (!listing.onList) return { not_on_list: true, email, say: notOnListCopy() };
 
-    const rawName = resolveName(args, ctx.userText) ?? listing.name;
+    const rawName = name ?? listing.name;
     const displayName = rawName ? cleanDisplayName(rawName) : null;
     if (rawName && !displayName) return { needs_name: true, email, say: badNameCopy() };
-    if (!displayName) return { needs_name: true, email, say: askNameCopy() };
+    if (!displayName) return { needs_name: true, email, say: checkinAskNameCopy() };
 
     const result = await ctx.registration.register({
       phone: ctx.from,
@@ -258,6 +272,10 @@ const orderDrink: Tool = {
         return { status: "queued", label: outcome.order.label, say: drinkQueuedCopy(outcome.order.label) };
       case "unavailable":
         return { status: "unavailable", label: outcome.label, say: drinkUnavailableCopy(outcome.label) };
+      case "voucher_used":
+        return { status: "voucher_used", say: drinkVoucherUsedCopy() };
+      case "cocktails_out":
+        return { status: "cocktails_out", say: cocktailsOutCopy() };
       case "clarify":
         return { status: "clarify", say: drinkClarifyCopy() };
       default:
@@ -298,15 +316,26 @@ const answerMission: Tool = {
         return { result: "incorrect", say: missionWrongCopy(outcome.hint) };
       case "partner_invalid":
         return { result: "partner_invalid", say: missionPartnerInvalidCopy() };
+      case "duplicate_partner":
+        return { result: "duplicate_partner", say: missionDuplicatePartnerCopy() };
+      case "riddle_progress":
+        return {
+          result: "riddle_progress",
+          say: riddleProgressCopy({
+            solved: outcome.solved,
+            total: outcome.total,
+            nextRiddlePrompt: outcome.nextRiddlePrompt,
+          }),
+        };
       case "already":
-        return { result: "already", say: "You already solved that one. Stay close to the screen." };
+        return { result: "already", say: "You already solved that one. Stay near the screen." };
       case "no_mission": {
         const delivered = await ctx.missions.deliverCurrent(participant, conversation);
         return {
           result: "no_mission",
           say: delivered
             ? missionDeliverCopy({ title: delivered.mission.title, prompt: delivered.prompt })
-            : "no active move right now. order a drink or watch the board.",
+            : allQuestsDoneCopy(),
         };
       }
       default:
@@ -328,15 +357,24 @@ const getStatus: Tool = {
     const { conversation, participant } = await resolve(ctx);
     if (!participant) return NOT_CHECKED_IN;
     const delivered = await ctx.missions.deliverCurrent(participant, conversation);
+    const progress = await ctx.missions.questProgress(participant.id);
     return {
       gem: GEMS[participant.gem].label,
       secret_word: participant.secretWord,
       game_id: participant.gameId,
       score: participant.score,
+      quests_completed: progress.done,
       current_mission: delivered?.prompt ?? null,
-      say: delivered
-        ? missionDeliverCopy({ title: delivered.mission.title, prompt: delivered.prompt })
-        : "you've cleared the labyrinth. stay close to the screen.",
+      say: statusCopy({
+        gemLabel: GEMS[participant.gem].label,
+        gameId: participant.gameId,
+        score: participant.score,
+        questsDone: progress.done,
+        questsTotal: progress.total,
+        currentQuest: delivered
+          ? missionDeliverCopy({ title: delivered.mission.title, prompt: delivered.prompt })
+          : null,
+      }),
     };
   },
 };
@@ -355,7 +393,7 @@ const confirmPickup: Tool = {
     const { participant } = await resolve(ctx);
     if (!participant) return NOT_CHECKED_IN;
     const order = await ctx.repos.drinkOrders.findReadyByParticipant(participant.id);
-    if (!order) return { picked_up: false, say: "I don't see a drink waiting for you right now." };
+    if (!order) return { picked_up: false, say: "You don't have a drink waiting right now." };
     await ctx.drinks.updateStatus(order.id, "picked_up", null);
     return { picked_up: true, label: order.label, say: pickupConfirmedCopy(order.label) };
   },
@@ -378,12 +416,14 @@ const queueSong: Tool = {
   execute: async (args, ctx) => {
     const { participant } = await resolve(ctx);
     if (!participant) return NOT_CHECKED_IN;
-    const text = pickText(args, ["text", "song", "title", "request", "track", "artist"]) || ctx.userText;
-    if (!text.trim()) {
-      return { status: "clarify", say: "What song? Text me a title or artist and I'll send it to the DJ." };
+    const raw = pickText(args, ["text", "song", "title", "request", "track", "artist"]) || ctx.userText;
+    // Strip the SONG command prefix so the DJ queue shows just the track.
+    const song = raw.trim().replace(/^song[:\s]+/i, "").trim();
+    if (!song) {
+      return { status: "clarify", say: "Which song? Reply with a title or artist and I'll send it to the DJ." };
     }
-    await ctx.repos.songRequests.create(ctx.eventId, participant.id, text.trim());
-    return { status: "queued", say: songQueuedCopy(text.trim()) };
+    await ctx.repos.songRequests.create(ctx.eventId, participant.id, song);
+    return { status: "queued", say: songQueuedCopy(song) };
   },
 };
 
@@ -423,7 +463,7 @@ const flagOperator: Tool = {
       participant?.gameId ?? null,
       reason,
     );
-    return { flagged: true, say: "Got it. A staffer is heading your way. Hang tight." };
+    return { flagged: true, say: "Got it. A staffer is on the way to you." };
   },
 };
 

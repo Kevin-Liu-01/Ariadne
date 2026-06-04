@@ -28,7 +28,7 @@ const NEXT_ACTIONS: Record<string, { label: string; status: string; Icon: Lucide
   ready: [{ label: "picked up", status: "picked_up", Icon: Hand }],
 };
 
-const CLOSED = new Set(["picked_up", "cancelled"]);
+const CLOSED = new Set(["picked_up", "cancelled", "expired"]);
 
 function DrinkPipeline({ status }: { status: string }) {
   const active = pipelineIndex(status);

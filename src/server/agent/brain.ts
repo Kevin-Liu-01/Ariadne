@@ -1,4 +1,4 @@
-import { helpCopy } from "@/constants/copy";
+import { drinkMenuCopy, helpCopy, songPromptCopy } from "@/constants/copy";
 import { GEMS } from "@/constants/gems";
 import { MISSION_BY_ID } from "@/constants/missions";
 import { stripDashes } from "@/domain/text";
@@ -40,13 +40,20 @@ export class AgentBrain {
     await this.repos.conversations.touch(conversation.id);
     const participant = await this.lookup(conversation, event.from);
 
-    if (/^\s*help\s*$/i.test(event.text.trim())) {
-      return {
-        text: stripDashes(helpCopy()),
-        channel: event.channel,
-        participantId: participant?.id ?? null,
-        conversationId: conversation.id,
-      };
+    // Bare keyword commands resolve deterministically, no model call. HELP works
+    // for anyone; DRINK and SONG prompts assume a checked-in guest (otherwise the
+    // model runs and routes them through check-in first).
+    const makeReply = (text: string): BrainReply => ({
+      text: stripDashes(text),
+      channel: event.channel,
+      participantId: participant?.id ?? null,
+      conversationId: conversation.id,
+    });
+    const command = event.text.trim();
+    if (/^help$/i.test(command)) return makeReply(helpCopy());
+    if (participant) {
+      if (/^drink$/i.test(command)) return makeReply(drinkMenuCopy());
+      if (/^song$/i.test(command)) return makeReply(songPromptCopy());
     }
 
     // Strip any em/en dash the model slips in: the brand voice never uses one.
@@ -84,7 +91,7 @@ export class AgentBrain {
 
   private grounding(participant: Participant | null, conversation: Conversation): string {
     if (!participant) {
-      return "CURRENT GUEST: not checked in yet. Open warmly: 'Welcome to Dedalus Run(way)time. Let's thread you in.' Ask for the email they signed up with, then call check_in with that email. If check_in returns not_on_list, gently tell them that email is not on tonight's list and you cannot thread them in. If it returns needs_name, ask their first name. Never check anyone in without a waitlisted email.";
+      return "CURRENT GUEST: not checked in yet. Check-in is two steps: first ask their first name, then the email they signed up with. Call check_in as you collect each (pass the name, then the name and email together). If check_in returns needs_name ask their first name; needs_email ask for the signup email; not_on_list tell them that email is not on tonight's list and you cannot check them in. Never check anyone in without a waitlisted email.";
     }
     const nameLine = participant.displayName
       ? ` Name: ${participant.displayName}.`

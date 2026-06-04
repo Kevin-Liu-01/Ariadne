@@ -1,4 +1,10 @@
-import { DRINK_MENU, type DrinkStatus } from "@/constants/drinks";
+import {
+  COCKTAIL_MENU_IDS,
+  COCKTAIL_VOUCHER_LIMIT,
+  COCKTAIL_VOUCHER_PER_GUEST,
+  DRINK_MENU,
+  type DrinkStatus,
+} from "@/constants/drinks";
 import { parseDrink } from "@/domain/drink-parse";
 import { newId } from "@/domain/ids";
 import { now } from "@/lib/time";
@@ -9,7 +15,9 @@ import type { ProjectionService } from "@/server/services/projection";
 export type DrinkOutcome =
   | { kind: "queued"; order: DrinkOrder }
   | { kind: "clarify" }
-  | { kind: "unavailable"; label: string };
+  | { kind: "unavailable"; label: string }
+  | { kind: "voucher_used" }
+  | { kind: "cocktails_out" };
 
 /** Captures drink orders from free text and routes them to the bar queue. */
 export class DrinkService {
@@ -27,6 +35,17 @@ export class DrinkService {
     const parsed = parseDrink(rawText);
     if (!parsed.item) return { kind: "clarify" };
     if (!parsed.item.available) return { kind: "unavailable", label: parsed.item.label };
+
+    // Cocktails are voucher-gated. Beer, wine, and zero-proof pour without limit.
+    if (parsed.item.category === "cocktail") {
+      const spent = await this.repos.drinkOrders.countCocktailsByEvent(this.eventId, COCKTAIL_MENU_IDS);
+      if (spent >= COCKTAIL_VOUCHER_LIMIT) return { kind: "cocktails_out" };
+      const used = await this.repos.drinkOrders.countCocktailsByParticipant(
+        participant.id,
+        COCKTAIL_MENU_IDS,
+      );
+      if (used >= COCKTAIL_VOUCHER_PER_GUEST) return { kind: "voucher_used" };
+    }
 
     const order: DrinkOrder = {
       id: newId("drk"),
@@ -53,7 +72,28 @@ export class DrinkService {
       gameId: participant.gameId,
       label: order.label,
     });
+
+    // If this pour spent the last cocktail voucher, alert the operator once. The
+    // pre-insert guard above keeps the pool from overshooting, so this trips a
+    // single time (on the 150th cocktail).
+    if (parsed.item.category === "cocktail") {
+      const spentNow = await this.repos.drinkOrders.countCocktailsByEvent(this.eventId, COCKTAIL_MENU_IDS);
+      if (spentNow >= COCKTAIL_VOUCHER_LIMIT) {
+        await this.repos.operatorAlerts.create(
+          this.eventId,
+          null,
+          null,
+          `Cocktail vouchers exhausted (${COCKTAIL_VOUCHER_LIMIT} poured). Pour beer, wine, and zero-proof only.`,
+        );
+        await this.projection.emit("drink_order.milestone", { status: "cocktails_out" });
+      }
+    }
     return { kind: "queued", order };
+  }
+
+  /** Expire a ready order the guest never picked up (distinct from an operator cancel). */
+  async expire(orderId: string): Promise<DrinkOrder | null> {
+    return this.updateStatus(orderId, "expired", "expired: not picked up");
   }
 
   /** Operator transition. Returns the updated order (with the new milestone fanned out). */

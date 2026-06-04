@@ -11,6 +11,7 @@ import { ParticipantsRepository } from "@/server/db/repositories/participants";
 import { PartnerEventsRepository } from "@/server/db/repositories/partner-events";
 import { ProjectionEventsRepository } from "@/server/db/repositories/projection";
 import { RemindersRepository } from "@/server/db/repositories/reminders";
+import { RiddleSolvesRepository } from "@/server/db/repositories/riddle-solves";
 import { SongRequestsRepository } from "@/server/db/repositories/song-requests";
 
 /** All repositories bound to one Db handle. Constructed once per backbone (and once per transaction). */
@@ -25,6 +26,7 @@ export class Repositories {
   readonly projection: ProjectionEventsRepository;
   readonly operatorAlerts: OperatorAlertsRepository;
   readonly reminders: RemindersRepository;
+  readonly riddleSolves: RiddleSolvesRepository;
   readonly songRequests: SongRequestsRepository;
   readonly counters: CountersRepository;
 
@@ -39,6 +41,7 @@ export class Repositories {
     this.projection = new ProjectionEventsRepository(db);
     this.operatorAlerts = new OperatorAlertsRepository(db);
     this.reminders = new RemindersRepository(db);
+    this.riddleSolves = new RiddleSolvesRepository(db);
     this.songRequests = new SongRequestsRepository(db);
     this.counters = new CountersRepository(db);
   }

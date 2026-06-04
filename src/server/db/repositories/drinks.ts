@@ -118,6 +118,35 @@ export class DrinkOrdersRepository extends BaseRepository {
     return rows[0]?.c ?? 0;
   }
 
+  /**
+   * Cocktail vouchers a guest has spent: any cocktail order that isn't a clean
+   * operator "cancelled" (a picked-up or expired cocktail still counts as used).
+   * `cocktailIds` is the static cocktail menu set, inlined as placeholders so the
+   * query stays dialect-safe on both pg and pglite.
+   */
+  async countCocktailsByParticipant(participantId: string, cocktailIds: readonly string[]): Promise<number> {
+    if (cocktailIds.length === 0) return 0;
+    const ph = cocktailIds.map((_, i) => `$${i + 2}`).join(",");
+    const rows = await this.db.query<{ c: number }>(
+      `SELECT COUNT(*)::int AS c FROM drink_orders
+       WHERE participant_id = $1 AND status <> 'cancelled' AND menu_item_id IN (${ph})`,
+      [participantId, ...cocktailIds],
+    );
+    return rows[0]?.c ?? 0;
+  }
+
+  /** Cocktail vouchers spent across the whole event (the 150-pour pool). */
+  async countCocktailsByEvent(eventId: string, cocktailIds: readonly string[]): Promise<number> {
+    if (cocktailIds.length === 0) return 0;
+    const ph = cocktailIds.map((_, i) => `$${i + 2}`).join(",");
+    const rows = await this.db.query<{ c: number }>(
+      `SELECT COUNT(*)::int AS c FROM drink_orders
+       WHERE event_id = $1 AND status <> 'cancelled' AND menu_item_id IN (${ph})`,
+      [eventId, ...cocktailIds],
+    );
+    return rows[0]?.c ?? 0;
+  }
+
   /** Operator edit: swap the ordered item and its modifiers, leaving status/history intact. */
   async updateItem(
     id: string,

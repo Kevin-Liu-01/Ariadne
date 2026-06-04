@@ -44,6 +44,7 @@ CREATE INDEX IF NOT EXISTS idx_conversations_external ON conversations(external_
 CREATE INDEX IF NOT EXISTS idx_conversations_phone ON conversations(event_id, phone);
 CREATE INDEX IF NOT EXISTS idx_conversations_participant ON conversations(participant_id);
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS contact_card_sent BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS welcome_image_sent BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS partner_events (
   id          TEXT PRIMARY KEY,
@@ -84,6 +85,17 @@ CREATE TABLE IF NOT EXISTS mission_events (
   created_at        TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_mission_events_participant ON mission_events(participant_id);
+
+-- Sub-progress for the riddle quest: each guest gets 3 of the 8 riddles and must
+-- solve all 3. One row per solved riddle; the quest completes at 3.
+CREATE TABLE IF NOT EXISTS riddle_solves (
+  event_id       TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  riddle_id      TEXT NOT NULL,
+  created_at     TEXT NOT NULL,
+  PRIMARY KEY (participant_id, riddle_id)
+);
+CREATE INDEX IF NOT EXISTS idx_riddle_solves_participant ON riddle_solves(participant_id);
 
 CREATE TABLE IF NOT EXISTS drink_orders (
   id              TEXT PRIMARY KEY,

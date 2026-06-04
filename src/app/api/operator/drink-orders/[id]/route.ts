@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { DRINK_STATUSES } from "@/constants/drinks";
-import { drinkReadyCopy } from "@/constants/copy";
+import { DRINK_STATUSES, isCocktailItem } from "@/constants/drinks";
+import { drinkExpiredCopy, drinkReadyCopy } from "@/constants/copy";
 import { env } from "@/lib/env";
 import { getBackbone } from "@/server/backbone";
 import { bearerOk } from "@/server/http/auth";
@@ -43,9 +43,11 @@ export async function PATCH(
   if (body.status) {
     const updated = await bb.drinks.updateStatus(id, body.status, body.note ?? null);
     if (!updated) return problem(404, "order not found");
-    // Notify the guest when the drink is ready (best-effort).
+    // Notify the guest when the drink is ready, or once when it expires (best-effort).
     if (body.status === "ready") {
       void sendToParticipant(updated.participantId, drinkReadyCopy(updated.label));
+    } else if (body.status === "expired") {
+      void sendToParticipant(updated.participantId, drinkExpiredCopy(isCocktailItem(updated.menuItemId)));
     }
     return json(updated);
   }
