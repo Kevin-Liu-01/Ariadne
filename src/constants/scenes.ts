@@ -19,48 +19,37 @@ export interface Scene {
   readonly accent: SceneAccent;
 }
 
+// Run-of-show order: doors, then one game board for the whole night (guests work
+// color -> word -> riddle at their own pace; the operator never switches quest
+// boards), then winners, then the runway show closes the night.
 export const SCENES = [
   {
     id: "arrival",
-    note: "Doors open. Guests text in, get their gem, secret word, and first quest. Board shows the join line and who has checked in.",
+    note: "Doors open. Guests check in by text (name, then waitlist email) and wait. The board shows the join line and who has checked in. Gameplay opens when you pick 'game'.",
     headline: "Doors are open",
-    tagline: "Text the line to step into the labyrinth.",
+    tagline: "Check in by text. The game begins when the room is ready.",
     accent: "aquamarine",
   },
   {
-    id: "runway",
-    note: "House lights down, the show is on. Scores hold steady while the room watches; the board goes calm and cinematic.",
-    headline: "The runway is live",
-    tagline: "Eyes up. The thread is holding.",
-    accent: "cloud",
-  },
-  {
-    id: "color",
-    note: "Color Quest. The board shows the six gems and the two triangles; guests find three colors that form one. Leaderboard on the rail.",
-    headline: "Find your color triangle",
-    tagline: "Three hues that form a triangle: all primary or all secondary.",
+    id: "game",
+    note: "The game is live: one board for the whole night. Every guest, the quest they're on, points, plus the color/word/riddle panels together. Guests progress color -> word -> riddle at their own pace.",
+    headline: "The game is live",
+    tagline: "Color, word, riddle. Solve at your own pace.",
     accent: "helio",
   },
   {
-    id: "word",
-    note: "Word Quest. The board shows the valid two-word combos; guests find the guest whose secret word completes a phrase with theirs.",
-    headline: "Complete the phrase",
-    tagline: "Find the guest whose word finishes yours.",
-    accent: "peridot",
-  },
-  {
-    id: "riddle",
-    note: "Riddle round. The board shows the riddles (also texted to each guest). Guests text one-word answers. Points reward speed.",
-    headline: "Riddles of the labyrinth",
-    tagline: "Solve them. Answer by text.",
-    accent: "topaz",
-  },
-  {
     id: "finale",
-    note: "Winners crowned, last call at the bar. Board raises a podium for the top three and celebrates the night.",
+    note: "Winners crowned. Board raises a podium for the top three and celebrates the night.",
     headline: "Winners of the night",
-    tagline: "Last call. Take a bow.",
+    tagline: "Take a bow.",
     accent: "garnet",
+  },
+  {
+    id: "runway",
+    note: "The runway show closes the night. The board goes calm and cinematic while the room watches.",
+    headline: "The runway is live",
+    tagline: "Eyes up. The thread is holding.",
+    accent: "cloud",
   },
 ] as const satisfies readonly Scene[];
 

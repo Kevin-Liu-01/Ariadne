@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import {
   ACCENT,
   type BoardView,
-  LeaderboardList,
   PlayerTile,
   RoomMetric,
   StageHero,
@@ -29,18 +28,18 @@ const SECONDARY_GEMS: GemId[] = GEM_IDS.filter((g) =>
   ["purple", "green", "orange"].includes(GEM_WHEEL_HUE[g]),
 );
 
-/** Picks the stage layout for the active scene. Empty non-arrival scenes wait for the first guest. */
+/**
+ * Picks the stage layout for the active scene. The whole game is ONE board: guests
+ * progress color -> word -> riddle at their own pace, so the operator never swaps
+ * quest boards. Empty non-arrival scenes wait for the first guest.
+ */
 export function BoardStage({ scene, view }: { scene: string; view: BoardView }) {
   if (view.ordered.length === 0 && scene !== "arrival") return <WaitingState sceneMeta={view.sceneMeta} />;
   switch (scene) {
+    case "game":
+      return <GameStage view={view} />;
     case "runway":
       return <RunwayStage view={view} />;
-    case "color":
-      return <QuestStage view={view} quest="color" />;
-    case "word":
-      return <QuestStage view={view} quest="word" />;
-    case "riddle":
-      return <QuestStage view={view} quest="riddle" />;
     case "finale":
       return <FinaleStage view={view} />;
     default:
@@ -132,32 +131,32 @@ function TriangleCard({ title, gems, accent }: { title: string; gems: GemId[]; a
   );
 }
 
-/** The reference panel each quest shows on the board: gems, word combos, or riddles. */
-function QuestReference({ quest, accent }: { quest: QuestId; accent: SceneAccent }) {
+const QUEST_META: Record<QuestId, { title: string; accent: SceneAccent }> = {
+  color: { title: "Color Quest", accent: "helio" },
+  word: { title: "Word Quest", accent: "peridot" },
+  riddle: { title: "Riddle Quest", accent: "topaz" },
+};
+
+/** Inner reference content for one quest: the gems, the word combos, or the riddles. */
+function QuestReferenceBody({ quest, accent }: { quest: QuestId; accent: SceneAccent }) {
   if (quest === "color") {
     return (
-      <div className="border border-nyx-line/70 bg-nyx/40 p-4">
-        <p className="text-sm text-cloud">
-          Find three guests whose colors form a triangle, then text me their game IDs.
-        </p>
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-          <TriangleCard title="primary triangle" gems={PRIMARY_GEMS} accent={accent} />
-          <TriangleCard title="secondary triangle" gems={SECONDARY_GEMS} accent={accent} />
-        </div>
+      <div className="flex flex-col gap-3">
+        <p className="text-xs text-ash">Find three guests whose colors form a triangle; text their game IDs.</p>
+        <TriangleCard title="primary" gems={PRIMARY_GEMS} accent={accent} />
+        <TriangleCard title="secondary" gems={SECONDARY_GEMS} accent={accent} />
       </div>
     );
   }
   if (quest === "word") {
     return (
-      <div className="border border-nyx-line/70 bg-nyx/40 p-4">
-        <p className="text-sm text-cloud">
-          Find the guest whose secret word completes one of these phrases with yours.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
+      <div>
+        <p className="text-xs text-ash">Find the guest whose secret word completes a phrase with yours.</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {WORD_PAIRS.map(([a, b]) => (
             <span
               key={`${a}-${b}`}
-              className="flex items-center gap-1.5 border border-nyx-line/60 bg-nyx-soft/50 px-3 py-1.5 text-sm text-cloud"
+              className="flex items-center gap-1 border border-nyx-line/60 bg-nyx-soft/50 px-2 py-1 text-xs text-cloud"
             >
               <span>{a}</span>
               <span className={ACCENT[accent].text}>+</span>
@@ -169,16 +168,11 @@ function QuestReference({ quest, accent }: { quest: QuestId; accent: SceneAccent
     );
   }
   return (
-    <div className="border border-nyx-line/70 bg-nyx/40 p-4">
-      <p className="text-sm text-cloud">
-        Each guest gets three of these riddles by text. Solve them and reply with the one-word answers.
-      </p>
-      <ol className="mt-3 grid gap-2 lg:grid-cols-2">
+    <div>
+      <p className="text-xs text-ash">Each guest gets three of these by text. Reply with one-word answers.</p>
+      <ol className="mt-2 space-y-1.5">
         {CLUES.map((c, i) => (
-          <li
-            key={c.id}
-            className="flex gap-2 border border-nyx-line/60 bg-nyx-soft/40 px-3 py-2 text-sm leading-snug text-cloud"
-          >
+          <li key={c.id} className="flex gap-2 text-xs leading-snug text-cloud">
             <span className={cn("shrink-0 tabular-nums", ACCENT[accent].text)}>{i + 1}.</span>
             <span>{c.prompt}</span>
           </li>
@@ -188,53 +182,59 @@ function QuestReference({ quest, accent }: { quest: QuestId; accent: SceneAccent
   );
 }
 
-/**
- * A quest scene: the leaderboard rail beside the quest reference (gems / word
- * combos / riddles) and the live gem tiles. One layout, three quest panels.
- */
-function QuestStage({ view, quest }: { view: BoardView; quest: QuestId }) {
-  const accent = ACCENT[view.sceneMeta.accent];
+/** One quest's reference card in the rail. All three show at once during the game. */
+function QuestReferenceCard({ quest }: { quest: QuestId }) {
+  const { title, accent } = QUEST_META[quest];
   return (
-    <div className="relative z-[2] flex flex-1 flex-col gap-5 py-6">
+    <div className={cn("flex min-h-0 min-w-0 flex-col border bg-nyx-soft/50 p-3", ACCENT[accent].border)}>
+      <p className={cn("text-[11px] uppercase tracking-[0.3em]", ACCENT[accent].text)}>{title}</p>
+      <div className="mt-2 min-h-0 flex-1 overflow-auto">
+        <QuestReferenceBody quest={quest} accent={accent} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The unified game board, shown for the whole game: a grid leaderboard of every
+ * guest (rank, gem, the quest level they're on, points) above a rail that shows
+ * all three quest references at once. Guests progress at their own pace, so the
+ * board never swaps per quest.
+ */
+function GameStage({ view }: { view: BoardView }) {
+  return (
+    <div className="relative z-[2] flex min-h-0 flex-1 flex-col gap-5 py-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className={cn("text-xs uppercase tracking-[0.4em]", accent.text)}>{view.sceneMeta.id} quest</p>
+          <p className="text-xs uppercase tracking-[0.4em] text-helio">the labyrinth, live</p>
           <h2 className="mt-1 font-display text-3xl font-extralight text-cloud">{view.sceneMeta.headline}</h2>
+          <p className="mt-1 text-sm text-ash">Color, word, riddle, solved at your own pace.</p>
         </div>
-        <p className="text-sm text-ash">
-          <span className={accent.text}>{view.stats.missionsCompleted}</span> quests solved tonight
-        </p>
+        <dl className="flex items-end gap-6">
+          <RoomMetric label="players" value={view.ordered.length} />
+          <RoomMetric label="quests solved" value={view.stats.missionsCompleted} accent="text-helio" />
+          <RoomMetric label="top" value={view.topScore} accent="text-gem-topaz" />
+        </dl>
       </div>
-      <div className="flex flex-1 flex-col gap-5 lg:flex-row lg:items-stretch">
-        <aside className="flex w-full shrink-0 flex-col border border-nyx-line/70 bg-nyx-soft/60 p-4 lg:w-80">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className={cn("text-xs uppercase tracking-[0.25em]", accent.text)}>leaderboard</h3>
-            <span className="text-xs tabular-nums text-ash">{view.ordered.length} players</span>
-          </div>
-          <dl className="mt-3 grid grid-cols-2 gap-2 border-b border-nyx-line/60 pb-3 text-center">
-            <RoomMetric label="players" value={view.activeCount} />
-            <RoomMetric label="top" value={view.topScore} />
-          </dl>
-          <div className="mt-3 flex-1 overflow-auto">
-            <LeaderboardList ordered={view.ordered} accent={view.sceneMeta.accent} />
-          </div>
-        </aside>
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <QuestReference quest={quest} accent={view.sceneMeta.accent} />
-          <div className={TILE_GRID}>
-            {view.ordered.map((t, i) => (
-              <PlayerTile
-                key={t.gameId}
-                tile={t}
-                rank={i + 1}
-                flash={!!view.flash[t.gameId]}
-                ripple={!!view.ripple[t.gameId]}
-                vm={!!view.vmSpawn[t.gameId]}
-                accent={view.sceneMeta.accent}
-              />
-            ))}
-          </div>
-        </div>
+
+      <div className={cn("min-h-0 flex-1 overflow-auto", TILE_GRID)}>
+        {view.ordered.map((t, i) => (
+          <PlayerTile
+            key={t.gameId}
+            tile={t}
+            rank={i + 1}
+            flash={!!view.flash[t.gameId]}
+            ripple={!!view.ripple[t.gameId]}
+            vm={!!view.vmSpawn[t.gameId]}
+            accent={view.sceneMeta.accent}
+          />
+        ))}
+      </div>
+
+      <div className="grid max-h-[34dvh] shrink-0 gap-3 lg:grid-cols-3">
+        <QuestReferenceCard quest="color" />
+        <QuestReferenceCard quest="word" />
+        <QuestReferenceCard quest="riddle" />
       </div>
     </div>
   );

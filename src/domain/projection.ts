@@ -8,9 +8,14 @@ export interface TileState {
   gem: GemId;
   gemHex: string;
   score: number;
+  /** Quests completed so far (their "level", 0..TOTAL_QUESTS). */
+  questsDone: number;
   eliminated: boolean;
   rank: number;
 }
+
+/** The three quests every guest works through at their own pace. */
+export const TOTAL_QUESTS = 3;
 
 /** Full board state. The frontend recovers from this on reload/reconnect. */
 export interface ProjectionSnapshot {

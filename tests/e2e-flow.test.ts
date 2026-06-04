@@ -114,7 +114,7 @@ describe("end to end: a full night", () => {
     expect((await bb.repos.songRequests.setStatus(songs[0].id, "accepted"))?.status).toBe("accepted");
 
     // 5. ANNOUNCEMENTS: operator flips the scene; the sweep broadcasts it once, to everyone.
-    await bb.projection.emit("scene.changed", { scene: "color" });
+    await bb.projection.emit("scene.changed", { scene: "game" });
     const reminders = new ReminderService(EVENT, bb.repos, bb.missions, EAGER);
     const sent: { phone: string; text: string }[] = [];
     const spy = async (phone: string, text: string) => {
@@ -123,7 +123,7 @@ describe("end to end: a full night", () => {
     };
     const sweep = await reminders.run(spy);
     expect(sweep.byKind.scene).toBe(2);
-    expect(sent.every((s) => s.text.includes("Color Quest is live"))).toBe(true);
+    expect(sent.every((s) => s.text.includes("The game is live"))).toBe(true);
     expect((await reminders.run(spy)).sent).toBe(0); // idempotent: no repeats
 
     // 6. MISSIONS: solve the word thread (give + wings), score lands on the board.
@@ -140,7 +140,7 @@ describe("end to end: a full night", () => {
 
     // 7. BOARD: the projection snapshot reflects the room.
     const snap = await bb.projection.snapshot();
-    expect(snap.scene).toBe("color");
+    expect(snap.scene).toBe("game");
     expect(snap.stats.checkedIn).toBe(2);
     expect(snap.stats.missionsCompleted).toBe(1);
     expect(typeof snap.eventPhone).toBe("string"); // carried for the arrival board (empty without env)

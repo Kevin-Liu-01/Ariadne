@@ -115,6 +115,7 @@ export default function ProjectionPage() {
             gem: (d.gem as TileState["gem"]) ?? "topaz",
             gemHex: typeof d.gemHex === "string" ? d.gemHex : "#FFAB57",
             score: 0,
+            questsDone: 0,
             eliminated: false,
             rank: 0,
           },
@@ -134,6 +135,11 @@ export default function ProjectionPage() {
       }
       if (ev.type === "mission.completed" && gameId) {
         setStats((s) => ({ ...s, missionsCompleted: s.missionsCompleted + 1 }));
+        setTiles((prev) =>
+          prev[gameId]
+            ? { ...prev, [gameId]: { ...prev[gameId], questsDone: prev[gameId].questsDone + 1 } }
+            : prev,
+        );
         pulseFlash(gameId);
       }
       if ((ev.type === "participant.eliminated" || ev.type === "participant.restored") && gameId) {

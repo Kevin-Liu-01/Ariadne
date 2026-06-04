@@ -192,14 +192,10 @@ export function helpCopy(): string {
 export function sceneBroadcastCopy(sceneId: string, missionPrompt?: string | null): string | null {
   const move = missionPrompt ? `\n\nYour move:\n${missionPrompt}` : "";
   switch (sceneId) {
+    case "game":
+      return `The game is live. Work through color, word, and riddle at your own pace.${move}`;
     case "runway":
       return "The runway is live. Eyes on the main screen.";
-    case "color":
-      return `Color Quest is live. Find three guests whose colors form a triangle.${move}`;
-    case "word":
-      return `Word Quest is live. Find the guest whose word completes a phrase with yours.${move}`;
-    case "riddle":
-      return `The riddle round is live. Solve your three and text me the answers.${move}`;
     case "finale":
       return "Finale. Last call at the bar.";
     default:

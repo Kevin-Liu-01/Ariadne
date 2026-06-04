@@ -95,6 +95,16 @@ export class ParticipantMissionsRepository extends BaseRepository {
     return rows[0]?.c ?? 0;
   }
 
+  /** Completed-quest count per participant (their "level" on the board). */
+  async completedCountsByParticipant(eventId: string): Promise<Map<string, number>> {
+    const rows = await this.db.query<{ participant_id: string; c: number }>(
+      `SELECT participant_id, COUNT(*)::int AS c FROM participant_missions
+       WHERE event_id = $1 AND status = 'completed' GROUP BY participant_id`,
+      [eventId],
+    );
+    return new Map(rows.map((r) => [r.participant_id, r.c]));
+  }
+
   /** How many guests have already completed this specific quest (drives the speed bonus). */
   async completedCountForMission(eventId: string, missionId: string): Promise<number> {
     const rows = await this.db.query<{ c: number }>(

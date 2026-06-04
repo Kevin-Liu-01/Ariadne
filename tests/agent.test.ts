@@ -72,7 +72,7 @@ async function seed(bb: Awaited<ReturnType<typeof freshBackbone>>, phone: string
   });
   await bb.repos.conversations.setGameUnlocked(conversation.id, true);
   await bb.missions.unlockGameplay(participant, conversation);
-  await bb.projection.emit("scene.changed", { scene: "color" });
+  await bb.projection.emit("scene.changed", { scene: "game" });
 }
 
 describe("conversational agent (mocked model)", () => {

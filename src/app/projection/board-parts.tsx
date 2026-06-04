@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { GEMS } from "@/constants/gems";
 import type { Scene, SceneAccent } from "@/constants/scenes";
 import { GemIcon } from "@/components/gem-icon";
-import type { ProjectionSnapshot, TileState } from "@/domain/projection";
+import { TOTAL_QUESTS, type ProjectionSnapshot, type TileState } from "@/domain/projection";
 import { cn } from "@/lib/utils";
 
 /** Everything a stage needs to paint the board. Built once per poll in the page. */
@@ -69,6 +69,20 @@ export function RoomMetric({ label, value, accent }: { label: string; value: num
   );
 }
 
+/** Quest-progress dots: how far a guest is through the three quests (their level). */
+export function QuestPips({ done, accent }: { done: number; accent: SceneAccent }) {
+  return (
+    <div className="flex items-center gap-1" aria-label={`${done} of ${TOTAL_QUESTS} quests`}>
+      {Array.from({ length: TOTAL_QUESTS }).map((_, i) => (
+        <span
+          key={i}
+          className={cn("h-1.5 w-1.5 rounded-full", i < done ? ACCENT[accent].dot : "bg-nyx-line")}
+        />
+      ))}
+    </div>
+  );
+}
+
 /** A square gem tile. `accent` tints the top-three highlight to match the stage. */
 export function PlayerTile({
   tile,
@@ -121,7 +135,10 @@ export function PlayerTile({
       >
         {tile.gameId}
       </p>
-      <p className="mt-auto pt-2 text-xl tabular-nums text-cloud">{tile.score}</p>
+      <div className="mt-auto flex flex-col items-center gap-1.5 pt-2">
+        <QuestPips done={tile.questsDone} accent={accent} />
+        <p className="text-xl tabular-nums text-cloud">{tile.score}</p>
+      </div>
     </div>
   );
 }

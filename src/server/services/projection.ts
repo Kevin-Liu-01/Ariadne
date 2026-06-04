@@ -37,14 +37,16 @@ export class ProjectionService {
   }
 
   async snapshot(): Promise<ProjectionSnapshot> {
-    const [participants, scene, puzzleId, latestSeq, missionsCompleted, active] = await Promise.all([
-      this.repos.participants.listByEvent(this.eventId),
-      this.scene(),
-      this.currentPuzzleId(),
-      this.repos.projection.latestSeq(this.eventId),
-      this.repos.participantMissions.countCompleted(this.eventId),
-      this.repos.drinkOrders.listActive(this.eventId),
-    ]);
+    const [participants, scene, puzzleId, latestSeq, missionsCompleted, active, questCounts] =
+      await Promise.all([
+        this.repos.participants.listByEvent(this.eventId),
+        this.scene(),
+        this.currentPuzzleId(),
+        this.repos.projection.latestSeq(this.eventId),
+        this.repos.participantMissions.countCompleted(this.eventId),
+        this.repos.drinkOrders.listActive(this.eventId),
+        this.repos.participantMissions.completedCountsByParticipant(this.eventId),
+      ]);
     const puzzle = toPublicPuzzle(puzzleById(puzzleId));
     const tiles: TileState[] = participants.map((p, index) => ({
       gameId: p.gameId,
@@ -52,6 +54,7 @@ export class ProjectionService {
       gem: p.gem,
       gemHex: GEMS[p.gem].hex,
       score: p.score,
+      questsDone: questCounts.get(p.id) ?? 0,
       eliminated: p.eliminated,
       rank: index + 1,
     }));
