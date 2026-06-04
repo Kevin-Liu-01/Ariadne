@@ -9,6 +9,7 @@ import { SiteNav } from "@/components/site-nav";
 import { ACCENT, type BoardView } from "@/app/projection/board-parts";
 import { BoardStage } from "@/app/projection/stages";
 import type { ProjectionSnapshot, TileState } from "@/domain/projection";
+import { projectionGameplayActive } from "@/domain/projection-gameplay";
 import type { ProjectionEvent } from "@/domain/types";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,13 @@ function formatScene(scene: string): string {
   return scene.replace(/_/g, " ");
 }
 
+function vmForScene(participantIds: string[], activeScene: string): Record<string, boolean> {
+  if (!projectionGameplayActive(activeScene)) return {};
+  const vm: Record<string, boolean> = {};
+  for (const id of participantIds) vm[id] = true;
+  return vm;
+}
+
 export default function ProjectionPage() {
   const [tiles, setTiles] = useState<Tiles>({});
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
@@ -27,6 +35,8 @@ export default function ProjectionPage() {
   const [puzzle, setPuzzle] = useState<{ id: string; imageUrl: string | null } | null>(null);
   const [eventPhone, setEventPhone] = useState("");
   const [flash, setFlash] = useState<Record<string, number>>({});
+  const [ripple, setRipple] = useState<Record<string, number>>({});
+  const [vmSpawn, setVmSpawn] = useState<Record<string, boolean>>({});
   const [connected, setConnected] = useState(false);
   // `?scene=` forces a stage on this screen only (preview / fixed side display); it never
   // touches the broadcast scene or writes anything.
@@ -40,22 +50,53 @@ export default function ProjectionPage() {
   useEffect(() => {
     let cancelled = false;
     let lastSeq = 0;
+    let sceneLive = "arrival";
+
+    const pulseFlash = (gameId: string, ms = 2200) => {
+      setFlash((f) => ({ ...f, [gameId]: Date.now() }));
+      setTimeout(() => setFlash((f) => ({ ...f, [gameId]: 0 })), ms);
+    };
+
+    const pulseRipple = (gameId: string, ms = 1400) => {
+      setRipple((r) => ({ ...r, [gameId]: Date.now() }));
+      setTimeout(() => setRipple((r) => ({ ...r, [gameId]: 0 })), ms);
+    };
+
+    const spawnAllVm = (ids: string[]) => {
+      if (ids.length === 0) return;
+      setVmSpawn((v) => {
+        const next = { ...v };
+        for (const id of ids) next[id] = true;
+        return next;
+      });
+    };
 
     const rebuild = (snap: ProjectionSnapshot) => {
       const next: Tiles = {};
       for (const t of snap.participants) next[t.gameId] = t;
       setTiles(next);
       setStats(snap.stats);
+      sceneLive = snap.scene;
       setScene(snap.scene);
       setPuzzle(snap.puzzle);
       setEventPhone(snap.eventPhone);
+      setVmSpawn(vmForScene(snap.participants.map((t) => t.gameId), snap.scene));
       lastSeq = snap.latestSeq;
     };
 
     const apply = (ev: ProjectionEvent) => {
       const d = ev.data as Record<string, string | number | undefined>;
       const gameId = typeof d.gameId === "string" ? d.gameId : null;
-      if (ev.type === "scene.changed" && typeof d.scene === "string") setScene(d.scene);
+      if (ev.type === "scene.changed" && typeof d.scene === "string") {
+        sceneLive = d.scene;
+        setScene(d.scene);
+        if (projectionGameplayActive(d.scene)) {
+          setTiles((prev) => {
+            spawnAllVm(Object.keys(prev));
+            return prev;
+          });
+        }
+      }
       if (ev.type === "puzzle.changed" && typeof d.puzzleId === "string") {
         setPuzzle({ id: d.puzzleId, imageUrl: typeof d.imageUrl === "string" ? d.imageUrl : null });
       }
@@ -73,6 +114,12 @@ export default function ProjectionPage() {
           },
         }));
         setStats((s) => ({ ...s, checkedIn: s.checkedIn + 1 }));
+        if (projectionGameplayActive(sceneLive)) {
+          setVmSpawn((v) => ({ ...v, [gameId]: true }));
+        }
+      }
+      if (ev.type === "participant.messaged" && gameId) {
+        pulseRipple(gameId);
       }
       if (ev.type === "score.updated" && gameId && typeof d.score === "number") {
         setTiles((prev) =>
@@ -81,8 +128,7 @@ export default function ProjectionPage() {
       }
       if (ev.type === "mission.completed" && gameId) {
         setStats((s) => ({ ...s, missionsCompleted: s.missionsCompleted + 1 }));
-        setFlash((f) => ({ ...f, [gameId]: Date.now() }));
-        setTimeout(() => setFlash((f) => ({ ...f, [gameId]: 0 })), 2200);
+        pulseFlash(gameId);
       }
       if ((ev.type === "participant.eliminated" || ev.type === "participant.restored") && gameId) {
         const eliminated = ev.type === "participant.eliminated";
@@ -144,6 +190,8 @@ export default function ProjectionPage() {
     sceneMeta: meta,
     puzzleImage: puzzle?.imageUrl && puzzle.imageUrl !== "" ? puzzle.imageUrl : null,
     flash,
+    ripple,
+    vmSpawn,
     eventPhone,
     topScore: ordered[0]?.score ?? 0,
     activeCount,

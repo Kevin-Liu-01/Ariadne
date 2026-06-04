@@ -159,18 +159,10 @@ export const WORD_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["futures", "branch"],
 ];
 
-/**
- * Winning color-quest combinations, as multisets of gem ids. A group's gems must
- * match one exactly. Gems encode colors (amethyst=purple, garnet=red,
- * moonstone=white, peridot=green, aquamarine=blue, topaz=yellow); the combos are
- * color theory: a matched pair, or two colors plus the one they mix into. The
- * "two purples + one other" rule is handled in the validator, not listed here.
- */
+/** Primary or secondary color-wheel triangle (validated in gem-wheel.ts). */
 export const COLOR_COMBOS: readonly (readonly GemId[])[] = [
-  ["garnet", "amethyst"], // red + purple
-  ["moonstone", "peridot"], // white + green
-  ["garnet", "aquamarine", "amethyst"], // red + blue -> purple
-  ["aquamarine", "topaz", "peridot"], // blue + yellow -> green
+  ["garnet", "topaz", "aquamarine"],
+  ["amethyst", "peridot", "moonstone"],
 ];
 
 export const MISSIONS: readonly MissionTemplate[] = [
@@ -179,12 +171,12 @@ export const MISSIONS: readonly MissionTemplate[] = [
     type: "color_quest",
     title: "Color Quest",
     promptCopy:
-      "Your gem is a color. Find the guests whose colors complete yours: a matched pair, or colors that mix into a third. Text me everyone's game IDs, yours included.",
+      "Color Quest: your gem is a color on the wheel. Find three guests with three different colors that form a triangle: all primaries (red, yellow, blue) or all secondaries (purple, green, orange). Hint: what three hues sit evenly on the color wheel? Text me all four game IDs, yours included.",
     points: 100,
     requiresPartner: true,
     projectionEffect: "constellation",
     validation: { kind: "color_combo" },
-    hint: "color theory: red+blue make purple, blue+yellow make green. a matched pair works too (red+purple, white+green), or two purples plus one other.",
+    hint: "You need exactly three other guests, each a different wheel color, forming either the primary triangle or the secondary triangle.",
   },
   {
     id: "word-thread",

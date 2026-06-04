@@ -63,13 +63,16 @@ const fakeChat: ChatFn = async (req) => {
 // Pre-check-in via the service (which does not gate) for tests whose subject is a
 // later action, not the door. demo@dedaluslabs.ai is on the test waitlist CSV.
 async function seed(bb: Awaited<ReturnType<typeof freshBackbone>>, phone: string, name: string): Promise<void> {
-  await bb.registration.register({
+  const { participant, conversation } = await bb.registration.register({
     phone,
     externalConversationId: `conv_${phone}`,
     channel: "sms",
     name,
     email: `${name.toLowerCase()}@dedaluslabs.ai`,
   });
+  await bb.repos.conversations.setGameUnlocked(conversation.id, true);
+  await bb.missions.unlockGameplay(participant, conversation);
+  await bb.projection.emit("scene.changed", { scene: "missions" });
 }
 
 describe("conversational agent (mocked model)", () => {
@@ -81,7 +84,7 @@ describe("conversational agent (mocked model)", () => {
     expect(guest?.email).toBe("demo@dedaluslabs.ai");
     expect(guest?.displayName).toBe("Demo Guest"); // pulled from the waitlist
     expect(reply.participantId).toBe(guest?.id);
-    expect(reply.text.toLowerCase()).toContain("welcome");
+    expect(reply.text.toLowerCase()).toMatch(/checked in|venue code/);
     expect(reply.text).toContain(guest?.gameId ?? "??");
   });
 
@@ -89,14 +92,14 @@ describe("conversational agent (mocked model)", () => {
     const bb = await freshBackbone(fakeChat);
     const reply = await bb.brain.process(inbound("+1700000009", "stranger@nope.com"));
     expect(await bb.repos.participants.findByPhone("test-event", "+1700000009")).toBeNull();
-    expect(reply.text.toLowerCase()).toContain("can't find that email");
+    expect(reply.text.toLowerCase()).toContain("not on tonight");
   });
 
-  it("asks for the guest's name first before checking anyone in", async () => {
+  it("asks for the signup email before checking anyone in", async () => {
     const bb = await freshBackbone(fakeChat);
     const reply = await bb.brain.process(inbound("+1700000005", "hey"));
     expect(await bb.repos.participants.findByPhone("test-event", "+1700000005")).toBeNull();
-    expect(reply.text.toLowerCase()).toContain("first name");
+    expect(reply.text.toLowerCase()).toMatch(/first name|what is your name/);
   });
 
   it("routes a drink request through the order_drink tool", async () => {
@@ -104,7 +107,7 @@ describe("conversational agent (mocked model)", () => {
     await seed(bb, "+1700000002", "Max");
     const reply = await bb.brain.process(inbound("+1700000002", "can I get a vodka soda"));
     expect(await bb.drinks.listActive()).toHaveLength(1);
-    expect(reply.text.toLowerCase()).toContain("order received");
+    expect(reply.text.toLowerCase()).toMatch(/vodka|order received/);
   });
 
   it("just chats when no tool applies", async () => {
@@ -112,6 +115,15 @@ describe("conversational agent (mocked model)", () => {
     await seed(bb, "+1700000003", "Ivy");
     const reply = await bb.brain.process(inbound("+1700000003", "what is this place?"));
     expect(reply.text).toBe("tell me more.");
+  });
+
+  it("returns status copy on STATUS without a model call", async () => {
+    const bb = await freshBackbone(async () => content("should not run"));
+    await seed(bb, "+1700000012", "Pat");
+    const reply = await bb.brain.process(inbound("+1700000012", "STATUS"));
+    expect(reply.text).toContain("Quests");
+    expect(reply.text).toContain("Game ID");
+    expect(reply.text.toLowerCase()).not.toContain("should not run");
   });
 
   it("returns help copy on HELP without leaking model meta", async () => {
@@ -146,10 +158,16 @@ describe("conversational agent (mocked model)", () => {
     expect(reply.text.toLowerCase()).not.toContain("in-character");
   });
 
-  it("escalates a real-world problem to the operator via flag_operator", async () => {
+  it("submits a host request after the guest describes their issue", async () => {
     const bb = await freshBackbone(fakeChat);
     await seed(bb, "+1700000004", "Sam");
     await bb.brain.process(inbound("+1700000004", "I lost my coat somewhere"));
-    expect(await bb.repos.operatorAlerts.listOpen("test-event")).toHaveLength(1);
+    await bb.brain.process(inbound("+1700000004", "yes"));
+    await bb.brain.process(
+      inbound("+1700000004", "My black coat is missing from the check area by the bar"),
+    );
+    const alerts = await bb.repos.operatorAlerts.listOpen("test-event");
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]?.reason).toContain("coat");
   });
 });

@@ -42,7 +42,7 @@ function collectAppUiFiles(dir: string): string[] {
 
 const allCopy = [
   welcomeCopy({ name: "Zoe", gemLabel: "Garnet", word: "thread", gameId: "G7F3", missionPrompt: "find a match." }),
-  alreadyHereCopy({ gemLabel: "Garnet", gameId: "G7F3" }),
+  alreadyHereCopy({ gemLabel: "Garnet", word: "thread", gameId: "G7F3", score: 0 }),
   missionDeliverCopy({ title: "The Thread", prompt: "find your match." }),
   missionCorrectCopy({ points: 100, nextMissionPrompt: "next move." }),
   missionCorrectCopy({ points: 120 }),

@@ -15,6 +15,10 @@ export interface BoardView {
   sceneMeta: Scene;
   puzzleImage: string | null;
   flash: Record<string, number>;
+  /** Inbound SMS ripple timestamps (purple pulse, separate from mission flash). */
+  ripple: Record<string, number>;
+  /** Guests visible as VM/container tiles once gameplay is live. */
+  vmSpawn: Record<string, boolean>;
   eventPhone: string;
   topScore: number;
   activeCount: number;
@@ -71,22 +75,34 @@ export function PlayerTile({
   tile,
   rank,
   flash,
+  ripple,
+  vm,
   accent,
 }: {
   tile: TileState;
   rank: number;
   flash: boolean;
+  ripple: boolean;
+  /** Gameplay live: container / VM box on the projection board. */
+  vm?: boolean;
   accent: SceneAccent;
 }) {
   return (
     <div
       className={cn(
         "relative flex aspect-square flex-col items-center justify-center border border-nyx-line/70 bg-nyx-soft/80 p-3 transition-all duration-500",
-        rank <= 3 && !tile.eliminated && ACCENT[accent].border,
+        vm && "tile-vm-spawn border-2 border-dashed border-helio/55 bg-helio/5 ring-1 ring-helio/25",
+        rank <= 3 && !tile.eliminated && !vm && ACCENT[accent].border,
         tile.eliminated && "tile-eliminated",
-        flash && "border-helio shadow-[0_0_28px_rgba(210,190,255,0.45)]",
+        ripple && "tile-message-ripple",
+        flash && !ripple && "border-helio shadow-[0_0_36px_rgba(210,190,255,0.55)] animate-pulse-slow",
       )}
     >
+      {vm ? (
+        <span className="absolute right-2 top-2 font-mono text-[9px] uppercase tracking-[0.35em] text-helio/80">
+          vm
+        </span>
+      ) : null}
       <span className="absolute left-2 top-2 flex items-center gap-0.5 text-[10px] tabular-nums text-ash">
         {rank === 1 && !tile.eliminated ? (
           <Crown className={cn("h-3 w-3", ACCENT[accent].text)} strokeWidth={1.5} aria-hidden />
@@ -98,7 +114,14 @@ export function PlayerTile({
         {GEMS[tile.gem].label}
       </p>
       <p className="mt-1 max-w-full truncate text-sm text-cloud">{tile.displayName ?? initials(tile)}</p>
-      <p className="text-[10px] uppercase tracking-[0.18em] text-ash">{tile.gameId}</p>
+      <p
+        className={cn(
+          "text-[10px] uppercase tracking-[0.18em] text-ash",
+          vm && "font-mono tracking-wider text-helio/90",
+        )}
+      >
+        {tile.gameId}
+      </p>
       <p className="mt-auto pt-2 text-xl tabular-nums text-cloud">{tile.score}</p>
     </div>
   );

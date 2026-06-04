@@ -2,7 +2,7 @@ import type { InboundChannel, Flow } from "@/constants/event";
 import { now } from "@/lib/time";
 import type { Db } from "@/server/db/connection";
 import { BaseRepository } from "@/server/db/repositories/base";
-import type { Conversation } from "@/domain/types";
+import type { Conversation, HostRequestState } from "@/domain/types";
 
 interface ConversationRow {
   id: string;
@@ -15,6 +15,9 @@ interface ConversationRow {
   current_mission_id: string | null;
   contact_card_sent: boolean;
   welcome_image_sent: boolean;
+  game_unlocked: boolean;
+  texts_paused: boolean;
+  host_request_state: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +34,9 @@ function toConversation(row: ConversationRow): Conversation {
     currentMissionId: row.current_mission_id,
     contactCardSent: row.contact_card_sent,
     welcomeImageSent: row.welcome_image_sent,
+    gameUnlocked: row.game_unlocked,
+    textsPaused: row.texts_paused,
+    hostRequestState: row.host_request_state as HostRequestState | null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -44,8 +50,9 @@ export class ConversationsRepository extends BaseRepository {
   async insert(c: Conversation): Promise<void> {
     await this.db.query(
       `INSERT INTO conversations
-        (id, event_id, participant_id, external_id, phone, channel, current_flow, current_mission_id, contact_card_sent, welcome_image_sent, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        (id, event_id, participant_id, external_id, phone, channel, current_flow, current_mission_id,
+         contact_card_sent, welcome_image_sent, game_unlocked, texts_paused, host_request_state, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
       [
         c.id,
         c.eventId,
@@ -57,6 +64,9 @@ export class ConversationsRepository extends BaseRepository {
         c.currentMissionId,
         c.contactCardSent,
         c.welcomeImageSent,
+        c.gameUnlocked,
+        c.textsPaused,
+        c.hostRequestState,
         c.createdAt,
         c.updatedAt,
       ],
@@ -109,6 +119,27 @@ export class ConversationsRepository extends BaseRepository {
     await this.db.query(
       `UPDATE conversations SET welcome_image_sent = TRUE, updated_at = $1 WHERE id = $2`,
       [now(), id],
+    );
+  }
+
+  async setGameUnlocked(id: string, unlocked: boolean): Promise<void> {
+    await this.db.query(
+      `UPDATE conversations SET game_unlocked = $1, updated_at = $2 WHERE id = $3`,
+      [unlocked, now(), id],
+    );
+  }
+
+  async setTextsPaused(id: string, paused: boolean): Promise<void> {
+    await this.db.query(
+      `UPDATE conversations SET texts_paused = $1, updated_at = $2 WHERE id = $3`,
+      [paused, now(), id],
+    );
+  }
+
+  async setHostRequestState(id: string, state: HostRequestState | null): Promise<void> {
+    await this.db.query(
+      `UPDATE conversations SET host_request_state = $1, updated_at = $2 WHERE id = $3`,
+      [state, now(), id],
     );
   }
 

@@ -2,6 +2,7 @@ import { FLOWS } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import {
   MISSION_BY_ID,
+  FIRST_MISSION_ID,
   MISSION_SEQUENCE,
   RIDDLE_MISSION_ID,
   RIDDLE_POINTS_EACH,
@@ -61,8 +62,8 @@ export class MissionService {
 
   /** How many of the three quests a guest has completed (for STATUS / progress). */
   async questProgress(participantId: string): Promise<{ done: number; total: number }> {
-    const completed = new Set(await this.repos.participantMissions.completedMissionIds(participantId));
-    const done = MISSION_SEQUENCE.filter((id) => completed.has(id)).length;
+    const finished = new Set(await this.repos.participantMissions.finishedMissionIds(participantId));
+    const done = MISSION_SEQUENCE.filter((id) => finished.has(id)).length;
     return { done, total: MISSION_SEQUENCE.length };
   }
 
@@ -132,8 +133,11 @@ export class MissionService {
     const word = MISSION_BY_ID.get(WORD_MISSION_ID);
 
     if (color && !completed.has(COLOR_MISSION_ID)) {
-      const gems = [participant.gem, ...fresh.map((p) => p.gem)];
-      if (isValidColorCombo(gems)) {
+      if (fresh.length !== 3) {
+        return { kind: "incorrect", hint: color.hint };
+      }
+      const partnerGems = fresh.map((p) => p.gem);
+      if (isValidColorCombo(partnerGems)) {
         return this.complete(participant, conversation, color, rawText, fresh.map((p) => p.gameId));
       }
     }
@@ -308,8 +312,8 @@ export class MissionService {
 
   /** Surface the next incomplete quest (any order); idle when all three are done. */
   async advance(participant: Participant, conversation: Conversation): Promise<MissionTemplate | null> {
-    const completed = new Set(await this.repos.participantMissions.completedMissionIds(participant.id));
-    const nextId = MISSION_SEQUENCE.find((id) => !completed.has(id)) ?? null;
+    const finished = new Set(await this.repos.participantMissions.finishedMissionIds(participant.id));
+    const nextId = MISSION_SEQUENCE.find((id) => !finished.has(id)) ?? null;
     if (!nextId) {
       await this.conversations.setFlow(conversation.id, FLOWS.IDLE, null);
       return null;
@@ -317,5 +321,18 @@ export class MissionService {
     await this.repos.participantMissions.assign(this.eventId, participant.id, nextId);
     await this.conversations.setFlow(conversation.id, FLOWS.MISSION, nextId);
     return MISSION_BY_ID.get(nextId) ?? null;
+  }
+
+  /** After the venue code: assign the first quest and open the mission flow. */
+  async unlockGameplay(participant: Participant, conversation: Conversation): Promise<void> {
+    await this.repos.participantMissions.assign(this.eventId, participant.id, FIRST_MISSION_ID);
+    await this.conversations.setFlow(conversation.id, FLOWS.MISSION, FIRST_MISSION_ID);
+  }
+
+  /** Exemplar bypass: skip color quest and surface the next quest. */
+  async skipColorQuest(participant: Participant, conversation: Conversation): Promise<string | null> {
+    await this.repos.participantMissions.markSkipped(this.eventId, participant.id, "color-constellation");
+    const next = await this.advance(participant, conversation);
+    return next ? this.renderPrompt(next, participant) : null;
   }
 }

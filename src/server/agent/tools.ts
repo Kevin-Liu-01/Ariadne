@@ -4,12 +4,15 @@ import {
   askEmailAfterNameCopy,
   badNameCopy,
   checkinAskNameCopy,
+  checkedInAwaitingCodeCopy,
   cocktailsOutCopy,
   drinkClarifyCopy,
+  drinkInvalidQuantityCopy,
   drinkQueuedCopy,
   drinkUnavailableCopy,
   drinkVoucherUsedCopy,
   helpCopy,
+  hostRequestSubmittedCopy,
   missionCorrectCopy,
   missionDeliverCopy,
   missionDuplicatePartnerCopy,
@@ -177,7 +180,13 @@ const checkIn: Tool = {
           name_saved: true,
           gem: GEMS[p.gem].label,
           game_id: p.gameId,
-          say: alreadyHereCopy({ name: p.displayName, gemLabel: GEMS[p.gem].label, gameId: p.gameId }),
+          say: alreadyHereCopy({
+            name: p.displayName,
+            gemLabel: GEMS[p.gem].label,
+            word: p.secretWord,
+            gameId: p.gameId,
+            score: p.score,
+          }),
         };
       }
       return {
@@ -187,7 +196,9 @@ const checkIn: Tool = {
         say: alreadyHereCopy({
           name: existing.displayName,
           gemLabel: GEMS[existing.gem].label,
+          word: existing.secretWord,
           gameId: existing.gameId,
+          score: existing.score,
         }),
       };
     }
@@ -225,17 +236,18 @@ const checkIn: Tool = {
       ? ctx.missions.renderPrompt(result.firstMission, p)
       : "";
     const say = result.isNew
-      ? welcomeCopy({
-          name: p.displayName,
+      ? checkedInAwaitingCodeCopy({
+          name: p.displayName ?? "Guest",
           gemLabel: GEMS[p.gem].label,
           word: p.secretWord,
           gameId: p.gameId,
-          missionPrompt,
         })
       : alreadyHereCopy({
           name: p.displayName,
           gemLabel: GEMS[p.gem].label,
+          word: p.secretWord,
           gameId: p.gameId,
+          score: p.score,
         });
     return {
       is_new: result.isNew,
@@ -276,6 +288,8 @@ const orderDrink: Tool = {
         return { status: "voucher_used", say: drinkVoucherUsedCopy() };
       case "cocktails_out":
         return { status: "cocktails_out", say: cocktailsOutCopy() };
+      case "invalid_quantity":
+        return { status: "invalid_quantity", say: drinkInvalidQuantityCopy() };
       case "clarify":
         return { status: "clarify", say: drinkClarifyCopy() };
       default:
@@ -366,7 +380,9 @@ const getStatus: Tool = {
       quests_completed: progress.done,
       current_mission: delivered?.prompt ?? null,
       say: statusCopy({
+        name: participant.displayName,
         gemLabel: GEMS[participant.gem].label,
+        word: participant.secretWord,
         gameId: participant.gameId,
         score: participant.score,
         questsDone: progress.done,
@@ -463,7 +479,7 @@ const flagOperator: Tool = {
       participant?.gameId ?? null,
       reason,
     );
-    return { flagged: true, say: "Got it. A staffer is on the way to you." };
+    return { flagged: true, say: hostRequestSubmittedCopy() };
   },
 };
 

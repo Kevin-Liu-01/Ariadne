@@ -37,6 +37,13 @@ function drawHud(
   ctx.fillStyle = "rgba(210,190,255,0.9)";
   ctx.fillRect(20, 36, 120 * Math.min(1, frame.level * 1.6), 4);
 
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.fillText("BASS", 20, 52);
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  ctx.fillRect(20, 66, 120, 6);
+  ctx.fillStyle = frame.beat ? "rgba(210,190,255,1)" : "rgba(210,190,255,0.75)";
+  ctx.fillRect(20, 66, 120 * Math.min(1, frame.bass * 1.25), 6);
+
   ctx.textAlign = "right";
   ctx.fillStyle = "rgba(245,245,245,0.75)";
   ctx.fillText(`${modeName.toUpperCase()} . ${paletteName.toUpperCase()}`, w - 20, 18);
@@ -130,6 +137,13 @@ export default function VisualsPage() {
         ctx.fillRect(0, 0, w, h);
         ctx.globalAlpha = 1;
         s.flash *= 0.9;
+      }
+
+      if (frame.beat) {
+        ctx.fillStyle = "rgba(210,190,255,0.14)";
+        ctx.globalAlpha = 0.35 + frame.bass * 0.45;
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalAlpha = 1;
       }
 
       drawHud(ctx, w, frame, palette.name, MODES[s.mode].name, s.set);

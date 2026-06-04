@@ -38,8 +38,29 @@ export const env = {
     return base.replace(/\/$/, "");
   },
   /** Brand image AgentPhone sends as the guest's first bubble, before the first reply. */
+  /** Code printed inside the venue; guest texts it to unlock gameplay. */
+  get venueSecretCode(): string {
+    return (process.env.ARIADNE_VENUE_SECRET_CODE ?? "RUNWAY").trim().toUpperCase();
+  },
+  /** When set, any email can check in (multi-guest dev / rehearsal). */
+  get testMode(): boolean {
+    return process.env.ARIADNE_TEST_MODE === "1";
+  },
+  /** Comma-separated emails that may skip the color quest (exemplar / staff). */
+  get exemplarEmails(): ReadonlySet<string> {
+    const raw = process.env.ARIADNE_EXEMPLAR_EMAILS ?? "";
+    return new Set(
+      raw
+        .split(",")
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    );
+  },
   get welcomeImageUrl(): string {
-    return process.env.ARIADNE_WELCOME_IMAGE_URL ?? `${env.publicBaseUrl}/brand/welcome.png`;
+    return (
+      process.env.ARIADNE_WELCOME_IMAGE_URL ??
+      `${env.publicBaseUrl}/brand/runwaytime-welcome.jpg`
+    );
   },
   /** Postgres connection string (Supabase pooler). Read by prod routes + scripts. */
   get databaseUrl(): string {

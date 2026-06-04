@@ -62,9 +62,8 @@ export class RegistrationService {
     const participant = await this.repos.transaction(async (r) => {
       const p = await this.buildParticipant(r, input);
       await r.participants.insert(p);
-      await r.participantMissions.assign(this.eventId, p.id, FIRST_MISSION_ID);
       await r.conversations.setParticipant(conversation.id, p.id);
-      await r.conversations.setFlow(conversation.id, FLOWS.MISSION, FIRST_MISSION_ID);
+      await r.conversations.setFlow(conversation.id, FLOWS.IDLE, null);
       return p;
     });
 
@@ -81,8 +80,8 @@ export class RegistrationService {
       conversation: {
         ...conversation,
         participantId: participant.id,
-        currentFlow: FLOWS.MISSION,
-        currentMissionId: FIRST_MISSION_ID,
+        currentFlow: FLOWS.IDLE,
+        currentMissionId: null,
       },
       isNew: true,
       firstMission: MISSION_BY_ID.get(FIRST_MISSION_ID) ?? null,

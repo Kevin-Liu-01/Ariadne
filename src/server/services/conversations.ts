@@ -46,6 +46,9 @@ export class ConversationService {
       currentMissionId: null,
       contactCardSent: false,
       welcomeImageSent: false,
+      gameUnlocked: false,
+      textsPaused: false,
+      hostRequestState: null,
       createdAt: now(),
       updatedAt: now(),
     };

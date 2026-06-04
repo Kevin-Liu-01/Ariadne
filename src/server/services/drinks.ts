@@ -5,7 +5,7 @@ import {
   DRINK_MENU,
   type DrinkStatus,
 } from "@/constants/drinks";
-import { parseDrink } from "@/domain/drink-parse";
+import { isMultiDrinkOrder, parseDrink } from "@/domain/drink-parse";
 import { newId } from "@/domain/ids";
 import { now } from "@/lib/time";
 import type { DrinkOrder, Participant } from "@/domain/types";
@@ -17,7 +17,8 @@ export type DrinkOutcome =
   | { kind: "clarify" }
   | { kind: "unavailable"; label: string }
   | { kind: "voucher_used" }
-  | { kind: "cocktails_out" };
+  | { kind: "cocktails_out" }
+  | { kind: "invalid_quantity" };
 
 /** Captures drink orders from free text and routes them to the bar queue. */
 export class DrinkService {
@@ -32,6 +33,7 @@ export class DrinkService {
     conversationId: string | null,
     rawText: string,
   ): Promise<DrinkOutcome> {
+    if (isMultiDrinkOrder(rawText)) return { kind: "invalid_quantity" };
     const parsed = parseDrink(rawText);
     if (!parsed.item) return { kind: "clarify" };
     if (!parsed.item.available) return { kind: "unavailable", label: parsed.item.label };

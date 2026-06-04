@@ -5,7 +5,6 @@ import type { BrainReply } from "@/server/agent/brain";
 import { getBackbone } from "@/server/backbone";
 import type { Backbone } from "@/server/backbone";
 import { ensureContactCard } from "@/server/partners/agentphone/contact-card";
-import { ensureWelcomeImage } from "@/server/partners/agentphone/welcome-image";
 import { mirrorConversation, sendGuestText } from "@/server/partners/agentphone/outbound";
 import { normalizeAgentphone } from "@/server/partners/agentphone/normalize";
 import type { AgentphoneWebhookBody } from "@/server/partners/agentphone/types";
@@ -76,6 +75,12 @@ export async function POST(req: Request): Promise<Response> {
   let reply: BrainReply;
   try {
     reply = await bb.brain.process(interaction);
+    if (reply.participantId) {
+      const guest = await bb.repos.participants.findById(reply.participantId);
+      if (guest) {
+        void bb.projection.emit("participant.messaged", { gameId: guest.gameId });
+      }
+    }
     await bb.repos.partnerEvents.markStatus(webhookId, "processed");
   } catch (err) {
     await bb.repos.partnerEvents.markStatus(webhookId, "error");
@@ -111,8 +116,6 @@ function voiceStream(bb: Backbone, interaction: InteractionEvent, webhookId: str
 }
 
 async function deliver(reply: BrainReply, interaction: InteractionEvent): Promise<void> {
-  // Brand image first (its own bubble), then the contact card, then the reply.
-  await ensureWelcomeImage(interaction.from, reply.conversationId);
   await ensureContactCard(interaction.from, reply.conversationId);
   await sendGuestText(interaction.from, reply.text);
   if (interaction.externalConversationId && reply.participantId) {

@@ -48,6 +48,21 @@ export class RemindersRepository extends BaseRepository {
     return rows.length > 0;
   }
 
+  /** Count proactive texts for a guest/kind whose ref_id starts with a prefix (e.g. ready:orderId:). */
+  async countByKindRefPrefix(
+    eventId: string,
+    participantId: string,
+    kind: string,
+    refPrefix: string,
+  ): Promise<number> {
+    const rows = await this.db.query<{ n: number }>(
+      `SELECT COUNT(*)::int AS n FROM reminders
+       WHERE event_id = $1 AND participant_id = $2 AND kind = $3 AND ref_id LIKE $4`,
+      [eventId, participantId, kind, `${refPrefix}%`],
+    );
+    return rows[0]?.n ?? 0;
+  }
+
   /** Every reminder for the event, newest first. The event lifetime is short, so this stays small. */
   async listByEvent(eventId: string): Promise<ReminderRecord[]> {
     const rows = await this.db.query<ReminderRow>(

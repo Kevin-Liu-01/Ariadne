@@ -1,92 +1,126 @@
 /**
- * Guest-facing reply copy. Concise and structured: proper grammar, minimal
- * words, and labeled line breaks so the key facts read at a glance in a loud
- * room. Every message points the guest at their next move. The wing 🪽 rides on
- * the two real wins (check-in, solved mission) and nowhere else. No em dashes;
- * the agent persona/policy lives in prompts.ts.
+ * Guest-facing reply copy. Concise, structured, CAPS commands, stylized bullets.
+ * Wing 🪽 only on check-in and solved mission. No em dashes.
  */
 
 import { menuSummary } from "@/constants/drinks";
 import { EVENT_NAME } from "@/constants/event";
+import { BULLET, CMD, commandList } from "@/constants/format";
+import type { GemId } from "@/constants/gems";
+import { GEMS } from "@/constants/gems";
 
-/** Message 1 of check-in: ask the guest's first name. */
-export function checkinAskNameCopy(): string {
-  return `Welcome to Dedalus ${EVENT_NAME}. To start, what's your first name?`;
+export function gameStateBlock(p: {
+  name?: string | null;
+  gemLabel: string;
+  word: string;
+  gameId: string;
+  score?: number;
+}): string {
+  const nameLine = p.name ? `Name: ${p.name}\n` : "";
+  const scoreLine = p.score !== undefined ? `Score: ${p.score} pts\n` : "";
+  return `${nameLine}Color: ${p.gemLabel}\nSecret word: ${p.word}\nGame ID: ${p.gameId}\n${scoreLine}`.trimEnd();
 }
 
-/** Message 2 of check-in: now ask for the waitlist email, by name. */
+export function commandsIntroCopy(): string {
+  return commandList([
+    `Reply with your quest answer to solve it`,
+    `${CMD.mission}: current quest`,
+    `${CMD.status}: color, word, ID, score, quests`,
+    `${CMD.drink}: bar menu (one cocktail voucher; beer, wine, soda, water unlimited)`,
+    `${CMD.song} [track]: DJ request`,
+    `${CMD.help}: this list`,
+  ]);
+}
+
+export function checkinAskNameCopy(): string {
+  return `Welcome to Dedalus ${EVENT_NAME}.\n\nWhat is your first name?`;
+}
+
 export function askEmailAfterNameCopy(name: string): string {
-  return `Thanks, ${name}. Now reply with the email you signed up with.`;
+  return `Thanks, ${name}.\n\nReply with the email you signed up with.`;
 }
 
 export function checkinAskEmailCopy(): string {
-  return `Welcome to Dedalus ${EVENT_NAME}. To check you in, reply with the email you signed up with.`;
+  return `Welcome to Dedalus ${EVENT_NAME}.\n\nReply with the email you signed up with.`;
 }
 
 export function notOnListCopy(): string {
-  return "I can't find that email on tonight's list. Reply with it again to confirm, or find a door host. I can't check you in until it's listed.";
+  return "That email is not on tonight's list. Reply with it again to confirm, or see a door host.";
 }
 
 export function welcomeCopy(p: {
-  name?: string | null;
+  name: string;
   gemLabel: string;
   word: string;
   gameId: string;
   missionPrompt: string;
 }): string {
-  const lead = p.name ? `Welcome, ${p.name}. You're checked in. 🪽` : `You're checked in. 🪽`;
-  return `${lead}\n\nGem: ${p.gemLabel}\nSecret word: ${p.word}\nGame ID: ${p.gameId}\n\nFirst mission: ${p.missionPrompt}`;
+  return `${p.name}, you're checked in. 🪽\n\n${gameStateBlock(p)}\n\nFirst quest:\n${p.missionPrompt}`;
+}
+
+export function checkedInAwaitingCodeCopy(p: {
+  name: string;
+  gemLabel: string;
+  word: string;
+  gameId: string;
+}): string {
+  return `${p.name}, you're checked in. 🪽\n\n${gameStateBlock(p)}\n\nReply with the venue code inside ${EVENT_NAME} to start playing.`;
 }
 
 export function askNameCopy(): string {
-  return "Before I check you in, what's your first name?";
+  return "What is your first name?";
 }
 
 export function badNameCopy(): string {
-  return "I can't put that on the board. What's your first name?";
+  return "I can't use that name. What is your first name?";
 }
 
-export function alreadyHereCopy(p: { name?: string | null; gemLabel: string; gameId: string }): string {
-  const who = p.name ? `${p.name}, you're` : "You're";
-  return `${who} already checked in. 🪽\n\nGem: ${p.gemLabel} · Game ID: ${p.gameId}\n\nReply MISSION for your current task, or name a drink and I'll send it to the bar.`;
+export function alreadyHereCopy(p: {
+  name?: string | null;
+  gemLabel: string;
+  word: string;
+  gameId: string;
+  score: number;
+}): string {
+  const who = p.name ?? "You";
+  return `${who}, you're already checked in. 🪽\n\n${gameStateBlock(p)}\n\nReply ${CMD.mission} or ${CMD.status}.`;
 }
 
 export function missionDeliverCopy(p: { title: string; prompt: string }): string {
-  return `${p.title}\n${p.prompt}`;
+  return `${p.title}\n\n${p.prompt}`;
 }
 
-/** STATUS reply: identity, score, quest progress, and the next quest. */
 export function statusCopy(p: {
+  name?: string | null;
   gemLabel: string;
+  word: string;
   gameId: string;
   score: number;
   questsDone: number;
   questsTotal: number;
   currentQuest: string | null;
 }): string {
-  const head = `Gem: ${p.gemLabel} · Game ID: ${p.gameId} · ${p.score} pts\nQuests: ${p.questsDone}/${p.questsTotal} complete`;
-  return p.currentQuest
-    ? `${head}\n\n${p.currentQuest}`
-    : `${head}\n\nAll three quests complete. Stay near the screen.`;
+  const head = `${gameStateBlock(p)}\n\nQuests: ${p.questsDone}/${p.questsTotal} complete`;
+  return p.currentQuest ? `${head}\n\n${p.currentQuest}` : `${head}\n\nAll three quests complete. Stay near the screen.`;
 }
 
 export function missionCorrectCopy(p: { points: number; nextMissionPrompt?: string }): string {
   const base = `Correct. +${p.points} points. 🪽`;
   return p.nextMissionPrompt
-    ? `${base}\n\nNext: ${p.nextMissionPrompt}`
-    : `${base}\n\nThat was the last mission. Stay near the screen.`;
+    ? `${base}\n\nNext:\n${p.nextMissionPrompt}`
+    : `${base}\n\nAll quests done. Stay near the screen.`;
 }
 
 export function missionWrongCopy(hint?: string): string {
-  return hint ? `Incorrect. ${hint}\n\nTry again.` : "Incorrect. Take another look, then reply with your answer.";
+  return hint ? `Incorrect.\n\n${hint}\n\nTry again.` : "Incorrect. Try again.";
 }
 
 export function missionPartnerInvalidCopy(): string {
-  return "That game ID isn't on the board yet. Find a checked-in guest and reply with their ID.";
+  return "That game ID is not on the board. Find a checked-in guest and include their ID.";
 }
 
 export function missionDuplicatePartnerCopy(): string {
-  return "You already talked to this person, go talk to someone else.";
+  return "You already talked to this person. Go talk to someone else.";
 }
 
 export function riddleProgressCopy(p: { solved: number; total: number; nextRiddlePrompt: string }): string {
@@ -95,29 +129,27 @@ export function riddleProgressCopy(p: { solved: number; total: number; nextRiddl
 }
 
 export function allQuestsDoneCopy(): string {
-  return "You've completed all three quests. Stay near the screen.";
+  return "All three quests complete. Stay near the screen.";
 }
 
 export function missionNeedsInputCopy(): string {
-  return "Reply with your answer as text. For partner tasks, include the game IDs.";
+  return "Reply with your answer. For partner quests, include game IDs.";
 }
 
 export function drinkQueuedCopy(label: string): string {
-  return `${label}: order received. I'll let you know when it's ready at the bar.`;
+  return `${label}: order received.\n\nReminder: one special cocktail voucher per guest. Beer, wine, soda, and water are unlimited at the bar.\n\nI'll text when it's ready.`;
 }
 
 export function drinkClarifyCopy(): string {
-  return "Which drink? Reply with one item from the menu and I'll send it to the bar.";
+  return `Which drink? One item from the menu.\n\n${menuSummary()}`;
 }
 
-/** Reply to the bare DRINK command: the menu plus the voucher rule. */
 export function drinkMenuCopy(): string {
-  return `Tonight's bar:\n\n${menuSummary()}\n\nReply with one item and I'll send it. One free cocktail per guest; beer, wine, and soda are unlimited.`;
+  return `Tonight's bar:\n\n${menuSummary()}\n\nOne special cocktail voucher per guest. Beer, wine, soda, and water are unlimited.\n\nReply with one item.`;
 }
 
-/** Reply to the bare SONG command: how to format a request. */
 export function songPromptCopy(): string {
-  return 'Reply SONG and the track, for example "SONG One More Time by Daft Punk", and I\'ll send it to the DJ.';
+  return `Reply ${CMD.song} and the track, for example "${CMD.song} One More Time by Daft Punk".`;
 }
 
 export function drinkReadyCopy(label: string): string {
@@ -129,62 +161,62 @@ export function drinkInProgressCopy(label: string): string {
 }
 
 export function drinkUnavailableCopy(label: string): string {
-  return `${label} isn't available tonight. Pick another and I'll route it.`;
+  return `${label} is not on the menu tonight. Pick one item from the menu.`;
 }
 
 export function drinkVoucherUsedCopy(): string {
-  return "You've already used your one free cocktail. Beer, wine, and soda are still unlimited at the bar. Name one and I'll send it.";
+  return "You already used your one cocktail voucher. Beer, wine, soda, and water are still unlimited. Name one item.";
 }
 
 export function cocktailsOutCopy(): string {
-  return "Cocktails are sold out for the night. Beer, wine, and soda are still free and unlimited. Name one and I'll send it.";
+  return "Cocktails are sold out for the night. Beer, wine, soda, and water are still unlimited.";
 }
 
-/** Auto-message when a ready order is deleted for non-pickup. Sent exactly once. */
+export function drinkInvalidQuantityCopy(): string {
+  return "One drink per message. Reply with a single item from the menu.";
+}
+
 export function drinkExpiredCopy(wasCocktail: boolean): string {
   return wasCocktail
-    ? "Your order expired. You used your special cocktail voucher, but there is still wine, beer, and soda available for free at the bar."
-    : "Your order expired. There is still wine, beer, and soda available for free at the bar. Name one and I'll send it.";
+    ? "Your order expired. You used your cocktail voucher. Beer, wine, soda, and water are still free at the bar."
+    : "Your order expired. Beer, wine, soda, and water are still free at the bar.";
 }
 
 export function helpCopy(): string {
-  return "I'm Ariadne, your agent for the night. You can:\n\n• Reply with your mission answer to solve it\n• MISSION: your current task\n• STATUS: your gem, word, ID, and score\n• DRINK: the bar menu (one free cocktail; beer, wine, soda unlimited)\n• SONG [name]: request a track from the DJ\n• HELP: this list\n\nFind other guests by their game ID.";
+  return `I'm Ariadne for ${EVENT_NAME}.\n\nCommands:\n\n${commandsIntroCopy()}\n\nFind other guests by game ID.`;
 }
 
-/** Announced when the scene flips on the projection board. Returns null for scenes we don't blast. */
 export function sceneBroadcastCopy(sceneId: string, missionPrompt?: string | null): string | null {
   switch (sceneId) {
     case "runway":
       return "The runway is live. Eyes on the main screen.";
     case "missions": {
-      const move = missionPrompt ? `\n\nYour move: ${missionPrompt}` : "";
-      return `Missions are live.${move}\n\nWant music? Reply with a song name and I'll send it to the DJ.`;
+      const move = missionPrompt ? `\n\nYour move:\n${missionPrompt}` : "";
+      return `The game is live.${move}`;
     }
     case "puzzle":
       return "Look at the main screen.";
     case "elimination":
-      return "Final round. Find your partners and stay in the game.";
+      return "Final round. Stay in the game.";
     case "finale":
-      return "We've reached the finale. Last call at the bar.";
+      return "Finale. Last call at the bar.";
     default:
       return null;
   }
 }
 
 export function progressNudgeCopy(p: { engaged: boolean; score: number; missionPrompt: string | null }): string {
-  const move = p.missionPrompt ? ` Your move: ${p.missionPrompt}` : " Stay near the screen.";
-  const lead = p.engaged
-    ? `You're at ${p.score} points.${move}`
-    : `You're checked in but haven't made a move yet.${move}`;
-  return `${lead} Text HELP anytime.`;
+  const move = p.missionPrompt ? `\n\nYour move:\n${p.missionPrompt}` : "\n\nStay near the screen.";
+  const lead = p.engaged ? `Score: ${p.score} pts.${move}` : `You are checked in but have not scored yet.${move}`;
+  return `${lead}\n\nReply ${CMD.help} anytime.`;
 }
 
 export function pickupCheckCopy(label: string): string {
-  return `Did you grab your ${label} from the bar? Reply yes once you have it.`;
+  return `Did you pick up your ${label}? Reply yes once you have it.`;
 }
 
 export function nameNudgeCopy(): string {
-  return "Still there? Reply with the email you signed up with and I'll check you in. Text HELP anytime.";
+  return `Still there? Reply with the email you signed up with.\n\nReply ${CMD.help} anytime.`;
 }
 
 export function songQueuedCopy(text: string): string {
@@ -192,9 +224,7 @@ export function songQueuedCopy(text: string): string {
 }
 
 export function songDecisionCopy(text: string, accepted: boolean): string {
-  return accepted
-    ? `Your pick "${text}" is in the DJ's queue.`
-    : `The DJ passed on "${text}". Reply with another and I'll try again.`;
+  return accepted ? `Your pick "${text}" is in the DJ queue.` : `The DJ passed on "${text}".`;
 }
 
 export function pickupConfirmedCopy(label: string): string {
@@ -202,9 +232,43 @@ export function pickupConfirmedCopy(label: string): string {
 }
 
 export function notCheckedInCopy(): string {
-  return "You're not checked in yet. Reply with the email you signed up with and I'll check you in.";
+  return `You are not checked in yet.\n\nReply with the email you signed up with.`;
 }
 
 export function unknownCopy(): string {
-  return "I didn't catch that. Reply with a drink, your mission answer, or HELP.";
+  return `I did not catch that.\n\nReply a quest answer, ${CMD.drink}, or ${CMD.help}.`;
+}
+
+export function gameLockedCopy(): string {
+  return `Gameplay is not open yet.\n\nEnter the venue code from inside ${EVENT_NAME}, then wait for the run of show to reach the game.`;
+}
+
+export function pauseTextsCopy(): string {
+  return "Understood. I will pause texts for now. Reply anytime when you want to resume the game.";
+}
+
+export function hostRequestOfferCopy(): string {
+  return "Would you like to submit a request to a host? Reply YES and describe the issue in your next message.";
+}
+
+export function hostRequestNeedIssueCopy(): string {
+  return "Reply with what you need from a host in one message. I will summarize it for the dashboard.";
+}
+
+export function hostRequestSubmittedCopy(): string {
+  return "Your request is on the host dashboard. They will follow up when they can.";
+}
+
+export function hostRequestDeclinedCopy(): string {
+  return "No problem. Reply HELP if you need commands.";
+}
+
+/** Shown with the first vCard attachment. */
+export function contactCardIntroCopy(): string {
+  return `Save my contact from the card above.\n\nThen reply with the venue code printed inside ${EVENT_NAME}. You will see the code when you enter the venue.`;
+}
+
+export function gemColorLabel(gem: GemId): string {
+  const hue = GEMS[gem].label;
+  return hue;
 }

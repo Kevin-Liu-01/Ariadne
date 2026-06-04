@@ -73,6 +73,20 @@ export class ParticipantMissionsRepository extends BaseRepository {
     return rows.map((r) => r.mission_id);
   }
 
+  /** Quests finished for progress (completed or skipped, e.g. exemplar color bypass). */
+  async finishedMissionIds(participantId: string): Promise<string[]> {
+    const rows = await this.db.query<{ mission_id: string }>(
+      `SELECT mission_id FROM participant_missions WHERE participant_id = $1 AND status IN ('completed', 'skipped')`,
+      [participantId],
+    );
+    return rows.map((r) => r.mission_id);
+  }
+
+  async markSkipped(eventId: string, participantId: string, missionId: string): Promise<void> {
+    await this.assign(eventId, participantId, missionId);
+    await this.setStatus(participantId, missionId, "skipped");
+  }
+
   async countCompleted(eventId: string): Promise<number> {
     const rows = await this.db.query<{ c: number }>(
       `SELECT COUNT(*)::int AS c FROM participant_missions WHERE event_id = $1 AND status = 'completed'`,

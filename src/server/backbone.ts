@@ -77,6 +77,7 @@ export class Backbone {
       this.repos,
       this.conversations,
       this.missions,
+      this.projection,
       this.runner,
     );
   }

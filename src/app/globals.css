@@ -276,3 +276,58 @@ body {
 .tile-eliminated {
   animation: ariadne-fade 0.9s ease forwards;
 }
+
+/* Inbound SMS: expanding helio ripple on the guest tile (distinct from mission flash). */
+@keyframes tile-message-ripple {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.92);
+    box-shadow: 0 0 0 0 rgba(210, 190, 255, 0.65);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 14px rgba(210, 190, 255, 0.35);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 28px rgba(210, 190, 255, 0);
+  }
+}
+.tile-message-ripple {
+  animation: tile-message-ripple 1.35s ease-out both;
+  border-color: color-mix(in srgb, var(--color-helio) 75%, transparent);
+}
+.tile-message-ripple::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  pointer-events: none;
+  border: 2px solid color-mix(in srgb, var(--color-helio) 55%, transparent);
+  animation: tile-message-ripple 1.35s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile-message-ripple,
+  .tile-message-ripple::after {
+    animation: none;
+    box-shadow: 0 0 24px rgba(210, 190, 255, 0.4);
+  }
+}
+
+/* VM spawn: dashed container appears when gameplay goes live. */
+@keyframes tile-vm-spawn {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.tile-vm-spawn {
+  animation: tile-vm-spawn 0.65s ease-out both;
+}

@@ -139,6 +139,8 @@ function MissionsStage({ view }: { view: BoardView }) {
               tile={t}
               rank={i + 1}
               flash={!!view.flash[t.gameId]}
+              ripple={!!view.ripple[t.gameId]}
+              vm={!!view.vmSpawn[t.gameId]}
               accent={view.sceneMeta.accent}
             />
           ))}
@@ -218,6 +220,8 @@ function EliminationStage({ view }: { view: BoardView }) {
                 tile={t}
                 rank={i + 1}
                 flash={!!view.flash[t.gameId]}
+                ripple={!!view.ripple[t.gameId]}
+                vm={!!view.vmSpawn[t.gameId]}
                 accent={view.sceneMeta.accent}
               />
             ))}

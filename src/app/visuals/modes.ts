@@ -158,7 +158,42 @@ function swarm({ ctx, w, h, frame, palette, particles }: DrawCtx): void {
   if (particles.length > 800) particles.splice(0, particles.length - 800);
 }
 
+/** Subwoofer-driven rings: the core bass-reactive mode for the venue screen. */
+function bassPulse({ ctx, w, h, frame, palette, t }: DrawCtx): void {
+  const cx = w / 2;
+  const cy = h / 2;
+  const minDim = Math.min(w, h);
+  const kick = frame.beat ? 1 : 0;
+  const rings = 5;
+  for (let i = 0; i < rings; i += 1) {
+    const phase = (t * 0.0012 + i * 0.18) % 1;
+    const r =
+      minDim * (0.08 + frame.bass * 0.38 + kick * 0.06) +
+      phase * minDim * 0.42 +
+      i * minDim * 0.04;
+    const alpha = (1 - phase) * (0.22 + frame.bass * 0.55) * (frame.beat ? 1.35 : 1);
+    const color = palette.colors[i % palette.colors.length];
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.lineWidth = 2 + frame.bass * 10 + kick * 4;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = frame.beat ? 42 : 18;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 0.35 + frame.bass * 0.65;
+  ctx.fillStyle = palette.colors[0];
+  ctx.shadowBlur = 48 + frame.bass * 40;
+  ctx.beginPath();
+  ctx.arc(cx, cy, minDim * (0.06 + frame.bass * 0.14) + kick * 12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+}
+
 export const MODES: { name: string; draw: (d: DrawCtx) => void }[] = [
+  { name: "bass", draw: bassPulse },
   { name: "spectrum", draw: spectrum },
   { name: "radial", draw: radial },
   { name: "waveform", draw: waveform },

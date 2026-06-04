@@ -2,6 +2,8 @@ import { EVENT_NAME, PRODUCT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/ev
 
 export interface VcardInput {
   displayName: string;
+  /** vCard N: Family;Given;Middle;Prefix;Suffix */
+  structuredName?: string;
   phone: string;
   organization: string;
   title: string;
@@ -53,6 +55,7 @@ export function buildVcard(input: VcardInput): string {
   const lines = [
     "BEGIN:VCARD",
     "VERSION:3.0",
+    ...(input.structuredName ? [property("N", input.structuredName)] : []),
     property("FN", input.displayName),
     property("ORG", input.organization),
     property("TITLE", input.title),
@@ -69,7 +72,8 @@ export function buildVcard(input: VcardInput): string {
 export function defaultAriadneVcard(phone: string, publicBaseUrl: string, photoPng: Buffer): string {
   const base = publicBaseUrl.replace(/\/$/, "");
   return buildVcard({
-    displayName: PRODUCT_NAME,
+    displayName: "Ariadne Agent Run(time)way",
+    structuredName: "Run(time)way;Ariadne Agent;;;",
     phone,
     organization: "Dedalus Labs",
     title: EVENT_NAME,

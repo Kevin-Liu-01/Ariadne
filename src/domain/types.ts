@@ -22,6 +22,9 @@ export interface Participant {
   updatedAt: string;
 }
 
+/** Host-request flow: offer -> guest sends issue -> alert on dashboard. */
+export type HostRequestState = "offered" | "awaiting_issue";
+
 export interface Conversation {
   id: string;
   eventId: string;
@@ -33,6 +36,11 @@ export interface Conversation {
   currentMissionId: string | null;
   contactCardSent: boolean;
   welcomeImageSent: boolean;
+  /** Venue secret code accepted; gameplay opens when run of show allows. */
+  gameUnlocked: boolean;
+  /** Guest asked to pause texts; no operator alerts. */
+  textsPaused: boolean;
+  hostRequestState: HostRequestState | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -94,6 +102,7 @@ export interface PartnerEvent {
 
 export type ProjectionEventType =
   | "participant.checked_in"
+  | "participant.messaged"
   | "mission.completed"
   | "score.updated"
   | "participant.eliminated"
