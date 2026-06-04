@@ -70,6 +70,7 @@ export class Backbone {
         drinks: this.drinks,
         missions: this.missions,
         conversations: this.conversations,
+        projection: this.projection,
       },
       chat,
       options.model ?? env.model,

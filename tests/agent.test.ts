@@ -70,7 +70,6 @@ async function seed(bb: Awaited<ReturnType<typeof freshBackbone>>, phone: string
     name,
     email: `${name.toLowerCase()}@dedaluslabs.ai`,
   });
-  await bb.repos.conversations.setGameUnlocked(conversation.id, true);
   await bb.missions.unlockGameplay(participant, conversation);
   await bb.projection.emit("scene.changed", { scene: "game" });
 }
@@ -84,7 +83,7 @@ describe("conversational agent (mocked model)", () => {
     expect(guest?.email).toBe("demo@dedaluslabs.ai");
     expect(guest?.displayName).toBe("Demo Guest"); // pulled from the waitlist
     expect(reply.participantId).toBe(guest?.id);
-    expect(reply.text.toLowerCase()).toMatch(/checked in|venue code/);
+    expect(reply.text.toLowerCase()).toContain("checked in");
     expect(reply.text).toContain(guest?.gameId ?? "??");
   });
 

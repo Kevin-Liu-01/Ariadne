@@ -1,5 +1,4 @@
 import {
-  checkedInAwaitingCodeCopy,
   commandsIntroCopy,
   drinkMenuCopy,
   gemColorLabel,
@@ -12,17 +11,11 @@ import {
   pauseTextsCopy,
   songPromptCopy,
   statusCopy,
-  welcomeCopy,
 } from "@/constants/copy";
-import {
-  gameplayAllowed,
-  runOfShowCopy,
-  secretCodeAcceptedCopy,
-  secretCodeWrongCopy,
-} from "@/constants/show-gate";
+import { gameplayAllowed, runOfShowCopy } from "@/constants/show-gate";
 import { EVENT_NAME } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
-import { FIRST_MISSION_ID, MISSION_BY_ID } from "@/constants/missions";
+import { MISSION_BY_ID } from "@/constants/missions";
 import { stripDashes } from "@/domain/text";
 import { env } from "@/lib/env";
 import type { InboundChannel } from "@/constants/event";
@@ -96,13 +89,13 @@ export class AgentBrain {
         return makeReply(await this.statusText(participant, conversationNow));
       }
       if (/^drink$/i.test(command)) {
-        const gate = await this.gameplayGate(conversationNow);
+        const gate = await this.gameplayGate();
         if (gate) return makeReply(gate);
         return makeReply(drinkMenuCopy());
       }
       if (/^song$/i.test(command)) return makeReply(songPromptCopy());
       if (/^mission$/i.test(command)) {
-        const gate = await this.gameplayGate(conversationNow);
+        const gate = await this.gameplayGate();
         if (gate) return makeReply(gate);
         const delivered = await this.missions.deliverCurrent(participant, conversationNow);
         if (!delivered) return makeReply("All three quests are complete. Stay near the screen.");
@@ -111,18 +104,12 @@ export class AgentBrain {
         );
       }
 
-      const codeReply = await this.tryVenueCode(event.text, participant, conversationNow);
-      if (codeReply) {
-        conversationNow = (await this.repos.conversations.findById(conversationNow.id)) ?? conversationNow;
-        return makeReply(codeReply, participant);
-      }
-
       const hostReply = await this.tryHostRequestFlow(event.text, participant, conversationNow);
       if (hostReply) return makeReply(hostReply, participant);
     }
 
     if (participant?.email && env.exemplarEmails.has(participant.email) && /\bskip\s+color\b/i.test(command)) {
-      const gate = await this.gameplayGate(conversationNow);
+      const gate = await this.gameplayGate();
       if (gate) return makeReply(gate);
       const next = await this.missions.skipColorQuest(participant, conversationNow);
       return makeReply(next ? `Color quest skipped.\n\nNext:\n${next}` : "Color quest skipped.");
@@ -162,9 +149,10 @@ export class AgentBrain {
       questsDone: progress.done,
       questsTotal: progress.total,
     };
-    // Before the venue code, show state but never assign a quest (deliverCurrent
-    // mutates), so STATUS can't leak the game past the run-of-show gate.
-    if (!conversation.gameUnlocked) {
+    // Before the game starts, show state but never assign a quest (deliverCurrent
+    // mutates), so STATUS can't surface the game before the operator opens it.
+    const scene = await this.projection.scene();
+    if (!gameplayAllowed(scene)) {
       return statusCopy({ ...base, currentQuest: null, locked: true });
     }
     const delivered = await this.missions.deliverCurrent(participant, conversation);
@@ -176,54 +164,10 @@ export class AgentBrain {
     });
   }
 
-  private async gameplayGate(conversation: Conversation): Promise<string | null> {
-    if (!conversation.gameUnlocked) {
-      return `Save my contact, then reply with the venue code inside ${EVENT_NAME}. You will see the code when you enter the venue.`;
-    }
+  /** Gameplay opens with the run-of-show scene; null means open. */
+  private async gameplayGate(): Promise<string | null> {
     const scene = await this.projection.scene();
-    if (!gameplayAllowed(scene)) {
-      return runOfShowCopy(scene, true);
-    }
-    return null;
-  }
-
-  private normalizeCode(text: string): string {
-    return text.trim().toUpperCase().replace(/[^A-Z0-9]/gu, "");
-  }
-
-  /** True when the guest is likely texting the printed venue code (not conversation). */
-  private looksLikeVenueCode(text: string): boolean {
-    const t = text.trim();
-    if (/^code\s+\S+/i.test(t)) return true;
-    if (!/^\S+$/u.test(t)) return false;
-    const code = this.normalizeCode(t);
-    return code.length >= 4 && code.length <= 24;
-  }
-
-  private async tryVenueCode(
-    text: string,
-    participant: Participant,
-    conversation: Conversation,
-  ): Promise<string | null> {
-    if (conversation.gameUnlocked) return null;
-    if (!this.looksLikeVenueCode(text)) return null;
-    const code = this.normalizeCode(text.replace(/^code\s+/i, ""));
-    if (code !== env.venueSecretCode) return secretCodeWrongCopy();
-    await this.repos.conversations.setGameUnlocked(conversation.id, true);
-    await this.missions.unlockGameplay(participant, conversation);
-    const scene = await this.projection.scene();
-    if (!gameplayAllowed(scene)) {
-      return `${secretCodeAcceptedCopy()}\n\n${runOfShowCopy(scene, true)}`;
-    }
-    const mission = MISSION_BY_ID.get(FIRST_MISSION_ID);
-    const prompt = mission ? this.missions.renderPrompt(mission, participant) : "";
-    return welcomeCopy({
-      name: participant.displayName ?? "Guest",
-      gemLabel: gemColorLabel(participant.gem),
-      word: participant.secretWord,
-      gameId: participant.gameId,
-      missionPrompt: prompt,
-    });
+    return gameplayAllowed(scene) ? null : runOfShowCopy(scene);
   }
 
   private async tryHostRequestFlow(
@@ -272,23 +216,19 @@ export class AgentBrain {
   }
 
   private grounding(participant: Participant | null, conversation: Conversation): string {
-    const sceneLine = ` Run of show scene: ${conversation.gameUnlocked ? "venue code accepted" : "awaiting venue code"}.`;
     if (!participant) {
-      return `${PROMPT_INJECTION_GUARD}\nCURRENT GUEST: not checked in. Welcome them to Dedalus ${EVENT_NAME}. Ask for first name, then signup email (waitlist). Call check_in as you collect each. If not_on_list, say the email is not on tonight's list.${sceneLine}`;
+      return `${PROMPT_INJECTION_GUARD}\nCURRENT GUEST: not checked in. Welcome them to Dedalus ${EVENT_NAME}. Ask for first name, then signup email (waitlist). Call check_in as you collect each. If not_on_list, say the email is not on tonight's list. After check-in they wait for staff to start the game; there is no code to enter.`;
     }
     const nameLine = participant.displayName
       ? ` Name: ${participant.displayName}.`
       : " Name unknown: ask once and call check_in with their answer.";
-    const unlockLine = conversation.gameUnlocked
-      ? " Venue code: accepted."
-      : " Venue code: not entered yet. Do not assign quests until they text the printed venue code.";
     const mission = conversation.currentMissionId
       ? MISSION_BY_ID.get(conversation.currentMissionId)
       : null;
     const missionLine = mission
       ? ` Active mission: ${mission.title}. ${this.missions.renderPrompt(mission, participant)}`
-      : " No active mission.";
+      : " No active mission yet (assigned when the game starts).";
     const commands = `\nCommands for the guest:\n${commandsIntroCopy()}`;
-    return `${PROMPT_INJECTION_GUARD}\nCURRENT GUEST:${nameLine} Color ${gemColorLabel(participant.gem)}, secret word "${participant.secretWord}", game id ${participant.gameId}, score ${participant.score}.${unlockLine}${missionLine}${commands}`;
+    return `${PROMPT_INJECTION_GUARD}\nCURRENT GUEST:${nameLine} Color ${gemColorLabel(participant.gem)}, secret word "${participant.secretWord}", game id ${participant.gameId}, score ${participant.score}.${missionLine}${commands}`;
   }
 }

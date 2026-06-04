@@ -37,12 +37,6 @@ export const env = {
       "http://localhost:3939";
     return base.replace(/\/$/, "");
   },
-  /** Brand image AgentPhone sends as the guest's first bubble, before the first reply. */
-  /** Code printed inside the venue; guest texts it to unlock gameplay. */
-  get venueSecretCode(): string {
-    const raw = (process.env.ARIADNE_VENUE_SECRET_CODE ?? "RUNWAY").trim().toUpperCase();
-    return raw.length > 0 ? raw : "RUNWAY";
-  },
   /** When set, any email can check in (multi-guest dev / rehearsal). */
   get testMode(): boolean {
     return process.env.ARIADNE_TEST_MODE === "1";

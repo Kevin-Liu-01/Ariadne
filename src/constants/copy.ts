@@ -59,13 +59,13 @@ export function welcomeCopy(p: {
   return `${p.name}, you're checked in. 🪽\n\n${gameStateBlock(p)}\n\nFirst quest:\n${p.missionPrompt}`;
 }
 
-export function checkedInAwaitingCodeCopy(p: {
+export function checkedInCopy(p: {
   name: string;
   gemLabel: string;
   word: string;
   gameId: string;
 }): string {
-  return `${p.name}, you're checked in. 🪽\n\n${gameStateBlock(p)}\n\nReply with the venue code inside ${EVENT_NAME} to start playing.`;
+  return `${p.name}, you're checked in. 🪽\n\n${gameStateBlock(p)}\n\nThe game starts soon. I'll text you the moment it begins. Reply HELP anytime.`;
 }
 
 export function askNameCopy(): string {
@@ -103,7 +103,7 @@ export function statusCopy(p: {
   locked?: boolean;
 }): string {
   const head = `${gameStateBlock(p)}\n\nQuests: ${p.questsDone}/${p.questsTotal} complete`;
-  if (p.locked) return `${head}\n\nReply with the venue code inside ${EVENT_NAME} to start playing.`;
+  if (p.locked) return `${head}\n\nThe game has not started yet. Hang tight, I'll text you when it begins.`;
   return p.currentQuest ? `${head}\n\n${p.currentQuest}` : `${head}\n\nAll three quests complete. Stay near the screen.`;
 }
 
@@ -238,7 +238,7 @@ export function unknownCopy(): string {
 }
 
 export function gameLockedCopy(): string {
-  return `Gameplay is not open yet.\n\nEnter the venue code from inside ${EVENT_NAME}, then wait for the run of show to reach the game.`;
+  return `The game has not started yet.\n\nHang tight, I'll text you the moment it begins.`;
 }
 
 export function pauseTextsCopy(): string {
@@ -263,7 +263,7 @@ export function hostRequestDeclinedCopy(): string {
 
 /** Shown with the first vCard attachment. */
 export function contactCardIntroCopy(): string {
-  return `Save my contact from the card above.\n\nThen reply with the venue code printed inside ${EVENT_NAME}. You will see the code when you enter the venue.`;
+  return `Save my contact from the card above so my texts always reach you.\n\nThe game starts soon, keep an eye on this thread.`;
 }
 
 /** Wraps an operator's typed announcement so guests see it as a venue notice, not a reply. */

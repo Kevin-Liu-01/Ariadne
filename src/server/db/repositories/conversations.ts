@@ -15,7 +15,6 @@ interface ConversationRow {
   current_mission_id: string | null;
   contact_card_sent: boolean;
   welcome_image_sent: boolean;
-  game_unlocked: boolean;
   texts_paused: boolean;
   host_request_state: string | null;
   created_at: string;
@@ -34,7 +33,6 @@ function toConversation(row: ConversationRow): Conversation {
     currentMissionId: row.current_mission_id,
     contactCardSent: row.contact_card_sent,
     welcomeImageSent: row.welcome_image_sent,
-    gameUnlocked: row.game_unlocked,
     textsPaused: row.texts_paused,
     hostRequestState: row.host_request_state as HostRequestState | null,
     createdAt: row.created_at,
@@ -51,8 +49,8 @@ export class ConversationsRepository extends BaseRepository {
     await this.db.query(
       `INSERT INTO conversations
         (id, event_id, participant_id, external_id, phone, channel, current_flow, current_mission_id,
-         contact_card_sent, welcome_image_sent, game_unlocked, texts_paused, host_request_state, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+         contact_card_sent, welcome_image_sent, texts_paused, host_request_state, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
       [
         c.id,
         c.eventId,
@@ -64,7 +62,6 @@ export class ConversationsRepository extends BaseRepository {
         c.currentMissionId,
         c.contactCardSent,
         c.welcomeImageSent,
-        c.gameUnlocked,
         c.textsPaused,
         c.hostRequestState,
         c.createdAt,
@@ -119,13 +116,6 @@ export class ConversationsRepository extends BaseRepository {
     await this.db.query(
       `UPDATE conversations SET welcome_image_sent = TRUE, updated_at = $1 WHERE id = $2`,
       [now(), id],
-    );
-  }
-
-  async setGameUnlocked(id: string, unlocked: boolean): Promise<void> {
-    await this.db.query(
-      `UPDATE conversations SET game_unlocked = $1, updated_at = $2 WHERE id = $3`,
-      [unlocked, now(), id],
     );
   }
 

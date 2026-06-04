@@ -45,7 +45,6 @@ CREATE INDEX IF NOT EXISTS idx_conversations_phone ON conversations(event_id, ph
 CREATE INDEX IF NOT EXISTS idx_conversations_participant ON conversations(participant_id);
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS contact_card_sent BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS welcome_image_sent BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE conversations ADD COLUMN IF NOT EXISTS game_unlocked BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS texts_paused BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS host_request_state TEXT;
 

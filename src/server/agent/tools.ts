@@ -4,7 +4,7 @@ import {
   askEmailAfterNameCopy,
   badNameCopy,
   checkinAskNameCopy,
-  checkedInAwaitingCodeCopy,
+  checkedInCopy,
   cocktailsOutCopy,
   drinkClarifyCopy,
   drinkInvalidQuantityCopy,
@@ -24,10 +24,10 @@ import {
   riddleProgressCopy,
   songQueuedCopy,
   statusCopy,
-  welcomeCopy,
 } from "@/constants/copy";
 import type { InboundChannel } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
+import { gameplayAllowed } from "@/constants/show-gate";
 import { assertNever } from "@/lib/assert";
 import { extractEmail, isEmail, normalizeEmail } from "@/domain/email";
 import { cleanDisplayName } from "@/domain/profanity";
@@ -38,6 +38,7 @@ import type { Repositories } from "@/server/db/repositories";
 import type { ConversationService } from "@/server/services/conversations";
 import type { DrinkService } from "@/server/services/drinks";
 import type { MissionService } from "@/server/services/missions";
+import type { ProjectionService } from "@/server/services/projection";
 import type { RegistrationService } from "@/server/services/registration";
 import type { ToolDef } from "@/server/partners/dedalus/types";
 
@@ -53,6 +54,7 @@ export interface ToolContext {
   drinks: DrinkService;
   missions: MissionService;
   conversations: ConversationService;
+  projection: ProjectionService;
 }
 
 type ToolResult = Record<string, unknown>;
@@ -238,7 +240,7 @@ const checkIn: Tool = {
       ? ctx.missions.renderPrompt(result.firstMission, p)
       : "";
     const say = result.isNew
-      ? checkedInAwaitingCodeCopy({
+      ? checkedInCopy({
           name: p.displayName ?? "Guest",
           gemLabel: gemColorLabel(p.gem),
           word: p.secretWord,
@@ -373,10 +375,9 @@ const getStatus: Tool = {
     const { conversation, participant } = await resolve(ctx);
     if (!participant) return NOT_CHECKED_IN;
     const progress = await ctx.missions.questProgress(participant.id);
-    // Mirror the brain's STATUS gate: never assign a quest before the venue code.
-    const delivered = conversation.gameUnlocked
-      ? await ctx.missions.deliverCurrent(participant, conversation)
-      : null;
+    // Mirror the brain's STATUS gate: never assign a quest before the game starts.
+    const open = gameplayAllowed(await ctx.projection.scene());
+    const delivered = open ? await ctx.missions.deliverCurrent(participant, conversation) : null;
     return {
       gem: GEMS[participant.gem].label,
       secret_word: participant.secretWord,
@@ -395,7 +396,7 @@ const getStatus: Tool = {
         currentQuest: delivered
           ? missionDeliverCopy({ title: delivered.mission.title, prompt: delivered.prompt })
           : null,
-        locked: !conversation.gameUnlocked,
+        locked: !open,
       }),
     };
   },

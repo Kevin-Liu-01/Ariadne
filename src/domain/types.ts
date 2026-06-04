@@ -36,8 +36,6 @@ export interface Conversation {
   currentMissionId: string | null;
   contactCardSent: boolean;
   welcomeImageSent: boolean;
-  /** Venue secret code accepted; gameplay opens when run of show allows. */
-  gameUnlocked: boolean;
   /** Guest asked to pause texts; no operator alerts. */
   textsPaused: boolean;
   hostRequestState: HostRequestState | null;

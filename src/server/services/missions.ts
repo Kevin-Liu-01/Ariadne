@@ -324,7 +324,7 @@ export class MissionService {
     return MISSION_BY_ID.get(nextId) ?? null;
   }
 
-  /** After the venue code: assign the first quest and open the mission flow. */
+  /** Assign the first quest and open the mission flow (first MISSION/STATUS once the game starts). */
   async unlockGameplay(participant: Participant, conversation: Conversation): Promise<void> {
     await this.repos.participantMissions.assign(this.eventId, participant.id, FIRST_MISSION_ID);
     await this.conversations.setFlow(conversation.id, FLOWS.MISSION, FIRST_MISSION_ID);
