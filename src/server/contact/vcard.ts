@@ -13,9 +13,20 @@ export interface VcardInput {
   photoPng?: Buffer;
 }
 
-/** Escape text for a vCard 3.0 property value (not the structured N: semicolon slots). */
+/** Escape text for a vCard 3.0 property value, including `;` (used for FN, ORG, NOTE, ...). */
 function escape(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/;/g, "\\;").replace(/,/g, "\\,");
+}
+
+/**
+ * Escape one slot of the structured `N` field. The `;` between slots are STRUCTURAL
+ * delimiters, so we must not escape them (that bug made iMessage render the whole name as
+ * the literal "Run(time)way;Ariadne Agent;;;"). We escape only intra-slot specials.
+ */
+function structuredName(value: string): string {
+  const escapeSlot = (slot: string): string =>
+    slot.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,");
+  return value.split(";").map(escapeSlot).join(";");
 }
 
 /** Fold long lines at 75 octets per RFC 2426. */
@@ -55,7 +66,7 @@ export function buildVcard(input: VcardInput): string {
   const lines = [
     "BEGIN:VCARD",
     "VERSION:3.0",
-    ...(input.structuredName ? [property("N", input.structuredName)] : []),
+    ...(input.structuredName ? [fold(`N:${structuredName(input.structuredName)}`)] : []),
     property("FN", input.displayName),
     property("ORG", input.organization),
     property("TITLE", input.title),

@@ -36,4 +36,12 @@ describe("vCard contact identity", () => {
     expect(vcf).toContain("FN:Ariadne");
     expect(vcf).toContain("ORG:Dedalus Labs");
   });
+
+  it("keeps structured N semicolons as delimiters, not escaped into one literal slot", () => {
+    const vcf = defaultAriadneVcard("+18159970034", "https://ariadne-runway.vercel.app", Buffer.from("x"));
+    // First=Ariadne Agent, Last=Run(time)way -> iOS shows "Ariadne Agent Run(time)way",
+    // not the literal "Run(time)way;Ariadne Agent;;;" that escaped delimiters produced.
+    expect(vcf).toContain("N:Run(time)way;Ariadne Agent;;;");
+    expect(vcf).not.toContain("N:Run(time)way\\;");
+  });
 });
