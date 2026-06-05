@@ -8,7 +8,7 @@ const SIZE = {
   hero: "text-7xl sm:text-8xl lg:text-9xl",
 } as const;
 
-/** Run(time)way event wordmark: serif display with helio italic parenthetical. */
+/** Run(way)time event wordmark: serif display with helio italic parenthetical. */
 export function RunwayWordmark({
   className,
   size = "lg",
@@ -19,9 +19,9 @@ export function RunwayWordmark({
   return (
     <span
       className={cn("font-display font-extralight tracking-tight text-cloud", SIZE[size], className)}
-      aria-label="Run(time)way"
+      aria-label="Run(way)time"
     >
-      Run<span className="italic text-helio">(time)</span>way
+      Run<span className="italic text-helio">(way)</span>time
     </span>
   );
 }

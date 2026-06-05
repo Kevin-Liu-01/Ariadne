@@ -1,6 +1,6 @@
 /**
  * Provision (idempotently) the AgentPhone surface for Ariadne:
- *   1. create OR update a dedicated "Ariadne · Run(time)way" agent (webhook mode),
+ *   1. create OR update a dedicated "Ariadne · Run(way)time" agent (webhook mode),
  *      always pushing the current name, description, system prompt, and begin
  *      message so config edits in the repo propagate to the live agent,
  *   2. ensure it has a phone number (provision one if missing),
@@ -22,7 +22,7 @@ import type { AgentResponse } from "@/server/partners/agentphone/types";
 const AGENT_NAME = `${PRODUCT_NAME} · ${EVENT_NAME}`;
 const AGENT_DESCRIPTION = `${PRODUCT_NAME}, the phone-first host for ${EVENT_NAME}.`;
 /** Pre-rebrand agent names to adopt + rename in place instead of creating a duplicate. */
-const LEGACY_AGENT_NAMES = ["Ariadne · Run(way)time"];
+const LEGACY_AGENT_NAMES = ["Ariadne · Run(time)way"];
 
 loadScriptEnv();
 

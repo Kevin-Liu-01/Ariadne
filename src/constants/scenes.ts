@@ -32,8 +32,8 @@ export const SCENES = [
   },
   {
     id: "opening",
-    note: "The Run(time)way opening: a cinematic shader title card before the game. Use it to gather the room and hype the night; no tiles, no texts. Pick 'game' to start play.",
-    headline: "Run(time)way",
+    note: "The Run(way)time opening: a cinematic shader title card before the game. Use it to gather the room and hype the night; no tiles, no texts. Pick 'game' to start play.",
+    headline: "Run(way)time",
     tagline: "Find your place. The game begins in a moment.",
     accent: "helio",
   },

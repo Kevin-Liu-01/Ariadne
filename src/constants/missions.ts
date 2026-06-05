@@ -40,7 +40,7 @@ export const WORD_BANK_MAX = 25;
  * the two-word phrase.
  *
  * The brand slogans lead (assembled, they spell the event's lines), followed by
- * the Run(time)way atmospheric word bank (Scenario 3). Pairs are laid out [a, b]
+ * the Run(way)time atmospheric word bank (Scenario 3). Pairs are laid out [a, b]
  * and handed out in order (see `assignSecretWord`), so both halves land early and
  * the match stays solvable. Some words appear in more than one pair (e.g. "open");
  * `wordsPair` accepts any listed pairing, so that's fine.
@@ -60,7 +60,7 @@ const WORD_BANK_FULL: ReadonlyArray<readonly [string, string]> = [
   ["open", "call"],
   ["night", "circuit"],
   ["cloud", "native"],
-  // Run(time)way atmospheric word bank: tech + myth pairs.
+  // Run(way)time atmospheric word bank: tech + myth pairs.
   ["agents", "run"],
   ["models", "train"],
   ["prompts", "branch"],

@@ -32,7 +32,7 @@
   font-display: swap;
 }
 
-/* Dedalus "Nyx" palette + Run(time)way gem colors, exposed as Tailwind utilities. */
+/* Dedalus "Nyx" palette + Run(way)time gem colors, exposed as Tailwind utilities. */
 @theme {
   --color-nyx: #0f0f0f;
   --color-nyx-soft: #161616;

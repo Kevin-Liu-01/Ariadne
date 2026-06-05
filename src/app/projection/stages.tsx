@@ -73,7 +73,7 @@ function CinematicShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** Arrival: Run(time)way over a shader; the join number is the call to action. */
+/** Arrival: Run(way)time over a shader; the join number is the call to action. */
 function ArrivalStage({ view }: { view: BoardView }) {
   const accent = ACCENT[view.sceneMeta.accent];
   return (
@@ -111,7 +111,7 @@ function ArrivalStage({ view }: { view: BoardView }) {
   );
 }
 
-/** Opening: the cinematic Run(time)way title card right before the game begins. */
+/** Opening: the cinematic Run(way)time title card right before the game begins. */
 function OpeningStage({ view }: { view: BoardView }) {
   return (
     <CinematicShell>

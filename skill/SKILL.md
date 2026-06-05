@@ -1,6 +1,6 @@
 ---
 name: ariadne
-description: Strap Ariadne onto a running agent (Claude Code, OpenClaw) to host a phone-first live event. Use when the agent should check guests in, assign gems + secret words, issue labyrinth missions, take drink orders, and drive a projection board over SMS/iMessage/voice via AgentPhone. Triggers on "run the room", "host the event", "Run(time)way", "check in a guest", "take a drink order".
+description: Strap Ariadne onto a running agent (Claude Code, OpenClaw) to host a phone-first live event. Use when the agent should check guests in, assign gems + secret words, issue labyrinth missions, take drink orders, and drive a projection board over SMS/iMessage/voice via AgentPhone. Triggers on "run the room", "host the event", "Run(way)time", "check in a guest", "take a drink order".
 ---
 
 # Ariadne — your personal agent for the night
