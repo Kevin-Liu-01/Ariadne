@@ -1,9 +1,10 @@
 "use client";
 
-import { Crown, KeyRound, Target } from "lucide-react";
+import { Crown, KeyRound, Puzzle, Target } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CLUES } from "@/constants/clues";
 import { PEOPLE_CAP } from "@/constants/display";
-import { MISSIONS } from "@/constants/missions";
+import { MISSIONS, RIDDLE_QUEST_COUNT } from "@/constants/missions";
 import { capForDisplay } from "@/domain/overflow";
 import { GemIcon } from "@/components/gem-icon";
 import { authedFetch, type OperatorParticipant } from "@/app/operator/api";
@@ -132,6 +133,33 @@ export function GameProgress({ token }: { token: string }) {
           {MISSIONS.length} quests in the labyrinth · points scale with speed and the new people each
           guest meets.
         </p>
+      </div>
+
+      <div className="mt-5 border-t border-nyx-line/60 pt-4">
+        <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-helio">
+          <Puzzle className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+          riddle answers
+        </p>
+        <p className="mt-1 text-[11px] leading-relaxed text-ash">
+          The full pool of {CLUES.length}; each guest gets {RIDDLE_QUEST_COUNT}. Use these to confirm a
+          solve or nudge someone stuck, but never read the answer aloud.
+        </p>
+        <ol className="mt-2 space-y-1.5">
+          {CLUES.map((c, i) => (
+            <li
+              key={c.id}
+              className="flex items-start gap-3 border border-nyx-line/70 bg-nyx px-3 py-2"
+            >
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-nyx-line text-[10px] tabular-nums text-ash">
+                {i + 1}
+              </span>
+              <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-ash">{c.prompt}</p>
+              <code className="shrink-0 select-all bg-nyx-soft px-2 py-1 text-xs tracking-wide text-helio">
+                {c.answers[0]}
+              </code>
+            </li>
+          ))}
+        </ol>
       </div>
 
       <div className="mt-5 border-t border-nyx-line/60 pt-4">
