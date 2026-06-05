@@ -25,6 +25,20 @@ export interface Participant {
 /** Host-request flow: offer -> guest sends issue -> alert on dashboard. */
 export type HostRequestState = "offered" | "awaiting_issue";
 
+/**
+ * A request a guest made before they were eligible for it (e.g. a drink ordered
+ * before check-in). Captured verbatim, surfaced once check-in completes
+ * ("captured" -> "offered"), then cleared on the guest's reply. One slot per
+ * conversation so it can never double-fire.
+ */
+export type PendingIntentKind = "drink" | "song";
+export type PendingIntentStatus = "captured" | "offered";
+export interface PendingIntent {
+  kind: PendingIntentKind;
+  text: string;
+  status: PendingIntentStatus;
+}
+
 export interface Conversation {
   id: string;
   eventId: string;
@@ -39,8 +53,23 @@ export interface Conversation {
   /** Guest asked to pause texts; no operator alerts. */
   textsPaused: boolean;
   hostRequestState: HostRequestState | null;
+  pendingIntent: PendingIntent | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type MessageDirection = "inbound" | "outbound";
+
+/** One persisted conversational turn: a guest message or an Ariadne reply. */
+export interface Message {
+  id: string;
+  eventId: string;
+  conversationId: string;
+  participantId: string | null;
+  direction: MessageDirection;
+  channel: InboundChannel | null;
+  body: string;
+  createdAt: string;
 }
 
 export interface DrinkOrder {

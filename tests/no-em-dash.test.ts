@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
   alreadyHereCopy,
+  drinkAlreadyQueuedCopy,
   drinkClarifyCopy,
   drinkInProgressCopy,
   drinkQueuedCopy,
@@ -15,6 +16,8 @@ import {
   missionPartnerInvalidCopy,
   missionWrongCopy,
   notCheckedInCopy,
+  pendingIntentDeclinedCopy,
+  pendingIntentOfferCopy,
   unknownCopy,
   welcomeCopy,
 } from "@/constants/copy";
@@ -51,10 +54,14 @@ const allCopy = [
   missionPartnerInvalidCopy(),
   missionNeedsInputCopy(),
   drinkQueuedCopy("Vodka Soda"),
+  drinkAlreadyQueuedCopy("Vodka Soda"),
   drinkClarifyCopy(),
   drinkReadyCopy("Vodka Soda"),
   drinkInProgressCopy("Vodka Soda"),
   drinkUnavailableCopy("Negroni"),
+  pendingIntentOfferCopy('that Modelo'),
+  pendingIntentOfferCopy('me to send "One More Time" to the DJ'),
+  pendingIntentDeclinedCopy(),
   helpCopy(),
   notCheckedInCopy(),
   unknownCopy(),

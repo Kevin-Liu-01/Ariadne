@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "generate:icons": "tsx scripts/generate-mark-icons.ts",
+    "generate:sdf": "tsx scripts/generate-logo-sdf.ts",
     "seed": "tsx scripts/seed-demo.ts",
     "provision": "tsx scripts/provision.ts",
     "smoke": "tsx scripts/smoke.ts",

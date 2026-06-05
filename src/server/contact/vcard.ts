@@ -1,4 +1,4 @@
-import { EVENT_NAME, PRODUCT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/event";
+import { CONTACT_NAME, EVENT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/event";
 
 export interface VcardInput {
   displayName: string;
@@ -73,7 +73,7 @@ export function buildVcard(input: VcardInput): string {
 export function defaultAriadneVcard(phone: string, publicBaseUrl: string, photoPng: Buffer): string {
   const base = publicBaseUrl.replace(/\/$/, "");
   return buildVcard({
-    displayName: PRODUCT_NAME,
+    displayName: CONTACT_NAME,
     phone,
     organization: "Dedalus Labs",
     title: EVENT_NAME,

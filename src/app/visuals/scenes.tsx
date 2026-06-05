@@ -28,7 +28,6 @@ import {
   Grid,
   GridDistortion,
   Halftone,
-  ImageTexture,
   Paper,
   Pixelate,
   Plasma,
@@ -45,7 +44,7 @@ export interface AudioLevels {
   bass: number; // low band (kick)
   mid: number; // mid band (leads)
   treble: number; // high band (shimmer)
-  beat: number; // 1->0 decaying pulse on each kick (punchy)
+  beat: number; // kick pulse: snaps up then eases out; harder kicks punch past 1
 }
 
 export const ZERO_LEVELS: AudioLevels = { level: 0, bass: 0, mid: 0, treble: 0, beat: 0 };
@@ -68,39 +67,58 @@ const GEM = {
   topaz: "#fb8b24", // orange
 } as const;
 
-/** Pre-baked SDF of the Dedalus wing mark (hosted locally; powers Glass shape mode). */
+/**
+ * Pre-baked SDF of the Dedalus wing mark (generated from dedalus-mark.svg by
+ * `pnpm generate:sdf`, scripts/generate-logo-sdf.ts). The SDF *is* the wing shape, so
+ * it alone defines what the glass carves, so there is no separate logo image to keep in
+ * alignment (a flat white SVG behind the same SDF was redundant, and its `contain`
+ * sizing drifted out of the height-based carve on non-landscape screens).
+ */
 const LOGO_SDF = "/brand/dedalus-logo-sdf.bin";
-/** The actual Dedalus wing as a solid image (white on transparent) for the 3D glass to dome. */
-const LOGO_IMAGE = "/brand/dedalus-mark.svg";
 
 /**
- * The actual Dedalus mark, domed into 3D. The wing-shaped glass (SDF) refracts the real logo
- * IMAGE -- refraction is kept LOW so the wing stays clearly recognizable (high refraction turned
- * it into unreadable lens blobs), while high thickness + a tight specular highlight + fresnel rim
- * + chromatic aberration give it a raised, chrome 3D look. `cutout` keeps outside the wings
- * transparent so the background shows full-screen around it. Pulses on the beat.
+ * The Dedalus mark, carved as 3D "liquid glass." The wing SDF shapes the glass, and
+ * instead of a flat fill it refracts a flowing amethyst->cloud swirl warped by a flow
+ * field (the shaders.com chrome recipe), so each feather marbles with purple and white
+ * that streams and chromatically splits at the edges. The swirl/flow are full-screen, so
+ * the carve fills at ANY aspect; `cutout` keeps everything outside the wings transparent
+ * so the scene shows around them. Refraction, aberration, and the flow speeds ride the
+ * music; a soft fresnel rim + specular glint keep the raised 3D read. Pulses on the beat.
  */
 function logoEffect(a: AudioLevels): ReactNode {
   return (
     <Glass
       shapeSdfUrl={LOGO_SDF}
       cutout={true}
-      scale={0.74 + a.beat * 0.05}
-      refraction={0.06 + a.beat * 0.06}
-      aberration={0.9 + a.treble * 0.6 + a.beat * 0.5}
-      thickness={1.1}
-      innerZoom={1}
+      scale={0.9 + a.beat * 0.17 + a.bass * 0.05}
+      aberration={0.55 + a.treble * 0.5 + a.beat * 0.8}
+      edgeSoftness={0.18}
+      refraction={1.1 + a.bass * 0.5 + a.beat * 0.7}
+      thickness={0.72 + a.beat * 0.35}
       tintColor={BRAND.helio}
-      tintIntensity={0.25}
-      fresnel={0.45 + a.beat * 0.2}
-      fresnelSoftness={0.3}
+      tintIntensity={0.1}
+      fresnel={0.12 + a.beat * 0.5}
+      fresnelSoftness={0.2}
       fresnelColor={BRAND.helio}
-      highlight={0.85}
+      highlight={0.45 + a.beat * 0.3}
       highlightColor={BRAND.cloud}
-      highlightSoftness={0.22}
+      highlightSoftness={0.18}
       lightAngle={300}
     >
-      <ImageTexture url={LOGO_IMAGE} objectFit="contain" />
+      <Swirl
+        blend={56}
+        colorA={BRAND.amethyst}
+        colorB={BRAND.cloud}
+        colorSpace="oklab"
+        detail={4.2}
+        speed={0.1 + a.level * 0.8 + a.beat * 0.4}
+      />
+      <FlowField
+        detail={1}
+        evolutionSpeed={1.5 + a.mid * 1.6}
+        speed={1.8 + a.bass * 2.2 + a.beat * 1.6}
+        strength={0.5 + a.level * 0.6}
+      />
     </Glass>
   );
 }
@@ -128,19 +146,21 @@ export function renderScene(scene: Scene, a: AudioLevels, withLogo = true): Reac
 /** Pixel Beams: a plasma sliced into square beams, dithered to a helio/violet grid. */
 function pixelBeams(a: AudioLevels): ReactNode {
   return (
-    <Dither colorA={BRAND.nyxViolet} colorB={BRAND.helio} pattern="bayer8" pixelSize={7} threshold={0.41 - a.beat * 0.18}>
+    <Dither colorA={BRAND.nyxViolet} colorB={BRAND.helio} pattern="bayer8" pixelSize={6} threshold={0.46 - a.beat * 0.2 - a.bass * 0.1}>
       <Plasma
         colorA={BRAND.cloud}
-        contrast={0.9}
-        density={0.65 + a.treble * 0.5}
-        intensity={1.3 + a.bass * 2.2 + a.beat * 2}
-        speed={1 + a.level * 1.4}
+        colorB={BRAND.amethyst}
+        contrast={1.1}
+        density={2.4 + a.mid * 1.8}
+        intensity={1.1 + a.bass * 2.6 + a.beat * 2.4}
+        speed={1.2 + a.level * 2.4}
+        warp={0.45 + a.treble * 0.35}
       />
       <WaveDistortion
         angle={188}
         edges="mirror"
-        frequency={1.8 + a.mid * 2.6}
-        strength={0.7 + a.bass * 1.2 + a.beat * 0.8}
+        frequency={2.2 + a.mid * 3.2}
+        strength={0.5 + a.bass * 1.4 + a.beat * 1.1}
         visible={true}
         waveType="square"
       />
@@ -158,10 +178,11 @@ function softRegister(a: AudioLevels): ReactNode {
         colorC={GEM.aquamarine}
         colorD={BRAND.nyxViolet}
         colorSpace="oklab"
-        distortion={0.8 + a.level * 0.8 + a.beat * 0.7}
+        speed={1.4 + a.level * 2.6 + a.beat * 1.6}
+        distortion={1.05 + a.level * 1.1 + a.beat * 0.9}
         seed={29}
       />
-      <Halftone blendMode="overlay" frequency={180} opacity={0.2 + a.bass * 0.3 + a.beat * 0.25} style="cmyk" />    </>
+      <Halftone blendMode="overlay" frequency={210} opacity={0.18 + a.bass * 0.38 + a.beat * 0.3} style="cmyk" />    </>
   );
 }
 
@@ -170,15 +191,15 @@ function spectralBloom(a: AudioLevels): ReactNode {
   return (
     <>
       <ColorWheel
-        angle={{ mode: "loop", type: "auto-animate", speed: 0.2, outputMax: 180, outputMin: -180 }}
+        angle={{ mode: "loop", type: "auto-animate", speed: 0.28, outputMax: 180, outputMin: -180 }}
         colorA={BRAND.amethyst}
         colorB={BRAND.helio}
         colorC={BRAND.nyx}
         colorSpace="oklab"
         mode="custom"
-        scale={1.6 + a.bass * 3 + a.beat * 2}
+        scale={2.6 + a.bass * 3.5 + a.beat * 2}
       />
-      <Halftone frequency={125} misprint={0.0055} opacity={0.05 + a.treble * 0.12} style="cmyk" />    </>
+      <Halftone frequency={140} misprint={0.0055} opacity={0.05 + a.treble * 0.16} style="cmyk" />    </>
   );
 }
 
@@ -187,11 +208,11 @@ function pistons(a: AudioLevels): ReactNode {
   return (
     <>
       <SolidColor color={BRAND.nyx} />
-      <Ascii cellSize={32} characters="▄║█" fontFamily="Nacelle" gamma={1.65 + a.bass * 0.8 + a.beat * 0.8}>
+      <Ascii cellSize={26} characters="▄║█" fontFamily="Nacelle" gamma={1.5 + a.bass * 1.0 + a.beat * 0.9}>
         <Godrays
           backgroundColor={BRAND.nyxViolet}
-          density={0.2 + a.bass * 0.45}
-          intensity={0.9 + a.level * 1.4 + a.beat * 1.6}
+          density={0.34 + a.bass * 0.5}
+          intensity={0.8 + a.level * 1.9 + a.beat * 2.2}
           rayColor={BRAND.helio}
           spotty={0}
         />
@@ -207,14 +228,14 @@ function fluidChrome(a: AudioLevels): ReactNode {
       <SolidColor color={BRAND.nyx} />
       <Glass
         cutout={false}
-        aberration={0.89 + a.treble * 0.8 + a.beat * 0.6}
+        aberration={0.8 + a.treble * 1.0 + a.beat * 0.7}
         edgeSoftness={0.2}
-        refraction={1.09 + a.bass * 0.8 + a.beat * 0.5}
-        scale={1.05 + a.beat * 0.12}
+        refraction={1.1 + a.bass * 1.0 + a.beat * 0.6}
+        scale={1.05 + a.beat * 0.14}
         thickness={0.27}
       >
-        <Swirl blend={56} colorA={BRAND.amethyst} colorB={BRAND.cloud} colorSpace="oklab" detail={6} speed={0.1 + a.level * 0.7} />
-        <FlowField detail={2} evolutionSpeed={1.5 + a.mid * 1.8} speed={1.8 + a.bass * 2.2 + a.beat * 1.5} strength={0.5 + a.level * 0.7} />
+        <Swirl blend={56} colorA={BRAND.amethyst} colorB={BRAND.cloud} colorSpace="oklab" detail={6} speed={0.15 + a.level * 1.1 + a.beat * 0.5} />
+        <FlowField detail={2} evolutionSpeed={1.5 + a.mid * 2.4} speed={1.8 + a.bass * 2.8 + a.beat * 1.8} strength={0.5 + a.level * 0.9} />
       </Glass>    </>
   );
 }
@@ -230,21 +251,21 @@ function chromaFlow(a: AudioLevels): ReactNode {
         downColor={GEM.peridot}
         leftColor={BRAND.amethyst}
         rightColor={GEM.aquamarine}
-        intensity={1 + a.bass * 0.4 + a.beat * 0.4}
-        radius={2.5 + a.bass * 2 + a.beat}
-        momentum={13 + a.level * 8 + a.beat * 6}
+        intensity={1 + a.bass * 0.6 + a.beat * 0.5}
+        radius={1.9 + a.bass * 2.2 + a.beat * 1.2}
+        momentum={15 + a.level * 11 + a.beat * 9}
       />
       <FlutedGlass
-        aberration={0.61 + a.treble * 0.6 + a.beat * 0.4}
+        aberration={0.6 + a.treble * 0.8 + a.beat * 0.5}
         angle={250}
-        frequency={13}
+        frequency={15}
         highlight={0.12}
         highlightSoftness={0}
         lightAngle={-90}
         refraction={4}
         shape="rounded"
         softness={1}
-        speed={0.15 + a.level * 0.5}
+        speed={0.15 + a.level * 0.7}
       />
       <FilmGrain strength={0.05} />    </>
   );
@@ -262,11 +283,11 @@ function drift(a: AudioLevels): ReactNode {
         detail={7}
         direction={36}
         emitFrom={{ x: 0.5, y: 1 }}
-        emitRadius={0.08 + a.bass * 0.12 + a.beat * 0.08}
-        intensity={0.5 + a.bass * 0.5}
-        mouseInfluence={0}
-        mouseRadius={0.07}
-        speed={6.2 + a.bass * 5 + a.beat * 4}
+        emitRadius={0.07 + a.bass * 0.16 + a.beat * 0.1}
+        intensity={0.45 + a.bass * 0.8 + a.beat * 0.35}
+        mouseInfluence={0.5 + a.bass * 0.9 + a.beat * 0.6}
+        mouseRadius={0.2}
+        speed={6 + a.bass * 6 + a.beat * 5}
       />    </>
   );
 }
@@ -275,9 +296,9 @@ function drift(a: AudioLevels): ReactNode {
 function mosaic(a: AudioLevels): ReactNode {
   return (
     <>
-      <Swirl colorA={BRAND.nyxViolet} colorB={GEM.aquamarine} colorSpace="oklab" detail={3.2} speed={0.6 + a.level * 0.9} visible={true} />
+      <Swirl colorA={BRAND.nyxViolet} colorB={GEM.aquamarine} colorSpace="oklab" detail={3.6} speed={0.7 + a.level * 1.3} visible={true} />
       {/* scale = pixels per edge, so a lower number = bigger blocks; the bass crushes it down. */}
-      <Pixelate scale={Math.max(8, 70 - a.bass * 48 - a.beat * 22)} />    </>
+      <Pixelate scale={Math.max(12, 80 - a.bass * 50 - a.beat * 26)} />    </>
   );
 }
 
@@ -285,18 +306,18 @@ function mosaic(a: AudioLevels): ReactNode {
 function circuit(a: AudioLevels): ReactNode {
   return (
     <>
-      <Swirl colorA={GEM.moonstone} colorB={BRAND.nyx} colorSpace="oklch" detail={2.2} speed={1.5 + a.level * 1.2} />
+      <Swirl colorA={GEM.moonstone} colorB={BRAND.nyx} colorSpace="oklch" detail={2.4} speed={1.6 + a.level * 1.6} />
       <WaveDistortion
         angle={70}
         blendMode="linearDodge"
         edges="mirror"
         frequency={0.7}
-        strength={0.8 + a.beat * 0.6}
+        strength={0.7 + a.beat * 0.9}
         waveType="triangle"
       >
-        <Grid blendMode="hardLight" cells={44} color={BRAND.helio} thickness={3.5} transform={{ scale: 0.75 }} />
+        <Grid blendMode="hardLight" cells={48} color={BRAND.helio} thickness={3.5} transform={{ scale: 0.75 }} />
       </WaveDistortion>
-      <GridDistortion decay={1.8} edges="wrap" gridSize={8} intensity={1.2 + a.bass * 2.6 + a.beat * 1.4} radius={1 + a.bass * 1.2 + a.beat * 0.5} />    </>
+      <GridDistortion decay={1.8} edges="wrap" gridSize={8} intensity={1.0 + a.bass * 3.2 + a.beat * 1.8} radius={1 + a.bass * 1.4 + a.beat * 0.6} />    </>
   );
 }
 
@@ -304,23 +325,23 @@ function circuit(a: AudioLevels): ReactNode {
 function dedalusBloom(a: AudioLevels): ReactNode {
   return (
     <>
-      <Swirl colorA="#1a0b2e" colorB={GEM.aquamarine} colorSpace="lch" detail={3.5} speed={0.8 + a.level * 0.6} />
+      <Swirl colorA="#1a0b2e" colorB={GEM.aquamarine} colorSpace="lch" detail={3.8} speed={0.9 + a.level * 1.0} />
       <Blob
         center={{ x: 0.49, y: 0.28 }}
         colorA={GEM.moonstone}
         colorB={BRAND.amethyst}
         colorSpace="oklch"
-        deformation={0.55 + a.bass * 0.4}
+        deformation={0.6 + a.bass * 0.55 + a.beat * 0.3}
         highlightColor={BRAND.cloud}
-        highlightIntensity={0.8 + a.beat * 0.6}
+        highlightIntensity={0.8 + a.beat * 0.9}
         highlightX={0.5}
         highlightY={-0.5}
         highlightZ={0.8}
         opacity={0.9}
         seed={42}
-        size={0.55 + a.bass * 0.5 + a.beat * 0.3}
+        size={0.42 + a.bass * 0.45 + a.beat * 0.28}
         softness={3}
-        speed={1.2 + a.level * 0.8}
+        speed={1.2 + a.level * 1.1}
         visible={true}
       />
       <WaveDistortion angle={161} edges="mirror" frequency={3.4} speed={2.5} strength={0.2 + a.beat * 0.4} visible={true} />

@@ -143,6 +143,10 @@ export function drinkQueuedCopy(label: string): string {
   return `${label}: order received.\n\nReminder: one special cocktail voucher per guest. Beer, wine, and non-alcoholic drinks are unlimited at the bar.\n\nI'll text when it's ready.`;
 }
 
+export function drinkAlreadyQueuedCopy(label: string): string {
+  return `Your ${label} is already in the queue. I'll text you the moment it's ready.`;
+}
+
 export function drinkClarifyCopy(): string {
   return `Which drink? One item from the menu.\n\n${menuSummary()}`;
 }
@@ -259,6 +263,18 @@ export function hostRequestSubmittedCopy(): string {
 
 export function hostRequestDeclinedCopy(): string {
   return "No problem. Reply HELP if you need commands.";
+}
+
+/**
+ * Offer, right after check-in, the thing a guest asked for before they were in.
+ * `what` is built by the brain (e.g. "that Modelo" or "me to send \"X\" to the DJ").
+ */
+export function pendingIntentOfferCopy(what: string): string {
+  return `Still want ${what}? Reply YES and I'll take care of it.`;
+}
+
+export function pendingIntentDeclinedCopy(): string {
+  return `No problem, maybe later. Reply ${CMD.drink} for the bar menu anytime.`;
 }
 
 /** Shown with the first vCard attachment. */

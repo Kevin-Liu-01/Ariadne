@@ -7,6 +7,7 @@ import {
   MissionEventsRepository,
   ParticipantMissionsRepository,
 } from "@/server/db/repositories/missions";
+import { MessagesRepository } from "@/server/db/repositories/messages";
 import { OperatorAlertsRepository } from "@/server/db/repositories/operator-alerts";
 import { ParticipantsRepository } from "@/server/db/repositories/participants";
 import { PartnerEventsRepository } from "@/server/db/repositories/partner-events";
@@ -26,6 +27,7 @@ export class Repositories {
   readonly drinkOrders: DrinkOrdersRepository;
   readonly drinkOrderEvents: DrinkOrderEventsRepository;
   readonly projection: ProjectionEventsRepository;
+  readonly messages: MessagesRepository;
   readonly operatorAlerts: OperatorAlertsRepository;
   readonly reminders: RemindersRepository;
   readonly songRequests: SongRequestsRepository;
@@ -42,6 +44,7 @@ export class Repositories {
     this.drinkOrders = new DrinkOrdersRepository(db);
     this.drinkOrderEvents = new DrinkOrderEventsRepository(db);
     this.projection = new ProjectionEventsRepository(db);
+    this.messages = new MessagesRepository(db);
     this.operatorAlerts = new OperatorAlertsRepository(db);
     this.reminders = new RemindersRepository(db);
     this.songRequests = new SongRequestsRepository(db);

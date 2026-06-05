@@ -1,5 +1,9 @@
 /** Shared labyrinth wall + thread geometry for the mark SVG and favicon. */
 
+/** Brand mark colors (Nyx palette): ash walls, helio thread. */
+export const MARK_ASH = "#8a8a8a";
+export const MARK_HELIO = "#d2beff";
+
 export const LABYRINTH_CENTER = 50;
 
 export const TOP = -90;
@@ -46,4 +50,49 @@ export function labyrinthThreadPath(): string {
     `L ${c} ${c - 4}`,
     `L ${c} ${c}`,
   ].join(" ");
+}
+
+export interface LabyrinthMarkOptions {
+  /** Rendered width/height in px (the geometry is always a 0-100 viewBox). */
+  size?: number;
+  /** Solid background fill; omit for transparent (favicon/app-icon use). */
+  background?: string;
+  wallColor?: string;
+  wallOpacity?: number;
+  threadColor?: string;
+  /** Scale the mark about its center; <1 leaves padding inside the frame. */
+  scale?: number;
+}
+
+/**
+ * Single source of truth for the labyrinth mark as an SVG string. Used by the
+ * favicon/app-icon export (transparent) and the saved-contact avatar (dark fill).
+ */
+export function labyrinthMarkSvg(options: LabyrinthMarkOptions = {}): string {
+  const size = options.size ?? 100;
+  const wallColor = options.wallColor ?? MARK_ASH;
+  const wallOpacity = options.wallOpacity ?? 0.45;
+  const threadColor = options.threadColor ?? MARK_HELIO;
+  const scale = options.scale ?? 1;
+  const c = LABYRINTH_CENTER;
+
+  const walls = LABYRINTH_WALLS.map((d) => `<path d="${d}"/>`).join("\n      ");
+  const mark = `<g fill="none" stroke="${wallColor}" stroke-opacity="${wallOpacity}" stroke-width="1.4" stroke-linecap="round">
+      ${walls}
+    </g>
+    <path d="${labyrinthThreadPath()}" fill="none" stroke="${threadColor}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${c}" cy="${c}" r="3.4" fill="${threadColor}"/>`;
+
+  const body =
+    scale === 1
+      ? mark
+      : `<g transform="translate(${c} ${c}) scale(${scale}) translate(${-c} ${-c})">
+    ${mark}
+  </g>`;
+
+  const bg = options.background ? `<rect width="100" height="100" fill="${options.background}"/>\n  ` : "";
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}">
+  ${bg}${body}
+</svg>`;
 }

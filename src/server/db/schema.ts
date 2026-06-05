@@ -47,6 +47,10 @@ ALTER TABLE conversations ADD COLUMN IF NOT EXISTS contact_card_sent BOOLEAN NOT
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS welcome_image_sent BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS texts_paused BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS host_request_state TEXT;
+-- A request the guest made before they were eligible (e.g. a drink asked for pre
+-- check-in). JSON snapshot {kind,text,status}; the brain offers it once check-in
+-- completes, then clears it. One canonical slot, so it can never double-fire.
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS pending_intent TEXT;
 
 CREATE TABLE IF NOT EXISTS partner_events (
   id          TEXT PRIMARY KEY,
@@ -201,6 +205,23 @@ CREATE TABLE IF NOT EXISTS announcements (
   created_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_announcements_event ON announcements(event_id, created_at);
+
+-- Durable transcript of every guest turn (inbound) and Ariadne reply (outbound).
+-- This is our own source of truth for conversation memory, so the agent recalls
+-- earlier turns even when the partner sends no history. 'seq' (identity) gives a
+-- stable chronological order without relying on created_at ties.
+CREATE TABLE IF NOT EXISTS messages (
+  seq             INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id              TEXT NOT NULL,
+  event_id        TEXT NOT NULL,
+  conversation_id TEXT NOT NULL,
+  participant_id  TEXT,
+  direction       TEXT NOT NULL,
+  channel         TEXT,
+  body            TEXT NOT NULL,
+  created_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, seq);
 
 -- Atomic per-event counters. Incremented inside the check-in transaction so each
 -- guest gets a distinct round-robin index: gem/word assignment stays even and

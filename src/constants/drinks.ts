@@ -33,6 +33,9 @@ export type MenuItemId = (typeof DRINK_MENU)[number]["id"];
 export const DRINK_STATUSES = ["queued", "in_progress", "ready", "picked_up", "cancelled", "expired"] as const;
 export type DrinkStatus = (typeof DRINK_STATUSES)[number];
 
+/** Window in which an identical, still-open order is treated as a duplicate, not a new pour. */
+export const DRINK_DEDUP_WINDOW_MS = 90_000;
+
 /** Cocktails are voucher-gated: one free cocktail per guest. Beer, wine, and zero-proof are unlimited. */
 export const COCKTAIL_VOUCHER_PER_GUEST = 1;
 /** Total cocktail vouchers for the night. When spent, cocktails close and the operator is alerted. */

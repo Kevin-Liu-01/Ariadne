@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Disc3, KeyRound, LayoutGrid, MessageSquare, MonitorPlay, Music, Palette, Puzzle, QrCode, SlidersHorizontal, Target, Users, Wine } from "lucide-react";
+import { ArrowRight, BookOpen, Disc3, KeyRound, LayoutGrid, MessageSquare, MonitorPlay, Music, Palette, Puzzle, SlidersHorizontal, Target, Users, Wine } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { DRINK_MENU } from "@/constants/drinks";
@@ -10,6 +10,7 @@ import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { RunwayWordmark } from "@/components/runway-wordmark";
 import { TextReminders } from "@/components/text-reminders";
 import { IMessageIcon } from "@/components/imessage-icon";
+import { JoinCta } from "@/components/join-cta";
 import { HeroBentoLeft, HeroBentoRight } from "@/components/hero-bento-walls";
 import { GemIcon } from "@/components/gem-icon";
 import { cn } from "@/lib/utils";
@@ -17,42 +18,14 @@ import { cn } from "@/lib/utils";
 interface NavLink {
   href: string;
   label: string;
-  note: string;
   Icon: LucideIcon;
-  hint: string;
-  primary?: boolean;
 }
 
+/** Secondary destinations. The primary "Join" check-in CTA is its own component. */
 const LINKS: NavLink[] = [
-  {
-    href: "/join",
-    label: "Join",
-    note: "start here · check in",
-    Icon: QrCode,
-    primary: true,
-    hint: "Text or web check-in: get your gem and first mission.",
-  },
-  {
-    href: "/play",
-    label: "How to play",
-    note: "rules + missions",
-    Icon: BookOpen,
-    hint: "Gems, missions, drinks, and how the labyrinth works.",
-  },
-  {
-    href: "/projection",
-    label: "Live board",
-    note: "room display",
-    Icon: LayoutGrid,
-    hint: "Scores and gems for everyone in the room.",
-  },
-  {
-    href: "/operator",
-    label: "Staff",
-    note: "bar + show control",
-    Icon: SlidersHorizontal,
-    hint: "Bartenders and run-of-show: token required.",
-  },
+  { href: "/play", label: "How to play", Icon: BookOpen },
+  { href: "/projection", label: "Live board", Icon: LayoutGrid },
+  { href: "/operator", label: "Staff", Icon: SlidersHorizontal },
 ];
 
 const STEPS: { Icon: LucideIcon; title: string; body: string }[] = [
@@ -130,33 +103,15 @@ export default function Home() {
             <RunwayWordmark size="md" className="mt-2" />
 
             <p className="mt-6 max-w-sm text-sm leading-relaxed text-ash">
-              A phone-first game at {VENUE}. Check in, get a gem and a secret word, solve the
-              labyrinth, and order drinks, all by text.
+              A one-night runway experience at {VENUE}, presented by Dedalus Labs. Text {PRODUCT_NAME}{" "}
+              to check in, get a color gem and a secret word, work through the labyrinth of missions,
+              and order drinks, all from your phone.
             </p>
 
             <nav className="mt-10 w-full">
-              {LINKS.filter((l) => l.primary).map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className="group flex items-center justify-between gap-3 border border-helio/50 bg-helio/15 px-6 py-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-helio/25"
-                >
-                  <span className="flex items-center gap-3">
-                    <l.Icon className="h-6 w-6 text-helio" strokeWidth={1.5} aria-hidden />
-                    <span className="text-left">
-                      <span className="block text-xl font-medium text-cloud">{l.label}</span>
-                      <span className="block text-[11px] uppercase tracking-[0.25em] text-helio">{l.note}</span>
-                    </span>
-                  </span>
-                  <ArrowRight
-                    className="h-5 w-5 shrink-0 text-helio transition-transform group-hover:translate-x-1"
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                </Link>
-              ))}
+              <JoinCta />
               <div className="mt-3 flex flex-wrap justify-center gap-2">
-                {LINKS.filter((l) => !l.primary).map((l) => (
+                {LINKS.map((l) => (
                   <Link
                     key={l.href}
                     href={l.href}

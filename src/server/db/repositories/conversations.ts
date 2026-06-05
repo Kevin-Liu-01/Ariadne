@@ -2,7 +2,7 @@ import type { InboundChannel, Flow } from "@/constants/event";
 import { now } from "@/lib/time";
 import type { Db } from "@/server/db/connection";
 import { BaseRepository } from "@/server/db/repositories/base";
-import type { Conversation, HostRequestState } from "@/domain/types";
+import type { Conversation, HostRequestState, PendingIntent } from "@/domain/types";
 
 interface ConversationRow {
   id: string;
@@ -17,6 +17,7 @@ interface ConversationRow {
   welcome_image_sent: boolean;
   texts_paused: boolean;
   host_request_state: string | null;
+  pending_intent: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -35,6 +36,7 @@ function toConversation(row: ConversationRow): Conversation {
     welcomeImageSent: row.welcome_image_sent,
     textsPaused: row.texts_paused,
     hostRequestState: row.host_request_state as HostRequestState | null,
+    pendingIntent: row.pending_intent ? (JSON.parse(row.pending_intent) as PendingIntent) : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -49,8 +51,8 @@ export class ConversationsRepository extends BaseRepository {
     await this.db.query(
       `INSERT INTO conversations
         (id, event_id, participant_id, external_id, phone, channel, current_flow, current_mission_id,
-         contact_card_sent, welcome_image_sent, texts_paused, host_request_state, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+         contact_card_sent, welcome_image_sent, texts_paused, host_request_state, pending_intent, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
       [
         c.id,
         c.eventId,
@@ -64,6 +66,7 @@ export class ConversationsRepository extends BaseRepository {
         c.welcomeImageSent,
         c.textsPaused,
         c.hostRequestState,
+        c.pendingIntent ? JSON.stringify(c.pendingIntent) : null,
         c.createdAt,
         c.updatedAt,
       ],
@@ -156,6 +159,14 @@ export class ConversationsRepository extends BaseRepository {
     await this.db.query(
       `UPDATE conversations SET host_request_state = $1, updated_at = $2 WHERE id = $3`,
       [state, now(), id],
+    );
+  }
+
+  /** Set or clear the one pending pre-eligibility request (deferred drink/song). */
+  async setPendingIntent(id: string, intent: PendingIntent | null): Promise<void> {
+    await this.db.query(
+      `UPDATE conversations SET pending_intent = $1, updated_at = $2 WHERE id = $3`,
+      [intent ? JSON.stringify(intent) : null, now(), id],
     );
   }
 

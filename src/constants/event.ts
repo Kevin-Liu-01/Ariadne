@@ -1,6 +1,8 @@
 /** Event-level brand + protocol constants. Tunable content lives in constants/. */
 
 export const PRODUCT_NAME = "Ariadne";
+/** Saved-contact display name (vCard FN) so the guest's phone shows "Ariadne Agent", not a raw number or the org. */
+export const CONTACT_NAME = "Ariadne Agent";
 export const PRODUCT_TAGLINE = "your personal agent for the night";
 export const EVENT_NAME = "Run(time)way";
 export const VENUE = "Lume Studios";

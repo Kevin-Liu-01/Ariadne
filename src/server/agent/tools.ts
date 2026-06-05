@@ -5,12 +5,6 @@ import {
   badNameCopy,
   checkinAskNameCopy,
   checkedInCopy,
-  cocktailsOutCopy,
-  drinkClarifyCopy,
-  drinkInvalidQuantityCopy,
-  drinkQueuedCopy,
-  drinkUnavailableCopy,
-  drinkVoucherUsedCopy,
   gemColorLabel,
   helpCopy,
   hostRequestSubmittedCopy,
@@ -36,7 +30,7 @@ import { summarizeHostIssue } from "@/server/agent/host-issue";
 import type { Conversation, Participant } from "@/domain/types";
 import type { Repositories } from "@/server/db/repositories";
 import type { ConversationService } from "@/server/services/conversations";
-import type { DrinkService } from "@/server/services/drinks";
+import { drinkOutcomeSay, type DrinkService } from "@/server/services/drinks";
 import type { MissionService } from "@/server/services/missions";
 import type { ProjectionService } from "@/server/services/projection";
 import type { RegistrationService } from "@/server/services/registration";
@@ -280,25 +274,19 @@ const orderDrink: Tool = {
   },
   execute: async (args, ctx) => {
     const { conversation, participant } = await resolve(ctx);
-    if (!participant) return NOT_CHECKED_IN;
     const text = pickText(args, ["text", "request", "drink", "item", "order", "query"]) || ctx.userText;
-    const outcome = await ctx.drinks.createFromText(participant, conversation.id, text);
-    switch (outcome.kind) {
-      case "queued":
-        return { status: "queued", label: outcome.order.label, say: drinkQueuedCopy(outcome.order.label) };
-      case "unavailable":
-        return { status: "unavailable", label: outcome.label, say: drinkUnavailableCopy(outcome.label) };
-      case "voucher_used":
-        return { status: "voucher_used", say: drinkVoucherUsedCopy() };
-      case "cocktails_out":
-        return { status: "cocktails_out", say: cocktailsOutCopy() };
-      case "invalid_quantity":
-        return { status: "invalid_quantity", say: drinkInvalidQuantityCopy() };
-      case "clarify":
-        return { status: "clarify", say: drinkClarifyCopy() };
-      default:
-        return assertNever(outcome);
+    // Not checked in yet: remember the drink so we can offer it the moment they are,
+    // instead of dropping it. No order is created here.
+    if (!participant) {
+      await ctx.repos.conversations.setPendingIntent(conversation.id, {
+        kind: "drink",
+        text,
+        status: "captured",
+      });
+      return NOT_CHECKED_IN;
     }
+    const outcome = await ctx.drinks.createFromText(participant, conversation.id, text);
+    return { status: outcome.kind, say: drinkOutcomeSay(outcome) };
   },
 };
 
@@ -437,11 +425,19 @@ const queueSong: Tool = {
     },
   },
   execute: async (args, ctx) => {
-    const { participant } = await resolve(ctx);
-    if (!participant) return NOT_CHECKED_IN;
+    const { conversation, participant } = await resolve(ctx);
     const raw = pickText(args, ["text", "song", "title", "request", "track", "artist"]) || ctx.userText;
     // Strip the SONG command prefix so the DJ queue shows just the track.
     const song = raw.trim().replace(/^song[:\s]+/i, "").trim();
+    // Not checked in yet: remember the request and offer it after check-in.
+    if (!participant) {
+      await ctx.repos.conversations.setPendingIntent(conversation.id, {
+        kind: "song",
+        text: song || raw,
+        status: "captured",
+      });
+      return NOT_CHECKED_IN;
+    }
     if (!song) {
       return { status: "clarify", say: "Which song? Reply with a title or artist and I'll send it to the DJ." };
     }

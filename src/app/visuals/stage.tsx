@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Shader } from "shaders/react";
 import type { AudioEngine } from "@/app/visuals/audio";
+import { AudioPointer } from "@/app/visuals/audio-pointer";
 import { SCENES, renderScene, type AudioLevels, ZERO_LEVELS } from "@/app/visuals/scenes";
 
 const TRANSITION_MS = 1600; // crossfade length between scenes
@@ -14,13 +15,12 @@ interface Layer {
   scene: number;
 }
 
-const approach = (prev: number, next: number, k: number): number => prev + (next - prev) * k;
-
 /**
  * Drives the shader scenes from the mic and crossfades between them on a timer. A RAF
- * loop reads the audio engine, smooths each band, and pushes throttled levels into the
- * scene props; a second timer rotates scenes. Only the active (and, mid-transition, the
- * outgoing) scene is mounted, so at most two `<Shader>` canvases live at once.
+ * loop reads the audio engine's already-smoothed levels and pushes them (throttled)
+ * into the scene props; a second timer rotates scenes. Only the active (and, mid
+ * transition, the outgoing) scene is mounted, so at most two `<Shader>` canvases live
+ * at once.
  */
 export function Stage({ engine }: { engine: AudioEngine }) {
   const [levels, setLevels] = useState<AudioLevels>(ZERO_LEVELS);
@@ -54,20 +54,20 @@ export function Stage({ engine }: { engine: AudioEngine }) {
   useEffect(() => {
     let raf = 0;
     let lastEmit = 0;
-    const acc = { ...ZERO_LEVELS };
+    let lastTs = 0;
+    const pointer = new AudioPointer();
     const loop = (ts: number) => {
       raf = requestAnimationFrame(loop);
-      const f = engine.read(ts);
-      if (!f) return;
-      acc.level = approach(acc.level, f.level, 0.25);
-      acc.bass = approach(acc.bass, f.bass, 0.45);
-      acc.mid = approach(acc.mid, f.mid, 0.3);
-      acc.treble = approach(acc.treble, f.treble, 0.3);
-      // Snap to the kick, then decay fast so the pulse punches rather than smears.
-      acc.beat = Math.max(f.beatEnv, acc.beat * 0.82);
+      const next = engine.read(ts);
+      if (!next) return;
+      // The engine already smooths every band, so we just fan the levels out. The
+      // pointer reads velocity, so it must run every frame; React state is throttled.
+      const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.05) : 0.016;
+      lastTs = ts;
+      pointer.emit(next, dt);
       if (ts - lastEmit >= EMIT_MS) {
         lastEmit = ts;
-        setLevels({ level: acc.level, bass: acc.bass, mid: acc.mid, treble: acc.treble, beat: acc.beat });
+        setLevels(next);
       }
     };
     raf = requestAnimationFrame(loop);
@@ -90,8 +90,6 @@ export function Stage({ engine }: { engine: AudioEngine }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const topScene = layers[layers.length - 1]?.scene ?? 0;
-
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-nyx" onClick={() => advanceRef.current()}>
       {layers.map((l) => (
@@ -105,9 +103,6 @@ export function Stage({ engine }: { engine: AudioEngine }) {
           </Shader>
         </div>
       ))}
-      <p className="pointer-events-none absolute bottom-4 left-1/2 z-[2] -translate-x-1/2 text-[10px] uppercase tracking-[0.3em] text-ash/60">
-        {SCENES[topScene].name} · tap or space to shift
-      </p>
     </main>
   );
 }

@@ -31,9 +31,9 @@ describe("vCard contact identity", () => {
     expect(vcf).toContain("iVBOR");
   });
 
-  it("builds the default Ariadne card", () => {
+  it("builds the default Ariadne Agent card", () => {
     const vcf = defaultAriadneVcard("+18159970034", "https://ariadne-runway.vercel.app", Buffer.from("x"));
-    expect(vcf).toContain("FN:Ariadne");
+    expect(vcf).toContain("FN:Ariadne Agent");
     expect(vcf).toContain("ORG:Dedalus Labs");
   });
 
@@ -41,7 +41,7 @@ describe("vCard contact identity", () => {
     const vcf = defaultAriadneVcard("+18159970034", "https://ariadne-runway.vercel.app", Buffer.from("x"));
     // iMessage rendered N's "Family;Given;;;" slots literally (semicolons and all),
     // so the default card carries FN only and never an N line.
-    expect(vcf).toContain("FN:Ariadne");
+    expect(vcf).toContain("FN:Ariadne Agent");
     expect(vcf).not.toMatch(/^N:/m);
     expect(vcf).not.toContain(";;;");
   });

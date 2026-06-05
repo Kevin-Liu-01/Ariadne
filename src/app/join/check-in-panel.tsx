@@ -10,12 +10,13 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { useState } from "react";
-import { EVENT_NAME } from "@/constants/event";
+import { CONTACT_NAME, EVENT_NAME } from "@/constants/event";
 import type { GemId } from "@/constants/gems";
 import { GemIcon } from "@/components/gem-icon";
 import { IMessageIcon } from "@/components/imessage-icon";
 import { TextReminders } from "@/components/text-reminders";
 import { cn } from "@/lib/utils";
+import { formatPhoneDisplay } from "@/domain/phone";
 
 interface RegisterResult {
   isNew: boolean;
@@ -120,7 +121,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
           <div className="mt-5 border border-helio/40 bg-helio/10 px-4 py-3">
             <p className="text-xs uppercase tracking-[0.2em] text-helio">next step</p>
             <p className="mt-1 text-sm leading-relaxed text-cloud">
-              Text <span className="tabular-nums tracking-wide text-helio">{phoneNumber}</span> to
+              Text <span className="tabular-nums tracking-wide text-helio">{formatPhoneDisplay(phoneNumber)}</span> to
               play. Compare your <span className="text-helio">{p.gemLabel}</span> gem with others on
               the live board. Keep game id <span className="tabular-nums">{p.gameId}</span> and
               secret word handy; missions may ask for them.
@@ -152,7 +153,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
             text to check in
           </span>
           <span className="mt-1 block text-xl tabular-nums tracking-[0.1em] text-cloud">
-            {phoneNumber}
+            {formatPhoneDisplay(phoneNumber)}
           </span>
           <span className="mt-1 block text-[11px] text-ash">opens your messages, just hit send</span>
           <span className="mt-2 block text-[11px] leading-relaxed text-ash/80">
@@ -203,7 +204,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
           />
           <p className="text-[11px] leading-relaxed text-ash">
             By tapping check in, you agree to receive recurring automated text messages from{" "}
-            <span className="text-cloud">Ariadne</span> (Dedalus Labs) about {EVENT_NAME}:
+            <span className="text-cloud">{CONTACT_NAME}</span> about {EVENT_NAME}:
             check-in, missions, and drink orders. Consent is not a condition of entry. Message
             frequency varies. Msg &amp; data rates may apply. Reply{" "}
             <span className="text-cloud">STOP</span> to opt out, <span className="text-cloud">HELP</span>{" "}

@@ -14,17 +14,17 @@ function BentoWall({ children, className }: { children: ReactNode; className?: s
 /**
  * Left wall.
  *
- * Row budget (12): runway 5 (col 1) · nyx-lines 2 + cloud-lines 3 (col 2) |
- * nytw+archives 2 | team 5. The right column's top band splits into a dark
- * nyx-lines tile and a brighter cloud-lines tile so the wall is not one flat
+ * Row budget (12): runway 5 (col 1) · cloud-lines 2 + nyx-lines 3 (col 2) |
+ * nytw+archives 2 | team 5. The right column's top band splits into a brighter
+ * cloud-lines tile and a dark nyx-lines tile so the wall is not one flat
  * dark block. Posters sit in a shallow 2-row band; the team photo fills the base.
  */
 export function HeroBentoLeft() {
   return (
     <BentoWall>
       <BentoCell bg="bgimg-event-runway" tone="veil" className="row-span-5" />
-      <BentoCell bg="bgimg-nyx-lines" className="row-span-2" />
-      <BentoCell bg="bgimg-cloud-lines" tone="veil" className="row-span-3" />
+      <BentoCell bg="bgimg-cloud-lines" tone="veil" className="row-span-2" />
+      <BentoCell bg="bgimg-nyx-lines" className="row-span-3" />
       <BentoCell bg="bgimg-event-nytw" fit="contain" tone="none" className="row-span-2" />
       <BentoCell bg="bgimg-event-a2a" fit="contain" tone="none" className="row-span-2" />
       <BentoCell bg="bgimg-event-team" tone="veil" className="col-span-2 row-span-5" />

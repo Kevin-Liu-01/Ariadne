@@ -1,34 +1,41 @@
 /** Mic-driven audio analysis for the venue visualizer. Browser-only (Web Audio API). */
 
-export interface Frame {
-  freq: Uint8Array; // frequency magnitudes, 0..255 (getByteFrequencyData)
-  wave: Uint8Array; // time-domain samples, 0..255 (getByteTimeDomainData)
-  energy: number; // overall loudness, 0..1
-  bass: number; // low-band energy, 0..1 (drives beats)
-  mid: number; // mid-band energy, 0..1 (vocals/leads)
-  treble: number; // high-band energy, 0..1
-  beat: boolean; // a bass transient this frame
-  beatEnv: number; // a 1->0 decaying pulse after each beat (smooth shader input)
-  level: number; // smoothed energy for meters
-}
+import type { AudioLevels } from "@/app/visuals/scenes";
+import {
+  AUDIO_REACTIVE,
+  EnvelopeFollower,
+  OnsetDetector,
+  computeBands,
+} from "@/domain/audio-reactive";
 
-function average(data: Uint8Array, from = 0, to = data.length): number {
-  let sum = 0;
-  for (let i = from; i < to; i += 1) sum += data[i];
-  return sum / Math.max(1, to - from);
-}
+/** A stalled tab can hand us a huge gap; cap dt so the envelopes glide, never lurch. */
+const MAX_DT_SECONDS = 0.1;
+const DEFAULT_DT_SECONDS = 1 / 60;
 
-/** Wraps the mic -> AnalyserNode graph and derives a per-frame {@link Frame}. */
+/**
+ * Wraps the mic -> AnalyserNode graph and turns each frame into smoothed
+ * {@link AudioLevels}. All the smoothing and beat detection lives in the pure,
+ * frame-rate-independent DSP in `@/domain/audio-reactive`; this class only owns
+ * the live Web Audio plumbing and the per-frame `dt`. It is the single source of
+ * the levels the scenes read, so the stage no longer smooths anything itself.
+ */
 export class AudioEngine {
   private ctx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private stream: MediaStream | null = null;
   private freq = new Uint8Array(0);
-  private wave = new Uint8Array(0);
-  private avgBass = 0;
-  private level = 0;
-  private beatEnv = 0;
-  private lastBeatMs = 0;
+  private lastMs = 0;
+
+  // One asymmetric smoother per band: a fast attack snaps to a hit (responsive)
+  // and a slow release eases back down, so the bands never jitter (no sporadic look).
+  private readonly level = new EnvelopeFollower(AUDIO_REACTIVE.smoothing.level);
+  private readonly bass = new EnvelopeFollower(AUDIO_REACTIVE.smoothing.bass);
+  private readonly mid = new EnvelopeFollower(AUDIO_REACTIVE.smoothing.mid);
+  private readonly treble = new EnvelopeFollower(AUDIO_REACTIVE.smoothing.treble);
+  // The kick pulse: instant attack to the kick strength on each onset (a hard kick
+  // punches past 1), then a smooth ease-out.
+  private readonly beat = new EnvelopeFollower({ attack: 0, release: AUDIO_REACTIVE.beatRelease });
+  private readonly onset = new OnsetDetector();
 
   async start(): Promise<void> {
     this.stream = await navigator.mediaDevices.getUserMedia({
@@ -41,37 +48,31 @@ export class AudioEngine {
     const source = this.ctx.createMediaStreamSource(this.stream);
     this.analyser = this.ctx.createAnalyser();
     this.analyser.fftSize = 2048; // good music resolution without lag
-    this.analyser.smoothingTimeConstant = 0.82;
+    // Light analyser smoothing only. We do the visual smoothing ourselves with the
+    // envelope followers, so we keep the raw transients sharp here for a punchy
+    // attack and a clean kick onset (the old 0.82 blurred every hit into a smear).
+    this.analyser.smoothingTimeConstant = 0.6;
     source.connect(this.analyser);
     this.freq = new Uint8Array(this.analyser.frequencyBinCount);
-    this.wave = new Uint8Array(this.analyser.fftSize);
   }
 
-  read(nowMs: number): Frame | null {
+  /** Read the live mic and return the smoothed, frame-rate-independent band levels. */
+  read(nowMs: number): AudioLevels | null {
     if (!this.analyser) return null;
     this.analyser.getByteFrequencyData(this.freq);
-    this.analyser.getByteTimeDomainData(this.wave);
-    const n = this.freq.length;
-    const energy = average(this.freq) / 255;
-    // Three bands across the usable spectrum: lows drive the kick, mids the leads,
-    // highs the shimmer. Boundaries are fractions of the FFT bins.
-    const bass = average(this.freq, 0, Math.floor(n * 0.08)) / 255;
-    const mid = average(this.freq, Math.floor(n * 0.08), Math.floor(n * 0.3)) / 255;
-    const treble = average(this.freq, Math.floor(n * 0.5), n) / 255;
-
-    // Beat: a bass spike above a decaying baseline, with a refractory gap. Tuned a
-    // little hot (lower ratio + floor) so busy tracks trigger reliably on the venue PA.
-    this.avgBass = this.avgBass * 0.92 + bass * 0.08;
-    let beat = false;
-    if (bass > this.avgBass * 1.28 && bass > 0.15 && nowMs - this.lastBeatMs > 160) {
-      beat = true;
-      this.lastBeatMs = nowMs;
-    }
-    // Smooth 1->0 pulse: snap to 1 on a beat, otherwise decay. Shaders read this for
-    // a kick that punches then eases rather than a hard on/off flag.
-    this.beatEnv = beat ? 1 : this.beatEnv * 0.9;
-    this.level = this.level * 0.85 + energy * 0.15;
-    return { freq: this.freq, wave: this.wave, energy, bass, mid, treble, beat, beatEnv: this.beatEnv, level: this.level };
+    const dt = this.lastMs
+      ? Math.min((nowMs - this.lastMs) / 1000, MAX_DT_SECONDS)
+      : DEFAULT_DT_SECONDS;
+    this.lastMs = nowMs;
+    const raw = computeBands(this.freq);
+    const strength = this.onset.push(raw.bass, nowMs, dt);
+    return {
+      level: this.level.push(raw.energy, dt),
+      bass: this.bass.push(raw.bass, dt),
+      mid: this.mid.push(raw.mid, dt),
+      treble: this.treble.push(raw.treble, dt),
+      beat: this.beat.push(strength, dt),
+    };
   }
 
   stop(): void {

@@ -109,6 +109,27 @@ export class DrinkOrdersRepository extends BaseRepository {
     return rows[0] ? toDrinkOrder(rows[0]) : null;
   }
 
+  /**
+   * A still-open order for the same item the guest placed since `sinceIso`. Used to
+   * collapse accidental double-submits (model retry, double-tap, deferred-intent
+   * replay) into one order instead of queueing the same drink twice.
+   */
+  async findRecentActiveByItem(
+    participantId: string,
+    menuItemId: string,
+    sinceIso: string,
+  ): Promise<DrinkOrder | null> {
+    const rows = await this.db.query<DrinkOrderRow>(
+      `SELECT * FROM drink_orders
+       WHERE participant_id = $1 AND menu_item_id = $2
+         AND status IN ('queued','in_progress','ready')
+         AND created_at >= $3
+       ORDER BY created_at DESC LIMIT 1`,
+      [participantId, menuItemId, sinceIso],
+    );
+    return rows[0] ? toDrinkOrder(rows[0]) : null;
+  }
+
   async countOpenByParticipant(participantId: string): Promise<number> {
     const rows = await this.db.query<{ c: number }>(
       `SELECT COUNT(*)::int AS c FROM drink_orders

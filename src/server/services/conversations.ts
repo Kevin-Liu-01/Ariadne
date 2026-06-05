@@ -48,6 +48,7 @@ export class ConversationService {
       welcomeImageSent: false,
       textsPaused: false,
       hostRequestState: null,
+      pendingIntent: null,
       createdAt: now(),
       updatedAt: now(),
     };

@@ -7,6 +7,7 @@ import { CLUES } from "@/constants/clues";
 import { GEMS, GEM_IDS, type GemId } from "@/constants/gems";
 import { WORD_PAIRS } from "@/constants/missions";
 import { GEM_WHEEL_HUE } from "@/domain/gem-wheel";
+import { formatPhoneDisplay } from "@/domain/phone";
 import { GemIcon } from "@/components/gem-icon";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { RunwayWordmark } from "@/components/runway-wordmark";
@@ -87,7 +88,7 @@ function ArrivalStage({ view }: { view: BoardView }) {
           text to join
         </p>
         <p className="mt-3 font-display text-5xl tabular-nums tracking-wide text-cloud sm:text-6xl">
-          {view.eventPhone}
+          {formatPhoneDisplay(view.eventPhone)}
         </p>
         <p className="mt-3 text-sm text-ash">
           Ariadne gives you a gem, a secret word, and your first mission.

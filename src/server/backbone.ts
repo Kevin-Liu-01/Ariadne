@@ -83,6 +83,7 @@ export class Backbone {
       this.missions,
       this.projection,
       this.runner,
+      this.drinks,
     );
   }
 }

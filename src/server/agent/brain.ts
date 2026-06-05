@@ -9,21 +9,29 @@ import {
   hostRequestSubmittedCopy,
   missionDeliverCopy,
   pauseTextsCopy,
+  pendingIntentDeclinedCopy,
+  pendingIntentOfferCopy,
   songPromptCopy,
+  songQueuedCopy,
   statusCopy,
 } from "@/constants/copy";
 import { gameplayAllowed, runOfShowCopy } from "@/constants/show-gate";
 import { EVENT_NAME } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import { MISSION_BY_ID } from "@/constants/missions";
+import { parseDrink } from "@/domain/drink-parse";
+import { newId } from "@/domain/ids";
 import { stripDashes } from "@/domain/text";
+import { now } from "@/lib/time";
 import { env } from "@/lib/env";
 import type { InboundChannel } from "@/constants/event";
-import type { Conversation, InteractionEvent, Participant } from "@/domain/types";
+import type { Conversation, InteractionEvent, Participant, PendingIntent } from "@/domain/types";
+import type { HistoryTurn } from "@/server/db/repositories/messages";
 import type { Repositories } from "@/server/db/repositories";
 import type { AgentRunner } from "@/server/agent/runner";
 import { summarizeHostIssue } from "@/server/agent/host-issue";
 import type { ConversationService } from "@/server/services/conversations";
+import { drinkOutcomeSay, type DrinkService } from "@/server/services/drinks";
 import type { MissionService } from "@/server/services/missions";
 import type { ProjectionService } from "@/server/services/projection";
 
@@ -50,9 +58,20 @@ export class AgentBrain {
     private readonly missions: MissionService,
     private readonly projection: ProjectionService,
     private readonly runner: AgentRunner,
+    private readonly drinks: DrinkService,
   ) {}
 
+  /**
+   * One inbound turn end to end. Wraps the router so every guest turn and reply is
+   * persisted to the durable transcript (best-effort; logging never blocks a reply).
+   */
   async process(event: InteractionEvent): Promise<BrainReply> {
+    const reply = await this.route(event);
+    await this.logTurn(event, reply);
+    return reply;
+  }
+
+  private async route(event: InteractionEvent): Promise<BrainReply> {
     const conversation = await this.conversations.resolve(
       event.externalConversationId,
       event.from,
@@ -85,6 +104,9 @@ export class AgentBrain {
     }
 
     if (participant) {
+      const resumed = await this.tryPendingIntentResume(command, participant, conversationNow);
+      if (resumed) return makeReply(resumed, participant);
+
       if (/^status$/i.test(command) || /^score$/i.test(command) || /what'?s\s+my\s+score/i.test(command)) {
         return makeReply(await this.statusText(participant, conversationNow));
       }
@@ -115,13 +137,13 @@ export class AgentBrain {
       return makeReply(next ? `Color quest skipped.\n\nNext:\n${next}` : "Color quest skipped.");
     }
 
-    const text = stripDashes(
+    let text = stripDashes(
       await this.runner.run({
         from: event.from,
         externalConversationId: event.externalConversationId,
         channel: event.channel,
         text: event.text,
-        recentHistory: event.recentHistory,
+        recentHistory: await this.history(conversationNow.id, event.recentHistory),
         grounding: this.grounding(participant, conversationNow),
       }),
     );
@@ -130,6 +152,17 @@ export class AgentBrain {
       ? await this.repos.participants.findByPhone(this.eventId, event.from)
       : participant;
     conversationNow = (await this.repos.conversations.findById(conversationNow.id)) ?? conversationNow;
+
+    // Just became eligible with a remembered request? Offer it now, on the same reply.
+    const offer = this.offerPendingIntent(after, conversationNow);
+    if (offer) {
+      await this.repos.conversations.setPendingIntent(conversationNow.id, {
+        ...offer,
+        status: "offered",
+      });
+      text = `${text}\n\n${pendingIntentOfferCopy(this.intentSubject(offer))}`;
+    }
+
     return {
       text,
       channel: event.channel,
@@ -205,6 +238,106 @@ export class AgentBrain {
       return hostRequestOfferCopy();
     }
     return null;
+  }
+
+  /**
+   * Resolve an offered pre-check-in request. YES places it once, NO declines, and
+   * anything else drops it so a stale offer never lingers or double-fires. The slot
+   * is cleared on every branch (the YES branch keeps a local copy to place from).
+   * Returns the reply to send, or null to fall through to normal handling.
+   */
+  private async tryPendingIntentResume(
+    text: string,
+    participant: Participant,
+    conversation: Conversation,
+  ): Promise<string | null> {
+    const intent = conversation.pendingIntent;
+    if (!intent || intent.status !== "offered") return null;
+    const trimmed = text.trim();
+    await this.repos.conversations.setPendingIntent(conversation.id, null);
+    if (/^(y|yes|yeah|yep|yup|sure|ok|okay|please)$/i.test(trimmed)) {
+      return this.placePendingIntent(intent, participant, conversation);
+    }
+    if (/^(n|no|nope|nah)$/i.test(trimmed)) {
+      return pendingIntentDeclinedCopy();
+    }
+    return null;
+  }
+
+  /** Run a confirmed pending request through the same deterministic service path. */
+  private async placePendingIntent(
+    intent: PendingIntent,
+    participant: Participant,
+    conversation: Conversation,
+  ): Promise<string> {
+    if (intent.kind === "drink") {
+      const outcome = await this.drinks.createFromText(participant, conversation.id, intent.text);
+      return drinkOutcomeSay(outcome);
+    }
+    const song = intent.text.trim().replace(/^song[:\s]+/i, "").trim();
+    if (!song) return "Which song? Reply SONG and a title and I'll send it to the DJ.";
+    await this.repos.songRequests.create(this.eventId, participant.id, song);
+    return songQueuedCopy(song);
+  }
+
+  /** A captured request becomes an offer the first turn the guest is checked in. */
+  private offerPendingIntent(
+    participant: Participant | null,
+    conversation: Conversation,
+  ): PendingIntent | null {
+    const intent = conversation.pendingIntent;
+    if (!participant || !intent || intent.status !== "captured") return null;
+    return intent;
+  }
+
+  /** Human phrase for the offer line, e.g. `that Modelo` or `me to send "X" to the DJ`. */
+  private intentSubject(intent: PendingIntent): string {
+    if (intent.kind === "drink") {
+      const item = parseDrink(intent.text).item;
+      return item ? `that ${item.label}` : "that drink";
+    }
+    const song = intent.text.trim().replace(/^song[:\s]+/i, "").trim();
+    return song ? `me to send "${song}" to the DJ` : "that song request";
+  }
+
+  /** Prefer our durable transcript; fall back to whatever the partner sent. */
+  private async history(conversationId: string, fallback: HistoryTurn[]): Promise<HistoryTurn[]> {
+    try {
+      const local = await this.repos.messages.recentByConversation(conversationId, 10);
+      return local.length ? local : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  /** Append this turn (guest message + Ariadne reply) to the durable transcript. */
+  private async logTurn(event: InteractionEvent, reply: BrainReply): Promise<void> {
+    try {
+      await this.repos.messages.insert({
+        id: newId("msg"),
+        eventId: this.eventId,
+        conversationId: reply.conversationId,
+        participantId: reply.participantId,
+        direction: "inbound",
+        channel: event.channel,
+        body: event.text,
+        createdAt: now(),
+      });
+      if (reply.text.trim()) {
+        await this.repos.messages.insert({
+          id: newId("msg"),
+          eventId: this.eventId,
+          conversationId: reply.conversationId,
+          participantId: reply.participantId,
+          direction: "outbound",
+          channel: event.channel,
+          body: reply.text,
+          createdAt: now(),
+        });
+      }
+    } catch (err) {
+      console.error("[ariadne] message log failed", err);
+    }
   }
 
   private async lookup(conversation: Conversation, phone: string): Promise<Participant | null> {
