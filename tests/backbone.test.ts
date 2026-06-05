@@ -38,7 +38,8 @@ describe("backbone services (deterministic core)", () => {
     expect(byGem.size).toBe(6);
     expect((await bb.projection.snapshot()).stats.checkedIn).toBe(6);
 
-    // The solver is a secondary-triangle gem so the primary triangle is three OTHERS.
+    // Your own gem joins two others to make the triangle, so amethyst (purple, a
+    // secondary) needs the other two secondaries: green + orange.
     const solver = byGem.get("amethyst")!;
     const convFor = async () => conv(bb, solver.phone!);
 
@@ -47,17 +48,17 @@ describe("backbone services (deterministic core)", () => {
     expect(drink.kind).toBe("queued");
     expect(await bb.drinks.listActive()).toHaveLength(1);
 
-    // Color Quest: name three guests whose gems form the primary triangle (red/yellow/blue).
-    // garnet=red, moonstone=Citrine yellow, aquamarine=blue. (topaz is orange, a secondary.)
-    const triangle = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("aquamarine")!];
-    const colorAnswer = triangle.map((p) => p.gameId).join(" ");
-    // The solver is the first to finish each quest (prior completions = 0).
-    const colorPts = partnerQuestPoints("color_quest", 0, 3);
+    // Color Quest: find two OTHER guests so your three gems form a triangle.
+    // solver=amethyst (purple); peridot=green + topaz=orange complete the secondary triangle.
+    const pair = [byGem.get("peridot")!, byGem.get("topaz")!];
+    const colorAnswer = pair.map((p) => p.gameId).join(" ");
+    // The solver is the first to finish each quest (prior completions = 0); two new partners.
+    const colorPts = partnerQuestPoints("color_quest", 0, 2);
     expect((await bb.missions.submit(solver, await convFor(), colorAnswer)).kind).toBe("correct");
     expect((await bb.repos.participants.findById(solver.id))?.score).toBe(colorPts);
 
     // Word Quest: name a fresh partner and include their secret word (any order proves it).
-    const wordPartner = byGem.get("peridot")!;
+    const wordPartner = byGem.get("garnet")!;
     const wordAnswer = `${wordPartner.secretWord} ${wordPartner.gameId}`;
     const wordPts = partnerQuestPoints("word_match", 0, 1);
     expect((await bb.missions.submit(solver, await convFor(), wordAnswer)).kind).toBe("correct");
@@ -130,8 +131,8 @@ describe("backbone services (deterministic core)", () => {
 
 /** The quests' rejection contract: bad triangles, wrong counts, repeat partners, wrong words. */
 describe("mission edge cases", () => {
-  // Six check-ins assign all six distinct gems; amethyst (a secondary hue) solves,
-  // so the primary triangle is three OTHER guests (garnet/moonstone/aquamarine).
+  // Six check-ins assign all six distinct gems; amethyst (purple, a secondary) solves,
+  // so the triangle is the solver plus two others (peridot=green, topaz=orange).
   async function room(bb: Backbone) {
     const guests: Participant[] = [];
     for (let i = 1; i <= 6; i += 1) guests.push(await checkIn(bb, `+1333000000${i}`, `G${i}`));
@@ -140,42 +141,42 @@ describe("mission edge cases", () => {
     return { byGem, solver, convFor: () => conv(bb, solver.phone!) };
   }
 
-  it("rejects three colors that do not form a wheel triangle", async () => {
+  it("rejects two colors that do not complete your wheel triangle", async () => {
     const bb = await freshBackbone();
     const { byGem, solver, convFor } = await room(bb);
-    // red + yellow + orange mixes a secondary in, so it is no triangle.
-    const ids = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("topaz")!].map((p) => p.gameId);
+    // purple (yours) + red + yellow mixes a secondary with primaries, so it is no triangle.
+    const ids = [byGem.get("garnet")!, byGem.get("moonstone")!].map((p) => p.gameId);
     const r = await bb.missions.submit(solver, await convFor(), ids.join(" "));
     expect(r.kind).toBe("incorrect");
     expect((await bb.repos.participants.findById(solver.id))?.score).toBe(0);
   });
 
-  it("rejects the color quest when fewer than three guests are named", async () => {
+  it("rejects the color quest when only one other guest is named", async () => {
     const bb = await freshBackbone();
     const { byGem, solver, convFor } = await room(bb);
-    const ids = [byGem.get("garnet")!, byGem.get("aquamarine")!].map((p) => p.gameId);
+    const ids = [byGem.get("peridot")!].map((p) => p.gameId);
     expect((await bb.missions.submit(solver, await convFor(), ids.join(" "))).kind).toBe("incorrect");
   });
 
   it("rejects a partner already used on a prior quest (meet new people)", async () => {
     const bb = await freshBackbone();
     const { byGem, solver, convFor } = await room(bb);
-    const triangle = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("aquamarine")!];
+    const pair = [byGem.get("peridot")!, byGem.get("topaz")!];
     expect(
-      (await bb.missions.submit(solver, await convFor(), triangle.map((p) => p.gameId).join(" "))).kind,
+      (await bb.missions.submit(solver, await convFor(), pair.map((p) => p.gameId).join(" "))).kind,
     ).toBe("correct");
     // The word quest needs a *new* partner; reusing a color partner is rejected.
-    const used = byGem.get("garnet")!;
+    const used = byGem.get("peridot")!;
     expect((await bb.missions.submit(solver, await convFor(), used.gameId)).kind).toBe("duplicate_partner");
   });
 
   it("rejects a word-quest partner named with the wrong secret word", async () => {
     const bb = await freshBackbone();
     const { byGem, solver, convFor } = await room(bb);
-    // Clear color first so a single-partner submission routes to the word quest.
-    const triangle = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("aquamarine")!];
-    await bb.missions.submit(solver, await convFor(), triangle.map((p) => p.gameId).join(" "));
-    const fresh = byGem.get("peridot")!;
+    // Clear color first (you + two others) so a single-partner submission routes to the word quest.
+    const pair = [byGem.get("peridot")!, byGem.get("topaz")!];
+    await bb.missions.submit(solver, await convFor(), pair.map((p) => p.gameId).join(" "));
+    const fresh = byGem.get("garnet")!;
     const r = await bb.missions.submit(solver, await convFor(), `zzzznotaword ${fresh.gameId}`);
     expect(r.kind).toBe("incorrect");
   });
@@ -183,9 +184,9 @@ describe("mission edge cases", () => {
   it("has nothing left to submit once all three quests are done", async () => {
     const bb = await freshBackbone();
     const { byGem, solver, convFor } = await room(bb);
-    const triangle = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("aquamarine")!];
-    await bb.missions.submit(solver, await convFor(), triangle.map((p) => p.gameId).join(" "));
-    const fresh = byGem.get("peridot")!;
+    const pair = [byGem.get("peridot")!, byGem.get("topaz")!];
+    await bb.missions.submit(solver, await convFor(), pair.map((p) => p.gameId).join(" "));
+    const fresh = byGem.get("garnet")!;
     await bb.missions.submit(solver, await convFor(), `${fresh.secretWord} ${fresh.gameId}`);
     for (const riddle of riddlesForParticipant(solver.gameId)) {
       await bb.missions.submit(solver, await convFor(), riddle.answers[0]);

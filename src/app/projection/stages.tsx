@@ -172,7 +172,7 @@ const QUEST_META: Record<QuestId, { title: string; accent: SceneAccent; hint: st
   color: {
     title: "Color Quest",
     accent: "helio",
-    hint: "Find three guests whose colors form a triangle, then text their game IDs.",
+    hint: "Find two other guests so your three colors form a triangle, then text their game IDs.",
   },
   word: {
     title: "Word Quest",

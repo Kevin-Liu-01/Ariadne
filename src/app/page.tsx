@@ -1,7 +1,7 @@
 import { ArrowRight, BookOpen, Disc3, KeyRound, LayoutGrid, MessageSquare, MonitorPlay, Music, Palette, Puzzle, SlidersHorizontal, Target, Users, Wine } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { DRINK_MENU } from "@/constants/drinks";
+import { DRINK_MENU, type MenuItem } from "@/constants/drinks";
 import { PRODUCT_NAME, VENUE } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import { MISSIONS } from "@/constants/missions";
@@ -75,7 +75,7 @@ const QUEST_PRESENTATION: Record<string, { Icon: LucideIcon; blurb: string }> = 
   },
 };
 
-const COCKTAILS = DRINK_MENU.filter((d) => d.category === "cocktail" && d.available);
+const COCKTAILS: MenuItem[] = DRINK_MENU.filter((d) => d.category === "cocktail" && d.available);
 
 export default function Home() {
   const phone = env.agentphone.phoneNumber;
@@ -194,8 +194,8 @@ export default function Home() {
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-ash">
             Everyone gets a color at check-in. We never say why. Each gem is a hue on the color
-            wheel; find three guests whose colors form a triangle, all primaries or all secondaries,
-            to solve the constellation.
+            wheel; find two more guests so your three colors form a triangle, all primaries or all
+            secondaries, to solve the constellation.
           </p>
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {Object.values(GEMS).map((gem) => (
@@ -305,7 +305,9 @@ export default function Home() {
                 {COCKTAILS.map((d) => (
                   <div key={d.id} className="border border-nyx-line/70 bg-nyx px-3 py-4 text-center">
                     <p className="text-sm text-cloud">{d.label}</p>
-                    <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-ash">signature</p>
+                    {d.ingredients ? (
+                      <p className="mt-1 text-[11px] leading-relaxed text-ash">{d.ingredients}</p>
+                    ) : null}
                   </div>
                 ))}
               </div>

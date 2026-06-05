@@ -17,9 +17,9 @@ const PRIMARY: readonly WheelHue[] = ["red", "yellow", "blue"];
 const SECONDARY: readonly WheelHue[] = ["purple", "green", "orange"];
 
 /**
- * True when exactly three guests each have a different hue and those hues are
- * either all three primaries (red, yellow, blue) or all three secondaries
- * (purple, green, orange): a triangle on the color wheel.
+ * True when exactly three gems (in play, the solver's own plus two others) each
+ * have a different hue and those hues are either all three primaries (red, yellow,
+ * blue) or all three secondaries (purple, green, orange): a triangle on the wheel.
  */
 export function isValidColorTriangle(gems: readonly GemId[]): boolean {
   if (gems.length !== 3) return false;

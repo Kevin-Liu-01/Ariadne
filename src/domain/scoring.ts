@@ -7,7 +7,7 @@
  *   many already finished it) earns a decaying bonus, so the first solvers earn
  *   the most and late solvers still get the floor.
  * - uniqueness: a per-partner bonus for each distinct guest you successfully team
- *   with (the color quest names three, the word quest one). Partners never repeat
+ *   with (the color quest names two, the word quest one). Partners never repeat
  *   across quests (the duplicate-partner guard), so every one is someone new.
  */
 

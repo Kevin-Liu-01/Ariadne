@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { DRINK_MENU } from "@/constants/drinks";
+import { DRINK_MENU, type MenuItem } from "@/constants/drinks";
 import { EVENT_NAME, PRODUCT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/event";
 import { GEMS, type GemId } from "@/constants/gems";
 import { MISSIONS } from "@/constants/missions";
@@ -63,7 +63,7 @@ const GEM_TRIOS: { label: string; hint: string; ids: readonly GemId[] }[] = [
   { label: "Secondary triangle", hint: "purple · green · orange", ids: ["amethyst", "peridot", "topaz"] },
 ];
 
-const COCKTAILS = DRINK_MENU.filter((d) => d.category === "cocktail" && d.available);
+const COCKTAILS: MenuItem[] = DRINK_MENU.filter((d) => d.category === "cocktail" && d.available);
 
 export default function PlayPage() {
   const phone = env.agentphone.phoneNumber;
@@ -288,6 +288,9 @@ export default function PlayPage() {
             {COCKTAILS.map((d) => (
               <div key={d.id} className="border border-nyx-line/70 bg-nyx px-3 py-4 text-center">
                 <p className="text-sm text-cloud">{d.label}</p>
+                {d.ingredients ? (
+                  <p className="mt-1 text-[11px] leading-relaxed text-ash">{d.ingredients}</p>
+                ) : null}
                 <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-helio">on the house</p>
               </div>
             ))}

@@ -4,12 +4,16 @@
  * (lowercased, punctuation-stripped contains-match).
  */
 
+import { BULLET } from "@/constants/format";
+
 export interface MenuItem {
   readonly id: string;
   readonly label: string;
   readonly aliases: readonly string[];
   readonly category: "cocktail" | "wine" | "beer" | "zero_proof";
   readonly available: boolean;
+  /** What a signature cocktail is made of, shown on the menu. Cocktails only. */
+  readonly ingredients?: string;
 }
 
 export const DRINK_MENU = [
@@ -21,9 +25,9 @@ export const DRINK_MENU = [
   { id: "sparkling_water", label: "Sparkling Water", aliases: ["sparkling water", "sparkling", "bubbly water", "soda water", "club soda"], category: "zero_proof", available: true },
   { id: "still_water", label: "Still Water", aliases: ["still water", "water", "h2o"], category: "zero_proof", available: true },
   { id: "red_bull", label: "Red Bull", aliases: ["red bull", "redbull", "energy drink"], category: "zero_proof", available: true },
-  { id: "machina_mule", label: "Machina Mule", aliases: ["machina mule", "machina", "mule", "moscow mule"], category: "cocktail", available: true },
-  { id: "margaraita", label: "Margar(AI)ta", aliases: ["margaraita", "margarita", "marg", "ai marg"], category: "cocktail", available: true },
-  { id: "cloud_hypervisor_fizz", label: "Cloud Hypervisor Fizz", aliases: ["cloud hypervisor fizz", "cloud fizz", "hypervisor", "fizz"], category: "cocktail", available: true },
+  { id: "machina_mule", label: "Machina Mule", aliases: ["machina mule", "machina", "mule", "moscow mule"], category: "cocktail", available: true, ingredients: "vodka, ginger beer, lime" },
+  { id: "margaraita", label: "Margar(AI)ta", aliases: ["margaraita", "margarita", "marg", "ai marg"], category: "cocktail", available: true, ingredients: "tequila, lime, triple sec" },
+  { id: "cloud_hypervisor_fizz", label: "Cloud Hypervisor Fizz", aliases: ["cloud hypervisor fizz", "cloud fizz", "hypervisor", "fizz"], category: "cocktail", available: true, ingredients: "gin, lemon, soda" },
 ] as const satisfies readonly MenuItem[];
 
 export type MenuItemId = (typeof DRINK_MENU)[number]["id"];
@@ -64,19 +68,37 @@ const CATEGORY_LABELS: Record<MenuItem["category"], string> = {
   zero_proof: "Zero-proof",
 };
 
-/** One-line menu of available items, grouped by category. Injected into the agent's context. */
+/**
+ * The bar menu in two sections, for guests (DRINK command) and the agent's context:
+ * the signature cocktails (one per guest, with what each is made of), then everything
+ * that is unlimited and free at the bar.
+ */
 export function menuSummary(): string {
-  const grouped = new Map<MenuItem["category"], string[]>();
+  const cocktails: readonly MenuItem[] = DRINK_MENU.filter(
+    (d) => d.available && d.category === "cocktail",
+  );
+  const specials = cocktails.map(
+    (d) => `${BULLET}${d.label}${d.ingredients ? ` (${d.ingredients})` : ""}`,
+  );
+
+  const unlimited = new Map<MenuItem["category"], string[]>();
   for (const item of DRINK_MENU) {
-    if (!item.available) continue;
-    const list = grouped.get(item.category) ?? [];
+    if (!item.available || item.category === "cocktail") continue;
+    const list = unlimited.get(item.category) ?? [];
     list.push(item.label);
-    grouped.set(item.category, list);
+    unlimited.set(item.category, list);
   }
-  return (["cocktail", "wine", "beer", "zero_proof"] as const)
-    .filter((c) => grouped.has(c))
-    .map((c) => `${CATEGORY_LABELS[c]}: ${grouped.get(c)?.join(", ")}`)
-    .join(" · ");
+  const unlimitedLines = (["beer", "wine", "zero_proof"] as const)
+    .filter((c) => unlimited.has(c))
+    .map((c) => `${BULLET}${CATEGORY_LABELS[c]}: ${unlimited.get(c)?.join(", ")}`);
+
+  return [
+    "Signature cocktails (one per guest):",
+    ...specials,
+    "",
+    "Unlimited and free at the bar:",
+    ...unlimitedLines,
+  ].join("\n");
 }
 
 /** Common modifiers we recognize in free text and echo back to the bar. */

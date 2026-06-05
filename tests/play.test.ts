@@ -31,7 +31,7 @@ async function setScene(bb: Backbone, scene: string): Promise<void> {
   await bb.projection.emit("scene.changed", { scene });
 }
 
-/** Six check-ins assign all six distinct gems; amethyst (a secondary) solves the color triangle. */
+/** Six check-ins assign all six distinct gems; amethyst (purple) solves with two others (green+orange). */
 async function room(bb: Backbone): Promise<{ byGem: Map<GemId, Participant>; solver: Participant }> {
   const guests: Participant[] = [];
   for (let i = 1; i <= 6; i += 1) {
@@ -122,9 +122,9 @@ describe("player actions mirror the text path", () => {
     expect(song?.status).toBe("queued");
     expect((await bb.player.me(solver.id))?.song?.text).toBe("One More Time");
 
-    // Mission -> deterministic color solve, scored identically to the text path.
-    const triangle = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("aquamarine")!];
-    const mission = await bb.player.submitMission(solver.id, triangle.map((p) => p.gameId).join(" "));
+    // Mission -> deterministic color solve (you + two others), scored like the text path.
+    const pair = [byGem.get("peridot")!, byGem.get("topaz")!];
+    const mission = await bb.player.submitMission(solver.id, pair.map((p) => p.gameId).join(" "));
     expect(mission?.result).toBe("correct");
     expect((await bb.repos.participants.findById(solver.id))?.score ?? 0).toBeGreaterThan(0);
     const afterMission = await bb.player.me(solver.id);
