@@ -363,7 +363,7 @@ export class AgentBrain {
 
   private grounding(participant: Participant | null, conversation: Conversation): string {
     if (!participant) {
-      return `${PROMPT_INJECTION_GUARD}\nCURRENT GUEST: not checked in. Welcome them to Dedalus ${EVENT_NAME}. Ask for first name, then signup email (waitlist). Call check_in as you collect each. If not_on_list, say the email is not on tonight's list. After check-in they wait for staff to start the game; there is no code to enter.`;
+      return `${PROMPT_INJECTION_GUARD}\nCURRENT GUEST: not checked in. Welcome them to Dedalus ${EVENT_NAME}. Ask for first name, then signup email (list). Call check_in as you collect each. If not_on_list, say the email is not on tonight's list. After check-in they wait for staff to start the game; there is no code to enter.`;
     }
     const nameLine = participant.displayName
       ? ` Name: ${participant.displayName}.`

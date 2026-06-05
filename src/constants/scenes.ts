@@ -25,7 +25,7 @@ export interface Scene {
 export const SCENES = [
   {
     id: "arrival",
-    note: "Doors open. Guests check in by text (name, then waitlist email) and wait. The board shows the join line and who has checked in. Gameplay opens when you pick 'game'.",
+    note: "Doors open. Guests check in by text (name, then list email) and wait. The board shows the join line and who has checked in. Gameplay opens when you pick 'game'.",
     headline: "Doors are open",
     tagline: "Check in by text. The game begins when the room is ready.",
     accent: "aquamarine",

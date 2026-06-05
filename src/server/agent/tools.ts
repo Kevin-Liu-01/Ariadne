@@ -151,7 +151,7 @@ const checkIn: Tool = {
     function: {
       name: "check_in",
       description:
-        "Start a guest's game: assigns their color gem, secret word, game id, and first quest. Check-in is two steps: first their first name, then the email they signed up with (must be on the waitlist). Call this as soon as you have either; it returns needs_name or needs_email to tell you what to ask next. Once you have both, pass the name AND the email together.",
+        "Start a guest's game: assigns their color gem, secret word, game id, and first quest. Check-in is two steps: first their first name, then the email they signed up with (must be on the list). Call this as soon as you have either; it returns needs_name or needs_email to tell you what to ask next. Once you have both, pass the name AND the email together.",
       parameters: {
         type: "object",
         properties: {
