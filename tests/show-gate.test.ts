@@ -67,8 +67,10 @@ async function setScene(bb: Backbone, scene: string): Promise<void> {
 }
 
 describe("gameplayAllowed predicate", () => {
-  it("opens for game, finale, and runway only", () => {
+  it("opens once the game is live (game, visuals, finale, runway) and locks before it", () => {
     expect(gameplayAllowed("game")).toBe(true);
+    // The ambient visuals break sits mid-show, so the bar and DJ stay open through it.
+    expect(gameplayAllowed("visuals")).toBe(true);
     expect(gameplayAllowed("finale")).toBe(true);
     expect(gameplayAllowed("runway")).toBe(true);
     expect(gameplayAllowed("arrival")).toBe(false);

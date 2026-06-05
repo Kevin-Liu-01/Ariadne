@@ -103,4 +103,18 @@ describe("AnnouncementService.broadcastScene", () => {
     expect(result.recipients).toBe(0);
     expect(sent).toHaveLength(0);
   });
+
+  it("stays silent when the board switches to the ambient visuals break", async () => {
+    const bb = await freshBackbone();
+    await checkIn(bb, "+1000000001", "Aria");
+
+    const sent: string[] = [];
+    const result = await bb.announcements.broadcastScene("visuals", async (phone) => {
+      sent.push(phone);
+      return true;
+    });
+
+    expect(result.recipients).toBe(0);
+    expect(sent).toHaveLength(0);
+  });
 });

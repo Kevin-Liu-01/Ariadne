@@ -1,5 +1,6 @@
-/** Scenes where quests, drinks, and song requests are allowed (once the game starts). */
-export const GAMEPLAY_SCENES = new Set(["game", "runway", "finale"]);
+/** Scenes where quests, drinks, and song requests are allowed (once the game starts).
+ *  Includes the mid-show "visuals" break so the bar and DJ stay open through it. */
+export const GAMEPLAY_SCENES = new Set(["game", "visuals", "runway", "finale"]);
 
 export function gameplayAllowed(scene: string): boolean {
   return GAMEPLAY_SCENES.has(scene);

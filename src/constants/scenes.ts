@@ -45,6 +45,13 @@ export const SCENES = [
     accent: "helio",
   },
   {
+    id: "visuals",
+    note: "Ambient shader visuals take over the board. The scenes crossfade on a timer and breathe with the room's music (mic). A vibe break before you crown the winners; the bar and DJ stay open.",
+    headline: "Ambient visuals",
+    tagline: "The room is the canvas.",
+    accent: "aquamarine",
+  },
+  {
     id: "finale",
     note: "Winners crowned. Board raises a podium for the top three and celebrates the night.",
     headline: "Winners of the night",

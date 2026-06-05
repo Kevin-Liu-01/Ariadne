@@ -157,7 +157,8 @@ describe("operator recommendations", () => {
   it("nextScene advances through the run of show and wraps", () => {
     expect(nextScene("arrival")).toBe("opening");
     expect(nextScene("opening")).toBe("game");
-    expect(nextScene("game")).toBe("finale");
+    expect(nextScene("game")).toBe("visuals");
+    expect(nextScene("visuals")).toBe("finale");
     expect(nextScene(SCENE_IDS[SCENE_IDS.length - 1])).toBe(SCENE_IDS[0]);
     expect(nextScene("not-a-scene")).toBe(SCENE_IDS[0]);
   });

@@ -10,6 +10,7 @@ import { RunwayWordmark } from "@/components/runway-wordmark";
 import { ShaderBackdrop } from "@/components/shader-backdrop";
 import type { BoardView } from "@/app/projection/board-parts";
 import { BoardStage } from "@/app/projection/stages";
+import { VisualsScreen } from "@/app/visuals/visuals-screen";
 import type { ProjectionSnapshot, TileState } from "@/domain/projection";
 import { projectionGameplayActive } from "@/domain/projection-gameplay";
 import type { ProjectionEvent } from "@/domain/types";
@@ -206,6 +207,8 @@ export default function ProjectionPage() {
 
   const activeCount = ordered.filter((t) => !t.eliminated).length;
   const activeScene = previewScene ?? scene;
+  // The visuals scene hands the whole board to the ambient shader screen: no chrome, no tiles.
+  if (activeScene === "visuals") return <VisualsScreen />;
   const meta = sceneMeta(activeScene);
   const backdrop = SCENE_BACKDROP[activeScene] ?? SCENE_BACKDROP.game;
   const view: BoardView = {

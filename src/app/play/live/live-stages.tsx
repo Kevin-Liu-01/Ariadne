@@ -62,14 +62,14 @@ function WaitingStage({ view }: { view: PlayerView }) {
   );
 }
 
-/** Runway: calm and cinematic, eyes on the room, with the bar and DJ still open. */
-function RunwayStage({ view, act, busy }: StageProps) {
+/** Calm cinematic interlude (runway / visuals): eyes on the room, with the bar and DJ still open. */
+function CalmInterludeStage({ view, act, busy, line }: StageProps & { line: string }) {
   const p = view.participant;
   return (
     <div className="flex w-full max-w-md flex-col items-center gap-6 text-center animate-rise">
       <LabyrinthThread size={92} animate />
       <RunwayWordmark size="hero" />
-      <p className="text-base leading-relaxed text-cloud/80">Eyes up. The room is yours.</p>
+      <p className="text-base leading-relaxed text-cloud/80">{line}</p>
       <div className="flex items-center gap-3 border border-nyx-line/60 bg-nyx-soft/50 px-4 py-2.5">
         <GemIcon gem={p.gem} size={22} />
         <span className="text-sm text-cloud">{p.gemLabel}</span>
@@ -123,8 +123,10 @@ export function LiveStage({ view, act, busy }: StageProps) {
   switch (view.scene) {
     case "game":
       return <GameConsole view={view} act={act} busy={busy} />;
+    case "visuals":
+      return <CalmInterludeStage view={view} act={act} busy={busy} line="Look up. The room is the canvas." />;
     case "runway":
-      return <RunwayStage view={view} act={act} busy={busy} />;
+      return <CalmInterludeStage view={view} act={act} busy={busy} line="Eyes up. The room is yours." />;
     case "finale":
       return <FinaleStage view={view} />;
     default:

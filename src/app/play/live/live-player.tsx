@@ -14,6 +14,7 @@ const SCENE_BACKDROP: Record<string, { scene: string; className: string }> = {
   arrival: { scene: "Soft Register", className: "opacity-[0.22]" },
   opening: { scene: "Fluid Chrome", className: "opacity-[0.2]" },
   game: { scene: "Soft Register", className: "opacity-[0.08]" },
+  visuals: { scene: "Spectral Bloom", className: "opacity-[0.3]" },
   finale: { scene: "Spectral Bloom", className: "opacity-[0.16]" },
   runway: { scene: "Dedalus Bloom", className: "opacity-[0.26]" },
 };
