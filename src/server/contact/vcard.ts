@@ -1,7 +1,18 @@
-import { CONTACT_NAME, EVENT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/event";
+import {
+  CONTACT_FIRST_NAME,
+  CONTACT_LAST_NAME,
+  CONTACT_NAME,
+  EVENT_NAME,
+  PRODUCT_TAGLINE,
+  VENUE,
+} from "@/constants/event";
 
 export interface VcardInput {
   displayName: string;
+  /** Given (first) name for the structured N. Falls back to splitting displayName. */
+  givenName?: string;
+  /** Family (last) name for the structured N. Falls back to splitting displayName. */
+  familyName?: string;
   phone: string;
   organization: string;
   title: string;
@@ -35,16 +46,17 @@ function property(key: string, value: string): string {
 }
 
 /**
- * Structured N derived from the display name: the last whitespace token is the
- * family name, the rest is the given name ("Ariadne Agent" -> N:Agent;Ariadne;;;).
- * The four ";" component separators are structural and stay raw; only the values
- * are escaped. iOS needs a valid N to treat the card as a person -- with an ORG
- * and no N it renders a company card (org as the name, blank circular avatar).
+ * Structured N for the card. Prefers explicit given/family names; otherwise falls
+ * back to splitting the display name (last whitespace token is the family name, the
+ * rest is the given name, so "Ariadne Agent" -> N:Agent;Ariadne;;;). The four ";"
+ * component separators are structural and stay raw; only the values are escaped. iOS
+ * needs a valid N to treat the card as a person -- with an ORG and no N it renders a
+ * company card (org as the name, blank circular avatar).
  */
-function structuredNameLine(displayName: string): string {
-  const tokens = displayName.trim().split(/\s+/);
-  const family = tokens.length > 1 ? tokens[tokens.length - 1] : "";
-  const given = tokens.length > 1 ? tokens.slice(0, -1).join(" ") : displayName.trim();
+function structuredNameLine(input: VcardInput): string {
+  const tokens = input.displayName.trim().split(/\s+/);
+  const family = input.familyName ?? (tokens.length > 1 ? tokens[tokens.length - 1] : "");
+  const given = input.givenName ?? (tokens.length > 1 ? tokens.slice(0, -1).join(" ") : input.displayName.trim());
   return fold(`N:${escape(family)};${escape(given)};;;`);
 }
 
@@ -73,7 +85,7 @@ export function buildVcard(input: VcardInput): string {
   const lines = [
     "BEGIN:VCARD",
     "VERSION:3.0",
-    structuredNameLine(input.displayName),
+    structuredNameLine(input),
     property("FN", input.displayName),
     property("ORG", input.organization),
     property("TITLE", input.title),
@@ -91,6 +103,8 @@ export function defaultAriadneVcard(phone: string, publicBaseUrl: string, photoP
   const base = publicBaseUrl.replace(/\/$/, "");
   return buildVcard({
     displayName: CONTACT_NAME,
+    givenName: CONTACT_FIRST_NAME,
+    familyName: CONTACT_LAST_NAME,
     phone,
     organization: "Dedalus Labs",
     title: EVENT_NAME,

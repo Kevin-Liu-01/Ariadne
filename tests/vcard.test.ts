@@ -22,6 +22,22 @@ describe("vCard contact identity", () => {
     expect(vcf).not.toContain("\\;");
   });
 
+  it("uses explicit given/family names for the structured N when provided", () => {
+    const vcf = buildVcard({
+      displayName: "Ariadne Agent",
+      givenName: "Ariadne",
+      familyName: "Agent",
+      phone: "+18159970034",
+      organization: "Dedalus Labs",
+      title: "Run(way)time",
+      note: "the thread",
+      url: "https://ariadne-runway.vercel.app",
+    });
+    // N is Family;Given;;; -> iOS first name "Ariadne", last name "Agent".
+    expect(vcf).toContain("N:Agent;Ariadne;;;");
+    expect(vcf).toContain("FN:Ariadne Agent");
+  });
+
   it("embeds the labyrinth mark as base64 PNG", () => {
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
     const vcf = buildVcard({
