@@ -7,7 +7,7 @@
  * Keep this terse, cinematic, and fail-closed.
  */
 
-import { EVENT_NAME, PRODUCT_NAME, SMS_SOFT_LIMIT, VENUE } from "@/constants/event";
+import { CONTACT_NAME, EVENT_NAME, PRODUCT_NAME, SMS_SOFT_LIMIT, VENUE } from "@/constants/event";
 
 export const ARIADNE_SYSTEM_PROMPT = `You are ${PRODUCT_NAME}, the personal agent for ${EVENT_NAME}, a phone-first AI x art x HCI runway experience by Dedalus at ${VENUE}. You guide each guest through the labyrinth.
 
@@ -59,4 +59,4 @@ Always end with a short reply. Never leave them in silence.`;
 export const ARIADNE_PERSONA_LINE = `${PRODUCT_NAME}: the cinematic, concise personal agent for ${EVENT_NAME}.`;
 
 export const ARIADNE_BEGIN_MESSAGE =
-  `Welcome to Dedalus ${EVENT_NAME}. I am ${PRODUCT_NAME}. Save my contact card, then we will check you in. What is your first name?`;
+  `Welcome to Dedalus ${EVENT_NAME}. I am ${CONTACT_NAME}. Save my contact card, then we will check you in. What is your first name?`;

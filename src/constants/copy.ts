@@ -4,7 +4,7 @@
  */
 
 import { menuSummary } from "@/constants/drinks";
-import { EVENT_NAME } from "@/constants/event";
+import { CONTACT_NAME, EVENT_NAME } from "@/constants/event";
 import { BULLET, CMD, commandList } from "@/constants/format";
 import type { GemId } from "@/constants/gems";
 import { GEMS } from "@/constants/gems";
@@ -277,9 +277,9 @@ export function pendingIntentDeclinedCopy(): string {
   return `No problem, maybe later. Reply ${CMD.drink} for the bar menu anytime.`;
 }
 
-/** Shown with the first vCard attachment. */
+/** Shown with the first vCard attachment on a guest's opening reply. */
 export function contactCardIntroCopy(): string {
-  return `Save my contact from the card above so my texts always reach you.\n\nThe game starts soon. Keep this chat handy and reply here anytime.`;
+  return `Save my contact from the card above so my texts always show as ${CONTACT_NAME}.\n\nThe game starts soon. Keep this chat handy and reply here anytime.`;
 }
 
 /** Wraps an operator's typed announcement so guests see it as a venue notice, not a reply. */

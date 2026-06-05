@@ -77,6 +77,18 @@ const GEM = {
 const LOGO_SDF = "/brand/dedalus-logo-sdf.bin";
 
 /**
+ * The two colors the mark's liquid-glass swirl marbles between, chosen per scene so the
+ * wings always contrast the view (over the purple/white Fluid Chrome they'd vanish in
+ * brand colors, so that scene hands the mark a warm hue instead). `a` is the body/rim
+ * tint, `b` the light/highlight end.
+ */
+interface LogoColors {
+  a: string;
+  b: string;
+}
+const DEFAULT_LOGO: LogoColors = { a: BRAND.amethyst, b: BRAND.cloud };
+
+/**
  * The Dedalus mark, carved as 3D "liquid glass." The wing SDF shapes the glass, and
  * instead of a flat fill it refracts a flowing amethyst->cloud swirl warped by a flow
  * field (the shaders.com chrome recipe), so each feather marbles with purple and white
@@ -85,7 +97,7 @@ const LOGO_SDF = "/brand/dedalus-logo-sdf.bin";
  * so the scene shows around them. Refraction, aberration, and the flow speeds ride the
  * music; a soft fresnel rim + specular glint keep the raised 3D read. Pulses on the beat.
  */
-function logoEffect(a: AudioLevels): ReactNode {
+function logoEffect(a: AudioLevels, colors: LogoColors = DEFAULT_LOGO): ReactNode {
   return (
     <Glass
       shapeSdfUrl={LOGO_SDF}
@@ -95,20 +107,20 @@ function logoEffect(a: AudioLevels): ReactNode {
       edgeSoftness={0.18}
       refraction={1.1 + a.bass * 0.5 + a.beat * 0.7}
       thickness={0.72 + a.beat * 0.35}
-      tintColor={BRAND.helio}
-      tintIntensity={0.1}
+      tintColor={colors.a}
+      tintIntensity={0.12}
       fresnel={0.12 + a.beat * 0.5}
       fresnelSoftness={0.2}
-      fresnelColor={BRAND.helio}
+      fresnelColor={colors.b}
       highlight={0.45 + a.beat * 0.3}
-      highlightColor={BRAND.cloud}
+      highlightColor={colors.b}
       highlightSoftness={0.18}
       lightAngle={300}
     >
       <Swirl
         blend={56}
-        colorA={BRAND.amethyst}
-        colorB={BRAND.cloud}
+        colorA={colors.a}
+        colorB={colors.b}
         colorSpace="oklab"
         detail={4.2}
         speed={0.1 + a.level * 0.8 + a.beat * 0.4}
@@ -127,6 +139,8 @@ export interface Scene {
   name: string;
   /** The full-screen shader stack, WITHOUT the Dedalus mark (see `renderScene`). */
   background: (a: AudioLevels) => ReactNode;
+  /** Liquid-glass swirl colors for the mark over this scene, picked to contrast it. */
+  logo?: LogoColors;
 }
 
 /**
@@ -138,7 +152,7 @@ export function renderScene(scene: Scene, a: AudioLevels, withLogo = true): Reac
   return (
     <>
       {scene.background(a)}
-      {withLogo ? logoEffect(a) : null}
+      {withLogo ? logoEffect(a, scene.logo) : null}
     </>
   );
 }
@@ -361,16 +375,18 @@ function dedalusBloom(a: AudioLevels): ReactNode {
 }
 
 export const SCENES: Scene[] = [
-  { name: "Pixel Beams", background: pixelBeams },
-  { name: "Soft Register", background: softRegister },
-  { name: "Spectral Bloom", background: spectralBloom },
-  { name: "Pistons", background: pistons },
-  { name: "Fluid Chrome", background: fluidChrome },
-  { name: "Chroma Flow", background: chromaFlow },
-  { name: "Drift", background: drift },
-  { name: "Mosaic", background: mosaic },
-  { name: "Circuit", background: circuit },
-  { name: "Dedalus Bloom", background: dedalusBloom },
+  // Each scene hands the mark a swirl palette that pops against its own colors: warm
+  // hues over the cool/purple scenes, a bright pair over the dark ones, cool over gold.
+  { name: "Pixel Beams", background: pixelBeams, logo: { a: GEM.moonstone, b: BRAND.cloud } },
+  { name: "Soft Register", background: softRegister, logo: { a: GEM.topaz, b: BRAND.cloud } },
+  { name: "Spectral Bloom", background: spectralBloom, logo: { a: GEM.peridot, b: BRAND.cloud } },
+  { name: "Pistons", background: pistons, logo: { a: BRAND.helio, b: BRAND.cloud } },
+  { name: "Fluid Chrome", background: fluidChrome, logo: { a: GEM.moonstone, b: GEM.topaz } },
+  { name: "Chroma Flow", background: chromaFlow, logo: { a: BRAND.cloud, b: BRAND.helio } },
+  { name: "Drift", background: drift, logo: { a: GEM.topaz, b: GEM.moonstone } },
+  { name: "Mosaic", background: mosaic, logo: { a: GEM.moonstone, b: BRAND.cloud } },
+  { name: "Circuit", background: circuit, logo: { a: GEM.aquamarine, b: BRAND.cloud } },
+  { name: "Dedalus Bloom", background: dedalusBloom, logo: { a: GEM.garnet, b: BRAND.cloud } },
 ];
 
 /** Scene lookup by name, for projection backdrops that pick a specific ambient look. */

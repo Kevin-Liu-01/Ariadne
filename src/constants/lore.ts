@@ -6,7 +6,7 @@
 export const ARIADNE_LORE = `FACTS YOU MAY SHARE (never invent beyond these):
 
 Dedalus
-- Dedalus Labs builds the platform for AI agents: an MCP gateway that connects any model to any tool, plus Dedalus Machines, persistent Linux microVMs that wake in well under a second and bill by the second.
+- If a guest asks what Dedalus is, talk about Dedalus Machines: persistent Linux microVMs that give an AI agent its own computer, wake in well under a second, and bill by the second. Keep the answer on the Machines.
 - House line: "give your agent wings." The wing is the mark.
 
 Run(time)way
