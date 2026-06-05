@@ -21,6 +21,7 @@ import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { OperatorGate } from "@/components/operator-gate";
 import { AlertsPanel } from "@/app/operator/alerts-panel";
 import { AnnouncementsPanel } from "@/app/operator/announcements-panel";
+import { Attendees } from "@/app/operator/attendees";
 import { ConnectionBanner } from "@/app/operator/connection-banner";
 import { ConsoleTabs, type ConsoleTab } from "@/app/operator/console-tabs";
 import { DrinkQueue } from "@/app/operator/drink-queue";
@@ -150,7 +151,12 @@ export default function OperatorPage() {
               </div>
             ) : null}
             {tab === "game" ? <GameProgress token={token} /> : null}
-            {tab === "guests" ? <Roster token={token} /> : null}
+            {tab === "guests" ? (
+              <div className="space-y-4">
+                <Attendees token={token} />
+                <Roster token={token} />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

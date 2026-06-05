@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { EVENT_NAME } from "@/constants/event";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { authedFetch, type OperatorDoorEntry } from "@/app/operator/api";
+import { filterDoorEntries } from "@/app/operator/door-entries";
 import { cn } from "@/lib/utils";
 
 /** Door roster for guards: search a waitlist email, see if they are approved and checked in. */
@@ -34,13 +35,7 @@ export function DoorBoard({ token, onLock }: { token: string; onLock: () => void
     return () => clearInterval(t);
   }, [refresh]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return entries;
-    return entries.filter(
-      (e) => e.email.includes(q) || (e.name ?? "").toLowerCase().includes(q) || (e.gameId ?? "").toLowerCase().includes(q),
-    );
-  }, [entries, query]);
+  const filtered = useMemo(() => filterDoorEntries(entries, query), [entries, query]);
 
   return (
     <main className="relative flex min-h-dvh flex-col bg-nyx scanlines">
