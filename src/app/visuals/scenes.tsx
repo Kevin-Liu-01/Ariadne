@@ -217,7 +217,7 @@ function spectralBloom(a: AudioLevels): ReactNode {
   return (
     <>
       {/* Invisible driver: its alpha shapes the ColorWheel zoom below, and it breathes with
-          the room — the kick swells the rays (radius) and sharpens them (feather) so the
+          the room: the kick swells the rays (radius) and sharpens them (feather) so the
           spectral fans punch outward on every hit. */}
       <SunBurst
         id={SPECTRAL_BURST}
