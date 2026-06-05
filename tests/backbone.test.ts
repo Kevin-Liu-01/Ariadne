@@ -85,7 +85,7 @@ describe("backbone services (deterministic core)", () => {
     expect((await bb.repos.participants.findById(dana.id))?.score).toBe(0);
   });
 
-  it("is idempotent on the partner-event id", async () => {
+  it("claims a partner event once and recovers only a failed attempt", async () => {
     const bb = await freshBackbone();
     const e = {
       id: "pe_1",
@@ -98,8 +98,17 @@ describe("backbone services (deterministic core)", () => {
       status: "received" as const,
       createdAt: new Date().toISOString(),
     };
-    expect(await bb.repos.partnerEvents.recordOnce(e)).toBe(true);
-    expect(await bb.repos.partnerEvents.recordOnce({ ...e, id: "pe_2" })).toBe(false);
+    // First delivery is claimed; a duplicate while the turn is in-flight (received)
+    // is dropped, so a racing retry can never double-reply.
+    expect(await bb.repos.partnerEvents.claim(e)).toBe("claimed");
+    expect(await bb.repos.partnerEvents.claim({ ...e, id: "pe_2" })).toBe("duplicate");
+    // A completed turn stays a duplicate forever — the processed commit is what makes
+    // idempotency permanent, and it is written only after the reply is sent.
+    await bb.repos.partnerEvents.markStatus("dup_1", "processed");
+    expect(await bb.repos.partnerEvents.claim({ ...e, id: "pe_3" })).toBe("duplicate");
+    // But a failed attempt is re-claimable, so an AgentPhone retry recovers the turn.
+    await bb.repos.partnerEvents.markStatus("dup_1", "error");
+    expect(await bb.repos.partnerEvents.claim({ ...e, id: "pe_4" })).toBe("claimed");
   });
 
   it("claims the contact-card / welcome-image send at most once (no duplicate onboarding)", async () => {

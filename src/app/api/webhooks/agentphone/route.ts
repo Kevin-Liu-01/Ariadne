@@ -1,11 +1,10 @@
+import { after } from "next/server";
 import { env } from "@/lib/env";
 import { newId } from "@/domain/ids";
 import { now } from "@/lib/time";
-import type { BrainReply } from "@/server/agent/brain";
 import { getBackbone } from "@/server/backbone";
 import type { Backbone } from "@/server/backbone";
-import { deliverGuestReply } from "@/server/partners/agentphone/contact-card";
-import { mirrorConversation } from "@/server/partners/agentphone/outbound";
+import { processInboundText } from "@/server/partners/agentphone/inbound";
 import { normalizeAgentphone } from "@/server/partners/agentphone/normalize";
 import type { AgentphoneWebhookBody } from "@/server/partners/agentphone/types";
 import { verifyAgentphoneSignature } from "@/server/partners/agentphone/verify";
@@ -14,8 +13,8 @@ import type { InteractionEvent } from "@/domain/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// The brain makes (possibly multi-step) gateway calls; give it room beyond the
-// default function cap so a slow turn isn't killed mid-flight.
+// We acknowledge within milliseconds and finish the reply in an `after()` task; this
+// cap covers that background work (a cold start plus a multi-step gateway turn).
 export const maxDuration = 60;
 
 export async function POST(req: Request): Promise<Response> {
@@ -41,7 +40,9 @@ export async function POST(req: Request): Promise<Response> {
   const bb = getBackbone();
   const webhookId = headers.id ?? newId("wh");
 
-  const fresh = await bb.repos.partnerEvents.recordOnce({
+  // Claim the delivery (idempotent). A duplicate of an in-flight or completed turn is
+  // dropped; only a prior failed attempt is re-claimed so a retry can recover it.
+  const claim = await bb.repos.partnerEvents.claim({
     id: newId("pe"),
     eventId: bb.eventId,
     provider: "agentphone",
@@ -52,7 +53,7 @@ export async function POST(req: Request): Promise<Response> {
     status: "received",
     createdAt: now(),
   });
-  if (!fresh) return new Response("ok (duplicate)", { status: 200 });
+  if (claim === "duplicate") return new Response("ok (duplicate)", { status: 200 });
 
   const interaction = normalizeAgentphone(body, webhookId);
   if (!interaction) {
@@ -66,29 +67,15 @@ export async function POST(req: Request): Promise<Response> {
     return new Response("ok (rate-limited)", { status: 200 });
   }
 
-  // Voice is synchronous against a ~30s turn timeout; stream an interim chunk
-  // immediately so the caller never hears silence while the brain thinks.
+  // Voice is answered on the open call: stream an interim line, then the spoken reply.
   if (interaction.channel === "voice") {
     return voiceStream(bb, interaction, webhookId);
   }
 
-  let reply: BrainReply;
-  try {
-    reply = await bb.brain.process(interaction);
-    if (reply.participantId) {
-      const guest = await bb.repos.participants.findById(reply.participantId);
-      if (guest) {
-        void bb.projection.emit("participant.messaged", { gameId: guest.gameId });
-      }
-    }
-    await bb.repos.partnerEvents.markStatus(webhookId, "processed");
-  } catch (err) {
-    await bb.repos.partnerEvents.markStatus(webhookId, "error");
-    console.error("[ariadne] brain error", err);
-    return new Response("ok (error logged)", { status: 200 });
-  }
-
-  await deliver(reply, interaction);
+  // Text: acknowledge now, generate + send the reply after responding. The LLM turn
+  // therefore can't exceed AgentPhone's 30s webhook timeout (it would otherwise be
+  // retried or dropped); the reply goes out over their outbound API regardless.
+  after(() => processInboundText(bb, interaction, webhookId));
   return new Response("ok", { status: 200 });
 }
 
@@ -113,19 +100,4 @@ function voiceStream(bb: Backbone, interaction: InteractionEvent, webhookId: str
     },
   });
   return new Response(stream, { headers: { "content-type": "application/x-ndjson" } });
-}
-
-async function deliver(reply: BrainReply, interaction: InteractionEvent): Promise<void> {
-  await deliverGuestReply(interaction.from, reply.conversationId, reply.text, {
-    forceContactCard: reply.attachContactCard ?? false,
-  });
-  if (interaction.externalConversationId && reply.participantId) {
-    const conversation = await getBackbone().repos.conversations.findById(reply.conversationId);
-    await mirrorConversation(interaction.externalConversationId, {
-      participant_id: reply.participantId,
-      event_id: getBackbone().eventId,
-      current_flow: conversation?.currentFlow ?? null,
-      current_mission_id: conversation?.currentMissionId ?? null,
-    });
-  }
 }
