@@ -22,7 +22,7 @@ import {
 } from "@/constants/copy";
 import type { InboundChannel } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
-import { gameplayAllowed } from "@/constants/show-gate";
+import { gameplayAllowed, runOfShowCopy } from "@/constants/show-gate";
 import { assertNever } from "@/lib/assert";
 import { extractEmail, isEmail, normalizeEmail } from "@/domain/email";
 import { cleanDisplayName } from "@/domain/profanity";
@@ -145,6 +145,18 @@ async function resolve(
 }
 
 const NOT_CHECKED_IN = { error: "guest_not_checked_in", hint: "call check_in first" };
+
+/**
+ * Gameplay (quests, drinks, songs) opens with the run-of-show scene, not the
+ * model's judgment. Returns a locked result to hand back verbatim when the game
+ * has not started, or null when play is open. Mirrors the web Live Player gate so
+ * both surfaces fail closed identically regardless of which scene is live.
+ */
+async function gameplayLock(ctx: ToolContext): Promise<ToolResult | null> {
+  const scene = await ctx.projection.scene();
+  if (gameplayAllowed(scene)) return null;
+  return { status: "locked", say: runOfShowCopy(scene) };
+}
 
 const checkIn: Tool = {
   def: {
@@ -286,6 +298,8 @@ const orderDrink: Tool = {
       });
       return NOT_CHECKED_IN;
     }
+    const locked = await gameplayLock(ctx);
+    if (locked) return locked;
     const outcome = await ctx.drinks.createFromText(participant, conversation.id, text);
     return { status: outcome.kind, say: drinkOutcomeSay(outcome) };
   },
@@ -310,6 +324,8 @@ const answerMission: Tool = {
   execute: async (args, ctx) => {
     const { conversation, participant } = await resolve(ctx);
     if (!participant) return NOT_CHECKED_IN;
+    const locked = await gameplayLock(ctx);
+    if (locked) return locked;
     const text = pickText(args, ["text", "answer", "response", "guess", "request"]) || ctx.userText;
     const outcome = await ctx.missions.submit(participant, conversation, text);
     switch (outcome.kind) {
@@ -444,6 +460,8 @@ const queueSong: Tool = {
       });
       return NOT_CHECKED_IN;
     }
+    const locked = await gameplayLock(ctx);
+    if (locked) return locked;
     if (!song) {
       return { status: "clarify", say: "Which song? Reply with a title or artist and I'll send it to the DJ." };
     }

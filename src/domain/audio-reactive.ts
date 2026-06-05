@@ -33,6 +33,26 @@ export interface RawBands {
   treble: number;
 }
 
+/** Software-AGC tuning for one band (see {@link AdaptiveNormalizer}). */
+export interface NormalizeConfig {
+  attackHalfLife: number;
+  peakHalfLife: number;
+  floor: number;
+  minSpan: number;
+  ceil: number;
+}
+
+/** Onset detector tuning. The same shape powers the kick (bass) and the hi-hat (treble). */
+export interface OnsetConfig {
+  floor: number;
+  margin: number;
+  referenceHalfLife: number;
+  refractoryMs: number;
+  strengthBase: number;
+  strengthGain: number;
+  maxStrength: number;
+}
+
 /** Tuning for the whole reactive pipeline, in one place so the feel is easy to dial. */
 export const AUDIO_REACTIVE = {
   /** A room mic hears music quieter than a line feed, so lift each raw band. */
@@ -86,6 +106,55 @@ export const AUDIO_REACTIVE = {
     strengthGain: 2.2,
     maxStrength: 2.1,
   },
+  /**
+   * Hi-hat / snare onset on the TREBLE band, run through the same OnsetDetector as the
+   * kick. Highs are fast and frequent, so this fires on a smaller margin, recovers
+   * quicker (short reference + refractory), and pops a touch softer than the kick. It
+   * gives the scenes a second, independent trigger for the top of the spectrum (sparkle,
+   * grain, dot density) so the highs drive their own visual components, not just the kick.
+   */
+  onsetHat: {
+    floor: 0.16,
+    margin: 0.07,
+    referenceHalfLife: 0.045,
+    refractoryMs: 70,
+    strengthBase: 0.7,
+    strengthGain: 1.6,
+    maxStrength: 1.8,
+  },
+  /** The hi-hat sparkle pulse eases out faster than the kick (highs are quick, airy). */
+  sparkleRelease: 0.1,
+  /**
+   * Software AGC. A room mic hears each song at a different absolute volume, so a fixed
+   * gain leaves the bands barely swinging at one level and pegged at another. The
+   * normalizer tracks a slowly decaying per-band PEAK and rescales the live value into
+   * [0..ceil], so amplitude tracks the music's own recent dynamics (a drop slams, a
+   * breakdown calms) regardless of how loud the PA is set. This is the single biggest
+   * "responsiveness" win: every band now uses its full visual range every song.
+   */
+  normalize: {
+    /** Half-life of the peak's RISE. Short, but not instant: a sudden accent jumps over
+     *  the still-catching-up peak and so reads past 1 for a frame or two (the punch the
+     *  scenes lean into), then settles to ~1 as the peak catches the new loud level. */
+    attackHalfLife: 0.05,
+    /** Half-life of the peak's DECAY. Long enough to hold a song's loud level, short
+     *  enough that a quiet section relaxes the gain back up within a few bars. */
+    peakHalfLife: 9,
+    /** Energy below this (raw 0..1 band mean) is treated as the noise floor -> maps to 0. */
+    floor: 0.03,
+    /** Never divide by a span tighter than this, so near-silence cannot amplify hiss. */
+    minSpan: 0.06,
+    /** Let a transient punch past 1 (scenes lean into peaks) but not run away. */
+    ceil: 1.35,
+  },
+  /** Spectral centroid (brightness / where the energy sits): drives color in the scenes. */
+  centroid: {
+    /** Ignore bins under this byte magnitude so room hiss does not drag the centroid up. */
+    binFloor: 8,
+    /** Smoothing half-life of the centroid: quick enough to track a riser, calm enough
+     *  that the palette glides instead of flickering hue frame to frame. */
+    smoothHalfLife: 0.09,
+  },
 } as const;
 
 /**
@@ -114,15 +183,57 @@ function liftBand(raw: number, gain: number): number {
   return Math.min(AUDIO_REACTIVE.bandCap, raw * AUDIO_REACTIVE.micGain * gain);
 }
 
-/** Slice a frequency-magnitude frame into lifted, capped energy/bass/mid/treble bands. */
-export function computeBands(freq: Uint8Array): RawBands {
+/**
+ * Raw (un-gained, un-capped) 0..1 band means straight off the spectrum. This is the
+ * input the {@link AdaptiveNormalizer} wants: it does its own scaling, so it must see the
+ * true dynamics, not a value already lifted by a fixed gain and clipped at the cap.
+ */
+export function bandAverages(freq: Uint8Array): RawBands {
   const edges = AUDIO_REACTIVE.bands;
   return {
-    energy: liftBand(bandAverage(freq, 0, edges.trebleTo), 1),
-    bass: liftBand(bandAverage(freq, 0, edges.bassTo), 1),
-    mid: liftBand(bandAverage(freq, edges.bassTo, edges.midTo), 1),
-    treble: liftBand(bandAverage(freq, edges.midTo, edges.trebleTo), AUDIO_REACTIVE.trebleGain),
+    energy: bandAverage(freq, 0, edges.trebleTo),
+    bass: bandAverage(freq, 0, edges.bassTo),
+    mid: bandAverage(freq, edges.bassTo, edges.midTo),
+    treble: bandAverage(freq, edges.midTo, edges.trebleTo),
   };
+}
+
+/**
+ * Slice a frequency-magnitude frame into lifted, capped energy/bass/mid/treble bands.
+ * This is the absolute-scaled feed used by the kick/hat onset detectors (whose floor and
+ * margin are tuned in these units); the continuous band levels the scenes read are the
+ * adaptively normalized {@link bandAverages} instead.
+ */
+export function computeBands(freq: Uint8Array): RawBands {
+  const raw = bandAverages(freq);
+  return {
+    energy: liftBand(raw.energy, 1),
+    bass: liftBand(raw.bass, 1),
+    mid: liftBand(raw.mid, 1),
+    treble: liftBand(raw.treble, AUDIO_REACTIVE.trebleGain),
+  };
+}
+
+/**
+ * Spectral centroid: the magnitude-weighted "center of mass" of the spectrum across the
+ * musical range, normalized to 0..1 (0 = energy sits at the lowest bins / a dark, bassy
+ * sound; 1 = energy sits at the top / a bright, airy sound). This is the cleanest single
+ * scalar for the FREQUENCY content of the music, so the scenes map it to color: the
+ * palette warms and brightens as the track does, and cools as it gets bassy. A per-bin
+ * floor keeps room hiss from dragging it upward, and silence returns 0.
+ */
+export function spectralCentroid(freq: Uint8Array): number {
+  const to = Math.min(freq.length, Math.floor(freq.length * AUDIO_REACTIVE.bands.trebleTo));
+  let weighted = 0;
+  let total = 0;
+  for (let i = 0; i < to; i += 1) {
+    const mag = freq[i] - AUDIO_REACTIVE.centroid.binFloor;
+    if (mag <= 0) continue;
+    weighted += i * mag;
+    total += mag;
+  }
+  if (total <= 0) return 0;
+  return weighted / total / Math.max(1, to - 1);
 }
 
 /**
@@ -170,7 +281,7 @@ export class OnsetDetector {
   private readonly reference: EnvelopeFollower;
   private lastBeatMs = Number.NEGATIVE_INFINITY;
 
-  constructor(private readonly cfg = AUDIO_REACTIVE.onset) {
+  constructor(private readonly cfg: OnsetConfig = AUDIO_REACTIVE.onset) {
     const halfLife = cfg.referenceHalfLife;
     this.reference = new EnvelopeFollower({ attack: halfLife, release: halfLife });
   }
@@ -186,5 +297,44 @@ export class OnsetDetector {
     if (!fired) return 0;
     this.lastBeatMs = nowMs;
     return Math.min(this.cfg.maxStrength, this.cfg.strengthBase + excess * this.cfg.strengthGain);
+  }
+}
+
+/**
+ * Per-band software AGC (automatic gain control). It tracks a running PEAK that snaps up
+ * to any new high and then decays slowly back toward the noise floor, and maps the live
+ * value into [0..ceil] across `peak - floor`. So whatever the absolute room volume, the
+ * loudest recent moment in a band reads near 1 and a quiet moment reads near 0 — the
+ * visuals follow the music's own dynamics instead of the PA's volume knob.
+ *
+ * Why this matters for the visuals: with a fixed gain, a band at a given level barely
+ * swings (small visible delta); normalized, the same band sweeps its full range every
+ * song, so the correlation between loudness and the on-screen response is tight and
+ * legible. The peak decay is a half-life against real `dt`, so it is frame-rate
+ * independent like everything else here, and a `minSpan` floor stops near-silence from
+ * amplifying hiss into a full-scale strobe.
+ */
+export class AdaptiveNormalizer {
+  // The peak is itself an asymmetric follower: it RISES fast toward a louder level and
+  // FALLS slowly back toward the floor, which is exactly the AGC behavior we want.
+  private readonly peak: EnvelopeFollower;
+
+  constructor(private readonly cfg: NormalizeConfig = AUDIO_REACTIVE.normalize) {
+    this.peak = new EnvelopeFollower(
+      { attack: cfg.attackHalfLife, release: cfg.peakHalfLife },
+      cfg.floor,
+    );
+  }
+
+  /** Push a raw 0..1 band value over `dt`; return it rescaled to its recent dynamics. */
+  push(value: number, dt: number): number {
+    const peak = this.peak.push(value, dt);
+    const span = Math.max(this.cfg.minSpan, peak - this.cfg.floor);
+    const out = (value - this.cfg.floor) / span;
+    return out < 0 ? 0 : out > this.cfg.ceil ? this.cfg.ceil : out;
+  }
+
+  get current(): number {
+    return this.peak.current;
   }
 }

@@ -76,6 +76,10 @@ describe("end to end: a full night", () => {
     const help = await bb.brain.process(inbound("+15550000002", "what can I do, help"));
     expect(help.text.toLowerCase()).toContain("song");
 
+    // The game opens: from here the bar, songs, and quests are live (the gate is by
+    // scene, on both the text and web surfaces).
+    await bb.projection.emit("scene.changed", { scene: "game" });
+
     // 3. BAR QUEUE: order -> operator makes + readies it -> guest confirms pickup.
     const order = await bb.brain.process(inbound("+15550000002", "can I get a machina mule"));
     expect(order.text.toLowerCase()).toContain("order received");

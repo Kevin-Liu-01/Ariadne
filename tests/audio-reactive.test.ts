@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  AdaptiveNormalizer,
   AUDIO_REACTIVE,
   EnvelopeFollower,
   OnsetDetector,
+  bandAverages,
   computeBands,
   halfLifeFraction,
+  spectralCentroid,
 } from "@/domain/audio-reactive";
 
 /** Build a 1024-bin frequency frame from a per-bin fill function (clamped to 0..255). */
@@ -101,6 +104,98 @@ describe("computeBands", () => {
     expect(highOnly.treble).toBeGreaterThan(0.5);
     expect(highOnly.bass).toBe(0);
     expect(highOnly.mid).toBe(0);
+  });
+});
+
+describe("bandAverages", () => {
+  // computeBands lifts/caps for the onset detectors; bandAverages is the raw feed the
+  // normalizer needs, so it must NOT gain or cap — a full spectrum is exactly 1.0.
+  it("returns the true 0..1 mean with no gain or cap", () => {
+    const full = bandAverages(freqArray(() => 255));
+    expect(full.energy).toBeCloseTo(1, 6);
+    expect(full.bass).toBeCloseTo(1, 6);
+    expect(full.treble).toBeCloseTo(1, 6);
+    // ...where computeBands would have lifted the same input past 1 before the cap.
+    expect(computeBands(freqArray(() => 255)).bass).toBeGreaterThan(full.bass);
+  });
+
+  it("is silent for a silent spectrum", () => {
+    expect(bandAverages(freqArray(() => 0))).toEqual({ energy: 0, bass: 0, mid: 0, treble: 0 });
+  });
+});
+
+describe("spectralCentroid", () => {
+  it("is 0 for silence", () => {
+    expect(spectralCentroid(freqArray(() => 0))).toBe(0);
+  });
+
+  it("sits low when energy is in the lowest bins (a dark, bassy sound)", () => {
+    const low = spectralCentroid(freqArray((i, n) => (i < n * 0.04 ? 220 : 0)));
+    expect(low).toBeLessThan(0.2);
+  });
+
+  it("sits high when energy is at the top of the musical range (a bright sound)", () => {
+    const high = spectralCentroid(freqArray((i, n) => (i >= n * 0.5 && i < n * 0.58 ? 220 : 0)));
+    expect(high).toBeGreaterThan(0.7);
+  });
+
+  it("rises monotonically as the energy moves up the spectrum", () => {
+    const at = (frac: number) =>
+      spectralCentroid(freqArray((i, n) => (i >= n * frac && i < n * (frac + 0.05) ? 220 : 0)));
+    expect(at(0.3)).toBeGreaterThan(at(0.1));
+    expect(at(0.5)).toBeGreaterThan(at(0.3));
+  });
+
+  it("ignores sub-floor hiss instead of letting it drag the centroid", () => {
+    const floor = AUDIO_REACTIVE.centroid.binFloor;
+    // A real low tone plus broadband hiss right at the floor: centroid still reads low.
+    const c = spectralCentroid(freqArray((i, n) => (i < n * 0.04 ? 220 : floor)));
+    expect(c).toBeLessThan(0.2);
+  });
+});
+
+describe("AdaptiveNormalizer", () => {
+  const drive = (n: AdaptiveNormalizer, v: number, steps: number, dt = 0.016): number => {
+    let out = 0;
+    for (let i = 0; i < steps; i += 1) out = n.push(v, dt);
+    return out;
+  };
+
+  it("maps a steady tone up to ~1 once the peak settles to it", () => {
+    const n = new AdaptiveNormalizer();
+    expect(drive(n, 0.4, 80)).toBeCloseTo(1, 2);
+  });
+
+  it("leaves silence at 0 (never amplifies the noise floor to full scale)", () => {
+    const n = new AdaptiveNormalizer();
+    expect(drive(n, 0, 10)).toBe(0);
+  });
+
+  it("preserves relative dynamics: a soft hit reads small against a loud peak", () => {
+    const n = new AdaptiveNormalizer();
+    drive(n, 0.4, 80); // settle a loud peak
+    const soft = n.push(0.1, 0.016); // same band, but quiet now
+    expect(soft).toBeGreaterThan(0);
+    expect(soft).toBeLessThan(0.4);
+  });
+
+  it("lets a sudden accent punch past 1 (over the lagging peak) but not run away", () => {
+    const n = new AdaptiveNormalizer();
+    drive(n, 0.2, 80); // settle the peak low
+    const spike = n.push(0.6, 0.016); // a sudden hit far over the recent peak
+    expect(spike).toBeGreaterThan(1);
+    expect(spike).toBeLessThanOrEqual(AUDIO_REACTIVE.normalize.ceil);
+  });
+
+  it("decays its peak frame-rate independently", () => {
+    const big = new AdaptiveNormalizer();
+    const small = new AdaptiveNormalizer();
+    big.push(0.5, 0.016);
+    small.push(0.5, 0.016);
+    big.push(0, 2); // one big idle step
+    small.push(0, 1); // two half steps over the same wall time
+    small.push(0, 1);
+    expect(small.current).toBeCloseTo(big.current, 4);
   });
 });
 

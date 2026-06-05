@@ -2,7 +2,7 @@ import { ArrowRight, BookOpen, Disc3, KeyRound, LayoutGrid, MessageSquare, Monit
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { DRINK_MENU, type MenuItem } from "@/constants/drinks";
-import { PRODUCT_NAME, VENUE } from "@/constants/event";
+import { DEFAULT_HOME_MODE, type HomeMode, PRODUCT_NAME, VENUE } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import { MISSIONS } from "@/constants/missions";
 import { SCENES } from "@/constants/scenes";
@@ -14,6 +14,7 @@ import { IMessageLink } from "@/components/imessage-link";
 import { JoinCta } from "@/components/join-cta";
 import { HeroBentoLeft, HeroBentoRight } from "@/components/hero-bento-walls";
 import { GemIcon } from "@/components/gem-icon";
+import { getBackbone } from "@/server/backbone";
 import { env } from "@/lib/env";
 import { cn } from "@/lib/utils";
 
@@ -77,8 +78,18 @@ const QUEST_PRESENTATION: Record<string, { Icon: LucideIcon; blurb: string }> = 
 
 const COCKTAILS: MenuItem[] = DRINK_MENU.filter((d) => d.category === "cocktail" && d.available);
 
-export default function Home() {
+/** Staff-controlled home CTA. Falls back to iMessage if the read fails, so the public landing never breaks. */
+async function resolveHomeMode(): Promise<HomeMode> {
+  try {
+    return await getBackbone().projection.homeMode();
+  } catch {
+    return DEFAULT_HOME_MODE;
+  }
+}
+
+export default async function Home() {
   const phone = env.agentphone.phoneNumber;
+  const homeMode = await resolveHomeMode();
   return (
     <main className="flex flex-col">
       {/* Hero: photo bento walls flanking the wordmark */}
@@ -114,7 +125,7 @@ export default function Home() {
             </p>
 
             <nav className="mt-10 w-full">
-              <JoinCta />
+              <JoinCta mode={homeMode} />
               <div className="mt-3 flex flex-wrap justify-center gap-2">
                 {LINKS.map((l) => (
                   <Link

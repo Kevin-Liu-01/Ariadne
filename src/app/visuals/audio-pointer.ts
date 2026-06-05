@@ -30,7 +30,9 @@ export class AudioPointer {
     this.jitter += dt * 55;
 
     const radius = 0.08 + a.bass * 0.24 + a.beat * 0.2;
-    const shake = Math.sin(this.jitter) * a.treble * 0.03;
+    // The highs jitter the path; a hi-hat tick snaps an extra dart so the fluids flick on
+    // the top of the beat, not only the kick.
+    const shake = Math.sin(this.jitter) * (a.treble * 0.03 + a.sparkle * 0.02);
     // A wandering Lissajous (not a clean circle) reads as organic slosh, not a spin.
     const fx = 0.5 + Math.cos(this.angle) * radius + Math.cos(this.angle * 0.37) * radius * 0.3 + shake;
     const fy = 0.46 + Math.sin(this.angle * 1.13) * radius * 0.95;

@@ -4,12 +4,15 @@ import { Crown, Hourglass, MessageSquare } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Scene, SceneAccent } from "@/constants/scenes";
 import { CLUES } from "@/constants/clues";
+import { PEOPLE_CAP } from "@/constants/display";
 import { GEMS, GEM_IDS, type GemId } from "@/constants/gems";
 import { WORD_PAIRS } from "@/constants/missions";
 import { GEM_WHEEL_HUE } from "@/domain/gem-wheel";
+import { capForDisplay } from "@/domain/overflow";
 import { formatPhoneDisplay } from "@/domain/phone";
 import { GemIcon } from "@/components/gem-icon";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
+import { OverflowMore } from "@/components/overflow-more";
 import { RunwayWordmark } from "@/components/runway-wordmark";
 import type { TileState } from "@/domain/projection";
 import { cn } from "@/lib/utils";
@@ -76,6 +79,7 @@ function CinematicShell({ children }: { children: ReactNode }) {
 /** Arrival: Run(way)time over a shader; the join number is the call to action. */
 function ArrivalStage({ view }: { view: BoardView }) {
   const accent = ACCENT[view.sceneMeta.accent];
+  const swarm = capForDisplay(view.ordered, PEOPLE_CAP.arrivalGems);
   return (
     <CinematicShell>
       <div>
@@ -98,10 +102,11 @@ function ArrivalStage({ view }: { view: BoardView }) {
         <p className={cn("text-6xl font-extralight tabular-nums", accent.text)}>{view.stats.checkedIn}</p>
         <p className="text-xs uppercase tracking-[0.3em] text-ash">checked in so far</p>
         {view.ordered.length > 0 ? (
-          <div className="mt-2 flex max-w-2xl flex-wrap justify-center gap-2">
-            {view.ordered.map((t) => (
+          <div className="mt-2 flex max-w-2xl flex-wrap items-center justify-center gap-2">
+            {swarm.visible.map((t) => (
               <GemIcon key={t.gameId} gem={t.gem} size={22} />
             ))}
+            <OverflowMore count={swarm.overflow} />
           </div>
         ) : (
           <p className="text-sm text-ash">Be the first to step into the labyrinth.</p>
@@ -128,6 +133,7 @@ function OpeningStage({ view }: { view: BoardView }) {
 
 /** Runway: cinematic and calm; the mark breathes while the room watches the show. */
 function RunwayStage({ view }: { view: BoardView }) {
+  const roster = capForDisplay(view.ordered, PEOPLE_CAP.runwayPills);
   return (
     <CinematicShell>
       <LabyrinthThread size={130} animate />
@@ -135,7 +141,7 @@ function RunwayStage({ view }: { view: BoardView }) {
       <p className="text-base leading-relaxed text-cloud/80">{view.sceneMeta.tagline}</p>
       {view.ordered.length > 0 ? (
         <div className="flex max-w-4xl flex-wrap items-center justify-center gap-2.5 opacity-80">
-          {view.ordered.map((t) => (
+          {roster.visible.map((t) => (
             <span
               key={t.gameId}
               className="flex items-center gap-2 border border-nyx-line/60 bg-nyx-soft/50 px-3 py-1.5"
@@ -144,6 +150,7 @@ function RunwayStage({ view }: { view: BoardView }) {
               <span className="text-xs text-ash">{t.displayName ?? initials(t)}</span>
             </span>
           ))}
+          <OverflowMore count={roster.overflow} />
         </div>
       ) : null}
     </CinematicShell>
@@ -243,6 +250,9 @@ function QuestReferenceCard({ quest }: { quest: QuestId }) {
 
 /** Live standings band: every guest as a ranked gem tile, full width below the quests. */
 function StandingsBand({ view }: { view: BoardView }) {
+  // The projector can't scroll, so tiles past what fits would vanish: cap to the leaders
+  // and let a "+N more" tile stand in for the rest of the field.
+  const board = capForDisplay(view.ordered, PEOPLE_CAP.standingsTiles);
   return (
     <section className="flex max-h-[30dvh] shrink-0 flex-col border border-nyx-line bg-nyx-soft/70">
       <header className="flex items-center justify-between border-b border-nyx-line px-4 py-2.5">
@@ -255,7 +265,7 @@ function StandingsBand({ view }: { view: BoardView }) {
         <p className="px-4 py-6 text-sm text-ash">The first gem lands here.</p>
       ) : (
         <div className={cn("min-h-0 flex-1 overflow-auto p-3", STANDINGS_GRID)}>
-          {view.ordered.map((t, i) => (
+          {board.visible.map((t, i) => (
             <PlayerTile
               key={t.gameId}
               tile={t}
@@ -266,6 +276,7 @@ function StandingsBand({ view }: { view: BoardView }) {
               accent={view.sceneMeta.accent}
             />
           ))}
+          <OverflowMore count={board.overflow} variant="tile" />
         </div>
       )}
     </section>
@@ -320,6 +331,7 @@ function PodiumCard({ tile, place, accent }: { tile?: TileState; place: number; 
 /** Finale: a podium for the top three, with the rest of the field below. */
 function FinaleStage({ view }: { view: BoardView }) {
   const [first, second, third, ...rest] = view.ordered;
+  const field = capForDisplay(rest, PEOPLE_CAP.finaleField);
   return (
     <div className="relative z-[2] flex flex-1 flex-col items-center justify-center gap-8 py-6">
       <StageHero sceneMeta={view.sceneMeta} />
@@ -329,8 +341,8 @@ function FinaleStage({ view }: { view: BoardView }) {
         <PodiumCard tile={third} place={3} accent={view.sceneMeta.accent} />
       </div>
       {rest.length > 0 ? (
-        <div className="flex max-w-2xl flex-wrap justify-center gap-2">
-          {rest.map((t, i) => (
+        <div className="flex max-w-2xl flex-wrap items-center justify-center gap-2">
+          {field.visible.map((t, i) => (
             <span
               key={t.gameId}
               className="flex items-center gap-2 border border-nyx-line/60 bg-nyx-soft/40 px-3 py-1.5"
@@ -341,6 +353,7 @@ function FinaleStage({ view }: { view: BoardView }) {
               <span className="text-xs tabular-nums text-ash">{t.score}</span>
             </span>
           ))}
+          <OverflowMore count={field.overflow} />
         </div>
       ) : null}
     </div>

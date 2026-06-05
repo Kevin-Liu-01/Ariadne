@@ -128,7 +128,11 @@ export class AgentBrain {
         if (gate) return makeReply(gate);
         return makeReply(drinkMenuCopy());
       }
-      if (/^song$/i.test(command)) return makeReply(songPromptCopy());
+      if (/^song$/i.test(command)) {
+        const gate = await this.gameplayGate();
+        if (gate) return makeReply(gate);
+        return makeReply(songPromptCopy());
+      }
       if (/^mission$/i.test(command)) {
         const gate = await this.gameplayGate();
         if (gate) return makeReply(gate);
@@ -159,6 +163,10 @@ export class AgentBrain {
       return makeReply(next ? `Color quest skipped.\n\nNext:\n${next}` : "Color quest skipped.");
     }
 
+    // Ground the model with the live run-of-show state so it never guesses whether
+    // play is open: that guess is what wrongly refused song requests when the
+    // operator had already moved the show into a gameplay scene.
+    const scene = await this.projection.scene();
     let text = stripDashes(
       await this.runner.run({
         from: event.from,
@@ -166,7 +174,7 @@ export class AgentBrain {
         channel: event.channel,
         text: event.text,
         recentHistory: await this.history(conversationNow.id, event.recentHistory),
-        grounding: this.grounding(participant, conversationNow),
+        grounding: this.grounding(participant, conversationNow, scene),
       }),
     );
 
@@ -371,9 +379,17 @@ export class AgentBrain {
     return phone ? this.repos.participants.findByPhone(this.eventId, phone) : null;
   }
 
-  private grounding(participant: Participant | null, conversation: Conversation): string {
+  /** A grounded line for the live run-of-show state, so the model reads play state instead of guessing it. */
+  private showStateLine(scene: string): string {
+    return gameplayAllowed(scene)
+      ? `SHOW STATE: scene "${scene}". The game is live: quests, bar orders, and song requests are all open.`
+      : `SHOW STATE: scene "${scene}". The game has not started. Do not run quests or take drink or song orders yet; tell the guest to hang tight.`;
+  }
+
+  private grounding(participant: Participant | null, conversation: Conversation, scene: string): string {
+    const showState = this.showStateLine(scene);
     if (!participant) {
-      return `${PROMPT_INJECTION_GUARD}\nCURRENT GUEST: not checked in. Welcome them to Dedalus ${EVENT_NAME}. Ask for first name, then signup email (list). Call check_in as you collect each. If not_on_list, say the email is not on tonight's list. After check-in they wait for staff to start the game; there is no code to enter.`;
+      return `${PROMPT_INJECTION_GUARD}\n${showState}\nCURRENT GUEST: not checked in. Welcome them to Dedalus ${EVENT_NAME}. Ask for first name, then signup email (list). Call check_in as you collect each. If not_on_list, say the email is not on tonight's list. After check-in they wait for staff to start the game; there is no code to enter.`;
     }
     const nameLine = participant.displayName
       ? ` Name: ${participant.displayName}.`
@@ -385,6 +401,6 @@ export class AgentBrain {
       ? ` Active mission: ${mission.title}. ${this.missions.renderPrompt(mission, participant)}`
       : " No active mission yet (assigned when the game starts).";
     const commands = `\nCommands for the guest:\n${commandsIntroCopy()}`;
-    return `${PROMPT_INJECTION_GUARD}\nCURRENT GUEST:${nameLine} Color ${gemColorLabel(participant.gem)}, secret word "${participant.secretWord}", game id ${participant.gameId}, score ${participant.score}.${missionLine}${commands}`;
+    return `${PROMPT_INJECTION_GUARD}\n${showState}\nCURRENT GUEST:${nameLine} Color ${gemColorLabel(participant.gem)}, secret word "${participant.secretWord}", game id ${participant.gameId}, score ${participant.score}.${missionLine}${commands}`;
   }
 }

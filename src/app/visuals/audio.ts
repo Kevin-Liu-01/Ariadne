@@ -2,10 +2,13 @@
 
 import type { AudioLevels } from "@/app/visuals/scenes";
 import {
+  AdaptiveNormalizer,
   AUDIO_REACTIVE,
   EnvelopeFollower,
   OnsetDetector,
+  bandAverages,
   computeBands,
+  spectralCentroid,
 } from "@/domain/audio-reactive";
 
 /** A stalled tab can hand us a huge gap; cap dt so the envelopes glide, never lurch. */
@@ -32,10 +35,26 @@ export class AudioEngine {
   private readonly bass = new EnvelopeFollower(AUDIO_REACTIVE.smoothing.bass);
   private readonly mid = new EnvelopeFollower(AUDIO_REACTIVE.smoothing.mid);
   private readonly treble = new EnvelopeFollower(AUDIO_REACTIVE.smoothing.treble);
+  // Software AGC ahead of the smoothing: one normalizer per band rescales the raw level
+  // into its own recent dynamics, so the bands swing their full range at any room volume.
+  private readonly normLevel = new AdaptiveNormalizer();
+  private readonly normBass = new AdaptiveNormalizer();
+  private readonly normMid = new AdaptiveNormalizer();
+  private readonly normTreble = new AdaptiveNormalizer();
+  // Brightness (spectral centroid): the FREQUENCY signal the scenes map to color. A
+  // symmetric short half-life keeps the palette tracking the music without hue jitter.
+  private readonly centroid = new EnvelopeFollower({
+    attack: AUDIO_REACTIVE.centroid.smoothHalfLife,
+    release: AUDIO_REACTIVE.centroid.smoothHalfLife,
+  });
   // The kick pulse: instant attack to the kick strength on each onset (a hard kick
   // punches past 1), then a smooth ease-out.
   private readonly beat = new EnvelopeFollower({ attack: 0, release: AUDIO_REACTIVE.beatRelease });
   private readonly onset = new OnsetDetector();
+  // The hi-hat / snare sparkle: a second instant-attack pulse on the TOP of the spectrum,
+  // so the highs drive their own visual components independently of the kick.
+  private readonly sparkle = new EnvelopeFollower({ attack: 0, release: AUDIO_REACTIVE.sparkleRelease });
+  private readonly hatOnset = new OnsetDetector(AUDIO_REACTIVE.onsetHat);
 
   async start(): Promise<void> {
     this.stream = await navigator.mediaDevices.getUserMedia({
@@ -64,14 +83,21 @@ export class AudioEngine {
       ? Math.min((nowMs - this.lastMs) / 1000, MAX_DT_SECONDS)
       : DEFAULT_DT_SECONDS;
     this.lastMs = nowMs;
-    const raw = computeBands(this.freq);
-    const strength = this.onset.push(raw.bass, nowMs, dt);
+    // Two reads of the same frame: the lifted/capped bands feed the onset detectors
+    // (whose floor + margin are tuned in those units); the raw means feed the AGC, which
+    // does its own scaling and so must see the true, un-clipped dynamics.
+    const lifted = computeBands(this.freq);
+    const raw = bandAverages(this.freq);
+    const kick = this.onset.push(lifted.bass, nowMs, dt);
+    const hat = this.hatOnset.push(lifted.treble, nowMs, dt);
     return {
-      level: this.level.push(raw.energy, dt),
-      bass: this.bass.push(raw.bass, dt),
-      mid: this.mid.push(raw.mid, dt),
-      treble: this.treble.push(raw.treble, dt),
-      beat: this.beat.push(strength, dt),
+      level: this.level.push(this.normLevel.push(raw.energy, dt), dt),
+      bass: this.bass.push(this.normBass.push(raw.bass, dt), dt),
+      mid: this.mid.push(this.normMid.push(raw.mid, dt), dt),
+      treble: this.treble.push(this.normTreble.push(raw.treble, dt), dt),
+      beat: this.beat.push(kick, dt),
+      sparkle: this.sparkle.push(hat, dt),
+      centroid: this.centroid.push(spectralCentroid(this.freq), dt),
     };
   }
 

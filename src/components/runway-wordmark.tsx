@@ -21,7 +21,7 @@ export function RunwayWordmark({
       className={cn("font-display font-extralight tracking-tight text-cloud", SIZE[size], className)}
       aria-label="Run(way)time"
     >
-      Run<span className="italic text-helio">(way)</span>time
+      Run<span className="mr-[0.12em] italic text-helio">(way)</span>time
     </span>
   );
 }

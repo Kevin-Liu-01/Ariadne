@@ -13,6 +13,7 @@
  */
 
 import type { ReactNode } from "react";
+import { mixHex } from "@/domain/color-mix";
 import {
   Ascii,
   Blob,
@@ -39,16 +40,32 @@ import {
   WaveDistortion,
 } from "shaders/react";
 
-/** Smoothed, normalized audio bands the scenes read (each ~0..1, may exceed 1 on peaks). */
+/**
+ * Smoothed audio features the scenes read. The bands (level/bass/mid/treble) are now
+ * adaptively normalized, so each one swings its full 0..1 range against the music's own
+ * recent dynamics (and may briefly exceed 1 on a peak). `centroid` is the spectral
+ * brightness, the FREQUENCY signal scenes map to color, and `sparkle` is a hi-hat/snare
+ * pulse on top of the spectrum, the high-band twin of `beat`.
+ */
 export interface AudioLevels {
-  level: number; // overall loudness
-  bass: number; // low band (kick)
-  mid: number; // mid band (leads)
-  treble: number; // high band (shimmer)
+  level: number; // overall loudness (normalized)
+  bass: number; // low band / kick (normalized)
+  mid: number; // mid band / leads (normalized)
+  treble: number; // high band / shimmer (normalized)
   beat: number; // kick pulse: snaps up then eases out; harder kicks punch past 1
+  sparkle: number; // hi-hat / snare pulse on the highs; the kick's high-band counterpart
+  centroid: number; // spectral brightness 0..1: low = dark/bassy, high = bright/airy
 }
 
-export const ZERO_LEVELS: AudioLevels = { level: 0, bass: 0, mid: 0, treble: 0, beat: 0 };
+export const ZERO_LEVELS: AudioLevels = {
+  level: 0,
+  bass: 0,
+  mid: 0,
+  treble: 0,
+  beat: 0,
+  sparkle: 0,
+  centroid: 0,
+};
 
 /** Dedalus brand palette (mirrors the @theme tokens in globals.css). */
 const BRAND = {
@@ -106,16 +123,18 @@ function logoEffect(a: AudioLevels, colors: LogoColors = DEFAULT_LOGO): ReactNod
       // scale beat term is kept modest (0.12) so the harder beat signal flares the wings
       // without growing them past the frame; the punch lives in the optics below instead.
       scale={0.9 + a.beat * 0.12 + a.bass * 0.05}
-      aberration={0.55 + a.treble * 0.5 + a.beat * 1.3}
+      // The kick drives refraction; the hi-hat sparkle splits the rim into prismatic glints.
+      aberration={0.55 + a.treble * 0.5 + a.beat * 1.3 + a.sparkle * 0.7}
       edgeSoftness={0.18}
       refraction={1.1 + a.bass * 0.5 + a.beat * 1.1}
       thickness={0.72 + a.beat * 0.6}
-      tintColor={colors.a}
+      // The body warms/brightens toward the light tint as the track's centroid climbs.
+      tintColor={mixHex(colors.a, colors.b, a.centroid * 0.5)}
       tintIntensity={0.12}
-      fresnel={0.12 + a.beat * 0.8}
+      fresnel={0.12 + a.beat * 0.8 + a.sparkle * 0.3}
       fresnelSoftness={0.2}
       fresnelColor={colors.b}
-      highlight={0.45 + a.beat * 0.55}
+      highlight={0.45 + a.beat * 0.55 + a.sparkle * 0.5}
       highlightColor={colors.b}
       highlightSoftness={0.18}
       lightAngle={300}
@@ -126,7 +145,8 @@ function logoEffect(a: AudioLevels, colors: LogoColors = DEFAULT_LOGO): ReactNod
         colorB={colors.b}
         colorSpace="oklab"
         detail={4.2}
-        speed={0.1 + a.level * 0.8 + a.beat * 0.4}
+        // Brighter music swirls the marbling faster, so the wings shimmer up with the highs.
+        speed={0.1 + a.level * 0.8 + a.beat * 0.4 + a.centroid * 0.5}
       />
       <FlowField
         detail={1}
@@ -163,11 +183,12 @@ export function renderScene(scene: Scene, a: AudioLevels, withLogo = true): Reac
 /** Pixel Beams: a plasma sliced into square beams, dithered to a helio/violet grid. */
 function pixelBeams(a: AudioLevels): ReactNode {
   return (
-    // pixelSize chunks the dither grid up on the kick for a beat-locked "blocking" pop.
-    <Dither colorA={BRAND.nyxViolet} colorB={BRAND.helio} pattern="bayer8" pixelSize={6 + a.beat * 8} threshold={0.46 - a.beat * 0.2 - a.bass * 0.1}>
+    // pixelSize chunks the dither grid up on the kick (and a hat tick) for a beat-locked
+    // "blocking" pop; the beam color washes from helio to white as the track brightens.
+    <Dither colorA={BRAND.nyxViolet} colorB={mixHex(BRAND.helio, BRAND.cloud, a.centroid)} pattern="bayer8" pixelSize={6 + a.beat * 8 + a.sparkle * 3} threshold={0.46 - a.beat * 0.2 - a.bass * 0.1}>
       <Plasma
         colorA={BRAND.cloud}
-        colorB={BRAND.amethyst}
+        colorB={mixHex(BRAND.amethyst, BRAND.helio, a.centroid)}
         contrast={1.1 + a.beat * 0.6}
         density={2.4 + a.mid * 1.8}
         intensity={1.1 + a.bass * 2.6 + a.beat * 2.4}
@@ -192,7 +213,8 @@ function softRegister(a: AudioLevels): ReactNode {
     <>
       <FlowingGradient
         colorA={BRAND.helio}
-        colorB={BRAND.amethyst}
+        // A bright track pulls the second stop from brand purple toward aquamarine.
+        colorB={mixHex(BRAND.amethyst, GEM.aquamarine, a.centroid)}
         colorC={GEM.aquamarine}
         colorD={BRAND.nyxViolet}
         colorSpace="oklab"
@@ -200,8 +222,8 @@ function softRegister(a: AudioLevels): ReactNode {
         distortion={1.05 + a.level * 1.1 + a.bass * 0.6 + a.beat * 0.9}
         seed={29}
       />
-      {/* Dots tighten with the highs and split (misprint) on the kick for a CMYK shimmer. */}
-      <Halftone blendMode="overlay" frequency={210 + a.treble * 120} misprint={a.beat * 0.02} opacity={0.18 + a.bass * 0.38 + a.beat * 0.45} style="cmyk" />    </>
+      {/* Dots tighten with the highs and split (misprint) on the kick + hats for a CMYK shimmer. */}
+      <Halftone blendMode="overlay" frequency={210 + a.treble * 120} misprint={a.beat * 0.02 + a.sparkle * 0.025} opacity={0.18 + a.bass * 0.38 + a.beat * 0.45} style="cmyk" />    </>
   );
 }
 
@@ -234,7 +256,8 @@ function spectralBloom(a: AudioLevels): ReactNode {
       <ColorWheel
         angle={{ mode: "loop", type: "auto-animate", speed: 0.2, outputMax: 180, outputMin: -180 }}
         colorA="#6400ff"
-        colorB="#05ffff"
+        // The bright end of the spectral fan drifts cyan -> magenta as the centroid climbs.
+        colorB={mixHex("#05ffff", "#ff2bd6", a.centroid)}
         colorC="#000000"
         colorSpace="oklab"
         mode="custom"
@@ -250,7 +273,7 @@ function spectralBloom(a: AudioLevels): ReactNode {
           outputMax: Math.min(18, 10 + a.bass * 4 + a.beat * 7),
         }}
       />
-      <Halftone frequency={125} misprint={0.0055 + a.beat * 0.01} opacity={0.05 + a.treble * 0.22} style="cmyk" />    </>
+      <Halftone frequency={125} misprint={0.0055 + a.beat * 0.01 + a.sparkle * 0.012} opacity={0.05 + a.treble * 0.22} style="cmyk" />    </>
   );
 }
 
@@ -259,14 +282,15 @@ function pistons(a: AudioLevels): ReactNode {
   return (
     <>
       <SolidColor color={BRAND.nyx} />
-      <Ascii cellSize={26} characters="▄║█" fontFamily="Nacelle" gamma={1.5 + a.bass * 1.0 + a.beat * 0.9}>
+      <Ascii cellSize={26} characters="▄║█" fontFamily="Nacelle" gamma={1.5 + a.bass * 1.0 + a.beat * 0.9 + a.sparkle * 0.5}>
         <Godrays
           backgroundColor={BRAND.nyxViolet}
           density={0.34 + a.bass * 0.6 + a.beat * 0.45}
           intensity={0.8 + a.level * 1.9 + a.beat * 2.2}
-          rayColor={BRAND.helio}
-          // Highs break the shafts into flickering specks; the kick pumps the whole bank.
-          spotty={a.treble * 0.5}
+          // The shafts burn from helio toward white as the track brightens.
+          rayColor={mixHex(BRAND.helio, BRAND.cloud, a.centroid)}
+          // Highs break the shafts into flickering specks; the kick + hats pump the bank.
+          spotty={a.treble * 0.5 + a.sparkle * 0.35}
         />
       </Ascii>
       <Paper displacement={0} grainScale={3} roughness={0.85} />    </>
@@ -280,7 +304,7 @@ function fluidChrome(a: AudioLevels): ReactNode {
       <SolidColor color={BRAND.nyx} />
       <Glass
         cutout={false}
-        aberration={0.8 + a.treble * 1.0 + a.beat * 0.7}
+        aberration={0.8 + a.treble * 1.0 + a.beat * 0.7 + a.sparkle * 0.6}
         edgeSoftness={0.2}
         refraction={1.1 + a.bass * 1.0 + a.beat * 0.6}
         // The lens is sized well past the mark (see logoEffect) so its refraction stays
@@ -288,7 +312,7 @@ function fluidChrome(a: AudioLevels): ReactNode {
         scale={1.35 + a.beat * 0.42 + a.bass * 0.075}
         thickness={0.27 + a.beat * 0.18}
       >
-        <Swirl blend={56} colorA={BRAND.amethyst} colorB={BRAND.cloud} colorSpace="oklab" detail={6} speed={0.15 + a.level * 1.1 + a.beat * 0.5} />
+        <Swirl blend={56} colorA={mixHex(BRAND.amethyst, BRAND.helio, a.centroid)} colorB={BRAND.cloud} colorSpace="oklab" detail={6} speed={0.15 + a.level * 1.1 + a.beat * 0.5} />
         <FlowField detail={2} evolutionSpeed={1.5 + a.mid * 2.4} speed={1.8 + a.bass * 2.8 + a.beat * 1.8} strength={0.5 + a.level * 0.9} />
       </Glass>    </>
   );
@@ -310,11 +334,12 @@ function chromaFlow(a: AudioLevels): ReactNode {
         momentum={15 + a.level * 11 + a.beat * 9}
       />
       <FlutedGlass
-        aberration={0.6 + a.treble * 0.8 + a.beat * 0.5}
+        aberration={0.6 + a.treble * 0.8 + a.beat * 0.5 + a.sparkle * 0.5}
         angle={250}
-        // Leads tighten the flutes, the bass bends them harder, the kick flashes the glint.
-        frequency={15 + a.mid * 10}
-        highlight={0.12 + a.beat * 0.18}
+        // Leads tighten the flutes, a bright track tightens them further; the bass bends
+        // them harder; the kick + hat sparkle flash the glint.
+        frequency={15 + a.mid * 10 + a.centroid * 6}
+        highlight={0.12 + a.beat * 0.18 + a.sparkle * 0.25}
         highlightSoftness={0}
         lightAngle={-90}
         refraction={4 + a.bass * 1.5 + a.beat * 1.7}
@@ -322,7 +347,7 @@ function chromaFlow(a: AudioLevels): ReactNode {
         softness={1}
         speed={0.15 + a.level * 0.7}
       />
-      <FilmGrain strength={0.05 + a.treble * 0.07} />    </>
+      <FilmGrain strength={0.05 + a.treble * 0.07 + a.sparkle * 0.05} />    </>
   );
 }
 
@@ -333,9 +358,10 @@ function drift(a: AudioLevels): ReactNode {
       <SolidColor color={BRAND.nyx} />
       <Smoke
         colorA={BRAND.cloud}
-        colorB={GEM.aquamarine}
-        // Highs burn the plume off faster (more flicker); leads lean the column side to side.
-        colorDecay={1.4 + a.treble * 0.8}
+        // The plume body cools aquamarine -> helio as the music brightens.
+        colorB={mixHex(GEM.aquamarine, BRAND.helio, a.centroid)}
+        // Highs + hats burn the plume off faster (more flicker); leads lean the column.
+        colorDecay={1.4 + a.treble * 0.8 + a.sparkle * 0.6}
         detail={7}
         direction={36 + a.mid * 22}
         emitFrom={{ x: 0.5, y: 1 }}
@@ -352,10 +378,10 @@ function drift(a: AudioLevels): ReactNode {
 function mosaic(a: AudioLevels): ReactNode {
   return (
     <>
-      <Swirl colorA={BRAND.nyxViolet} colorB={GEM.aquamarine} colorSpace="oklab" detail={3.6} speed={0.7 + a.level * 1.3 + a.beat * 0.6} visible={true} />
-      {/* scale = pixels along the longest edge, so HIGHER = smaller blocks. The bass still
-          chunks it, but the 50 floor keeps it a fine mosaic instead of a few zoomed-in tiles. */}
-      <Pixelate scale={Math.max(50, 96 - a.bass * 30 - a.beat * 24)} />    </>
+      <Swirl colorA={BRAND.nyxViolet} colorB={mixHex(GEM.aquamarine, BRAND.helio, a.centroid)} colorSpace="oklab" detail={3.6} speed={0.7 + a.level * 1.3 + a.beat * 0.6} visible={true} />
+      {/* scale = pixels along the longest edge, so HIGHER = smaller blocks. The bass + kick
+          (and a hat tick) chunk it; the 50 floor keeps it a fine mosaic, not a few big tiles. */}
+      <Pixelate scale={Math.max(50, 96 - a.bass * 30 - a.beat * 24 - a.sparkle * 10)} />    </>
   );
 }
 
@@ -372,8 +398,9 @@ function circuit(a: AudioLevels): ReactNode {
         strength={0.7 + a.beat * 0.9}
         waveType="triangle"
       >
-        {/* Neon traces fatten on the kick so the grid throbs with the beat. */}
-        <Grid blendMode="hardLight" cells={48} color={BRAND.helio} thickness={3.5 + a.beat * 3.6} transform={{ scale: 0.75 }} />
+        {/* Neon traces fatten on the kick (and tick on hats) so the grid throbs with the
+            beat; the trace color burns from helio to white as the track brightens. */}
+        <Grid blendMode="hardLight" cells={48} color={mixHex(BRAND.helio, BRAND.cloud, a.centroid)} thickness={3.5 + a.beat * 3.6 + a.sparkle * 1.6} transform={{ scale: 0.75 }} />
       </WaveDistortion>
       <GridDistortion decay={1.8} edges="wrap" gridSize={8} intensity={1.0 + a.bass * 3.2 + a.beat * 1.8} radius={1 + a.bass * 1.4 + a.beat * 0.6} />    </>
   );
@@ -386,12 +413,13 @@ function dedalusBloom(a: AudioLevels): ReactNode {
       <Swirl colorA="#1a0b2e" colorB={GEM.aquamarine} colorSpace="lch" detail={3.8} speed={0.9 + a.level * 1.0 + a.beat * 0.5} />
       <Blob
         center={{ x: 0.49, y: 0.28 }}
-        colorA={GEM.moonstone}
+        // The core warms from gold toward white as the track brightens.
+        colorA={mixHex(GEM.moonstone, BRAND.cloud, a.centroid)}
         colorB={BRAND.amethyst}
         colorSpace="oklch"
         deformation={0.6 + a.bass * 0.55 + a.beat * 0.5}
         highlightColor={BRAND.cloud}
-        highlightIntensity={0.8 + a.beat * 1.5}
+        highlightIntensity={0.8 + a.beat * 1.5 + a.sparkle * 0.7}
         highlightX={0.5}
         highlightY={-0.5}
         highlightZ={0.8}
@@ -415,7 +443,7 @@ function dedalusBloom(a: AudioLevels): ReactNode {
         thickness={0.7}
         visible={true}
       />
-      <FilmGrain strength={0.1 + a.treble * 0.08} />    </>
+      <FilmGrain strength={0.1 + a.treble * 0.08 + a.sparkle * 0.05} />    </>
   );
 }
 

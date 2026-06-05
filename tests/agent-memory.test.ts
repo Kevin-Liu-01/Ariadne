@@ -95,6 +95,9 @@ describe("conversation memory + deferred intent", () => {
     await bb.brain.process(inbound(phone, "demo@dedaluslabs.ai"));
     expect(await bb.repos.participants.findByPhone("test-event", phone)).toBeTruthy();
 
+    // The game is live, so the bar is open (the gate is by run-of-show scene).
+    await bb.projection.emit("scene.changed", { scene: "game" });
+
     await bb.brain.process(inbound(phone, "machina mule"));
     expect(await bb.drinks.listActive()).toHaveLength(1);
 

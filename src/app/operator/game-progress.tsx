@@ -2,7 +2,9 @@
 
 import { Crown, KeyRound, Target } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PEOPLE_CAP } from "@/constants/display";
 import { MISSIONS } from "@/constants/missions";
+import { capForDisplay } from "@/domain/overflow";
 import { GemIcon } from "@/components/gem-icon";
 import { authedFetch, type OperatorParticipant } from "@/app/operator/api";
 import { cn } from "@/lib/utils";
@@ -50,6 +52,7 @@ export function GameProgress({ token }: { token: string }) {
 
   const totalScore = ranked.reduce((sum, p) => sum + p.score, 0);
   const avgScore = people.length > 0 ? Math.round(totalScore / people.length) : 0;
+  const board = capForDisplay(ranked, PEOPLE_CAP.operatorLeaderboard);
 
   return (
     <section className="border border-nyx-line bg-nyx-soft p-5">
@@ -72,8 +75,9 @@ export function GameProgress({ token }: { token: string }) {
       {ranked.length === 0 && !error ? (
         <p className="mt-4 text-sm text-ash">no scores yet. first check-in sets the board.</p>
       ) : (
+        <>
         <ul className="mt-4 space-y-3">
-          {ranked.slice(0, 8).map((p, i) => (
+          {board.visible.map((p, i) => (
             <li key={p.gameId} className="border border-nyx-line/70 bg-nyx px-3 py-2.5">
               <div className="flex items-center gap-3">
                 <span className="flex w-6 items-center justify-center text-[10px] tabular-nums text-ash">
@@ -102,6 +106,12 @@ export function GameProgress({ token }: { token: string }) {
             </li>
           ))}
         </ul>
+        {board.overflow > 0 ? (
+          <p className="mt-2 text-center text-[11px] uppercase tracking-[0.2em] text-ash">
+            +{board.overflow} more
+          </p>
+        ) : null}
+        </>
       )}
 
       <div className="mt-5 border-t border-nyx-line/60 pt-4">
