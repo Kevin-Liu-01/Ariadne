@@ -218,7 +218,8 @@ export function BarCard({ view, act, busy }: CardProps) {
         </div>
       ) : (
         <p className="mt-3 text-[11px] leading-relaxed text-ash/80">
-          One special cocktail on the house. Beer, wine, and zero-proof are unlimited.
+          One special cocktail on the house. Beer, wine, and zero-proof are unlimited until supplies
+          run out.
         </p>
       )}
     </Panel>

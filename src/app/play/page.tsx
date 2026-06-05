@@ -282,7 +282,7 @@ export default function PlayPage() {
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-ash">
             No line, no tab. Text a drink and Ariadne routes it to the bar, then pings you when it's
             ready at pickup. One signature cocktail is on the house; beer, wine, and zero-proof are
-            unlimited all night.
+            unlimited until supplies run out.
           </p>
           <div className="mt-6 grid gap-2 sm:grid-cols-3">
             {COCKTAILS.map((d) => (

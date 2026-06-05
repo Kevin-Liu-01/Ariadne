@@ -1,13 +1,13 @@
 import {
   COCKTAIL_MENU_IDS,
-  COCKTAIL_VOUCHER_LIMIT,
+  COCKTAIL_STOCK_PER_ITEM,
   COCKTAIL_VOUCHER_PER_GUEST,
   DRINK_DEDUP_WINDOW_MS,
   DRINK_MENU,
   type DrinkStatus,
 } from "@/constants/drinks";
 import {
-  cocktailsOutCopy,
+  cocktailOutOfStockCopy,
   drinkAlreadyQueuedCopy,
   drinkClarifyCopy,
   drinkInvalidQuantityCopy,
@@ -29,7 +29,7 @@ export type DrinkOutcome =
   | { kind: "clarify" }
   | { kind: "unavailable"; label: string }
   | { kind: "voucher_used" }
-  | { kind: "cocktails_out" }
+  | { kind: "out_of_stock"; label: string }
   | { kind: "invalid_quantity" };
 
 /** The single guest-facing line for a drink outcome, shared by the tool and the brain. */
@@ -43,8 +43,8 @@ export function drinkOutcomeSay(outcome: DrinkOutcome): string {
       return drinkUnavailableCopy(outcome.label);
     case "voucher_used":
       return drinkVoucherUsedCopy();
-    case "cocktails_out":
-      return cocktailsOutCopy();
+    case "out_of_stock":
+      return cocktailOutOfStockCopy(outcome.label);
     case "invalid_quantity":
       return drinkInvalidQuantityCopy();
     case "clarify":
@@ -82,15 +82,19 @@ export class DrinkService {
     );
     if (duplicate) return { kind: "already_queued", order: duplicate };
 
-    // Cocktails are voucher-gated. Beer, wine, and zero-proof pour without limit.
+    // Cocktails are gated; beer, wine, and zero-proof pour without limit. The voucher
+    // is about this guest (have they already had a cocktail?), so it answers first: a
+    // guest who is out of vouchers cannot have a cocktail regardless of what is in stock.
+    // Only then do we check whether this specific cocktail has sold out, so a guest with
+    // a voucher left learns the named cocktail is gone and can pick another.
     if (parsed.item.category === "cocktail") {
-      const spent = await this.repos.drinkOrders.countCocktailsByEvent(this.eventId, COCKTAIL_MENU_IDS);
-      if (spent >= COCKTAIL_VOUCHER_LIMIT) return { kind: "cocktails_out" };
       const used = await this.repos.drinkOrders.countCocktailsByParticipant(
         participant.id,
         COCKTAIL_MENU_IDS,
       );
       if (used >= COCKTAIL_VOUCHER_PER_GUEST) return { kind: "voucher_used" };
+      const poured = await this.repos.drinkOrders.countByMenuItemForEvent(this.eventId, parsed.item.id);
+      if (poured >= COCKTAIL_STOCK_PER_ITEM) return { kind: "out_of_stock", label: parsed.item.label };
     }
 
     const order: DrinkOrder = {
@@ -119,19 +123,22 @@ export class DrinkService {
       label: order.label,
     });
 
-    // If this pour spent the last cocktail voucher, alert the operator once. The
-    // pre-insert guard above keeps the pool from overshooting, so this trips a
-    // single time (on the 150th cocktail).
+    // If this pour took the cocktail to its cap, alert the operator once. The pre-insert
+    // guard above keeps the count from overshooting, so this trips a single time per
+    // cocktail (on its 50th pour), naming the one that just sold out.
     if (parsed.item.category === "cocktail") {
-      const spentNow = await this.repos.drinkOrders.countCocktailsByEvent(this.eventId, COCKTAIL_MENU_IDS);
-      if (spentNow >= COCKTAIL_VOUCHER_LIMIT) {
+      const pouredNow = await this.repos.drinkOrders.countByMenuItemForEvent(this.eventId, parsed.item.id);
+      if (pouredNow >= COCKTAIL_STOCK_PER_ITEM) {
         await this.repos.operatorAlerts.create(
           this.eventId,
           null,
           null,
-          `Cocktail vouchers exhausted (${COCKTAIL_VOUCHER_LIMIT} poured). Pour beer, wine, and zero-proof only.`,
+          `${order.label} sold out (${COCKTAIL_STOCK_PER_ITEM} poured). Other cocktails and unlimited drinks still on.`,
         );
-        await this.projection.emit("drink_order.milestone", { status: "cocktails_out" });
+        await this.projection.emit("drink_order.milestone", {
+          status: "out_of_stock",
+          label: order.label,
+        });
       }
     }
     return { kind: "queued", order };

@@ -27,7 +27,7 @@ export function commandsIntroCopy(): string {
     `Reply with your quest answer to solve it`,
     `${CMD.mission}: current quest`,
     `${CMD.status}: color, word, ID, score, quests`,
-    `${CMD.drink}: bar menu (one cocktail voucher; beer, wine, non-alcoholic unlimited)`,
+    `${CMD.drink}: bar menu (one cocktail voucher; beer, wine, non-alcoholic unlimited until supplies run out)`,
     `${CMD.song} [track]: DJ request`,
     `${CMD.help}: this list`,
   ]);
@@ -147,7 +147,7 @@ export function missionNeedsInputCopy(): string {
 }
 
 export function drinkQueuedCopy(label: string): string {
-  return `${label}: order received.\n\nReminder: one special cocktail voucher per guest. Beer, wine, and non-alcoholic drinks are unlimited at the bar.\n\nI'll text when it's ready.`;
+  return `${label}: order received.\n\nReminder: one special cocktail voucher per guest. Beer, wine, and non-alcoholic drinks are unlimited until supplies run out.\n\nI'll text when it's ready.`;
 }
 
 export function drinkAlreadyQueuedCopy(label: string): string {
@@ -179,11 +179,11 @@ export function drinkUnavailableCopy(label: string): string {
 }
 
 export function drinkVoucherUsedCopy(): string {
-  return "You already used your one cocktail voucher. Beer, wine, and non-alcoholic drinks are still unlimited. Name one item.";
+  return "You already used your one cocktail voucher. Beer, wine, and non-alcoholic drinks are unlimited until supplies run out. Name one item.";
 }
 
-export function cocktailsOutCopy(): string {
-  return "Cocktails are sold out for the night. Beer, wine, and non-alcoholic drinks are still unlimited.";
+export function cocktailOutOfStockCopy(label: string): string {
+  return `${label} just sold out for the night. The other signature cocktails are still on, and beer, wine, and non-alcoholic drinks are unlimited until supplies run out. Name another.`;
 }
 
 export function drinkInvalidQuantityCopy(): string {

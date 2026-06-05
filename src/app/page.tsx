@@ -295,7 +295,7 @@ export default async function Home() {
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-ash">
             No line, no tab. Text Ariadne and she routes it: one signature cocktail on the house,
-            with beer, wine, and zero-proof unlimited all night.
+            with beer, wine, and zero-proof unlimited until supplies run out.
           </p>
           <div className="mt-8 grid gap-3 lg:grid-cols-3">
             <div className="border border-nyx-line/70 bg-nyx-soft/60 p-6 lg:col-span-2">
@@ -323,8 +323,8 @@ export default async function Home() {
                 ))}
               </div>
               <p className="mt-4 text-xs leading-relaxed text-ash">
-                Beer, wine, and zero-proof drinks are free and unlimited. Ariadne pings you the moment
-                your order is ready at pickup.
+                Beer, wine, and zero-proof drinks are free and unlimited until supplies run out. Ariadne
+                pings you the moment your order is ready at pickup.
               </p>
             </div>
             <div className="flex flex-col border border-nyx-line/70 bg-nyx-soft/60 p-6">

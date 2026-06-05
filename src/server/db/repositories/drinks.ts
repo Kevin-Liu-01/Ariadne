@@ -167,14 +167,16 @@ export class DrinkOrdersRepository extends BaseRepository {
     return rows[0]?.c ?? 0;
   }
 
-  /** Cocktail vouchers spent across the whole event (the 150-pour pool). */
-  async countCocktailsByEvent(eventId: string, cocktailIds: readonly string[]): Promise<number> {
-    if (cocktailIds.length === 0) return 0;
-    const ph = cocktailIds.map((_, i) => `$${i + 2}`).join(",");
+  /**
+   * How many of one menu item have been ordered for the event, counting everything a
+   * clean operator "cancelled" did not void (a picked-up or expired pour still spent its
+   * stock). Backs the per-cocktail sell-out cap.
+   */
+  async countByMenuItemForEvent(eventId: string, menuItemId: string): Promise<number> {
     const rows = await this.db.query<{ c: number }>(
       `SELECT COUNT(*)::int AS c FROM drink_orders
-       WHERE event_id = $1 AND status <> 'cancelled' AND menu_item_id IN (${ph})`,
-      [eventId, ...cocktailIds],
+       WHERE event_id = $1 AND menu_item_id = $2 AND status <> 'cancelled'`,
+      [eventId, menuItemId],
     );
     return rows[0]?.c ?? 0;
   }

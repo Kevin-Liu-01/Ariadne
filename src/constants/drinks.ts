@@ -42,8 +42,12 @@ export const DRINK_DEDUP_WINDOW_MS = 90_000;
 
 /** Cocktails are voucher-gated: one free cocktail per guest. Beer, wine, and zero-proof are unlimited. */
 export const COCKTAIL_VOUCHER_PER_GUEST = 1;
-/** Total cocktail vouchers for the night. When spent, cocktails close and the operator is alerted. */
-export const COCKTAIL_VOUCHER_LIMIT = 150;
+/**
+ * Per-cocktail stock for the night. Each signature cocktail can be ordered this many
+ * times before it sells out on its own; the others (and the unlimited categories) keep
+ * pouring. Hitting the cap alerts the operator once for that cocktail.
+ */
+export const COCKTAIL_STOCK_PER_ITEM = 50;
 
 const MENU_BY_ID: ReadonlyMap<string, MenuItem> = new Map(DRINK_MENU.map((d) => [d.id, d]));
 
@@ -96,7 +100,7 @@ export function menuSummary(): string {
     "Signature cocktails (one per guest):",
     ...specials,
     "",
-    "Unlimited and free at the bar:",
+    "Free and unlimited until supplies run out:",
     ...unlimitedLines,
   ].join("\n");
 }
