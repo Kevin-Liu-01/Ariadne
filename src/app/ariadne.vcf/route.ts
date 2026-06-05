@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const ICON_PATH = join(process.cwd(), "src/app/apple-icon.png");
 
-/** Public vCard for iMessage/SMS contact save (Dench-style identity on the thread). */
+/** Public vCard for iMessage/SMS contact save so the event line shows as Ariadne, not a raw number. */
 export async function GET(): Promise<Response> {
   const phone = env.agentphone.phoneNumber;
   if (!phone) return new Response("phone not configured", { status: 503 });

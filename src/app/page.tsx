@@ -1,9 +1,15 @@
-import { ArrowRight, BookOpen, KeyRound, LayoutGrid, MessageSquare, QrCode, SlidersHorizontal, Target, Wine } from "lucide-react";
+import { ArrowRight, BookOpen, Disc3, KeyRound, LayoutGrid, MessageSquare, MonitorPlay, Music, Palette, Puzzle, QrCode, SlidersHorizontal, Target, Users, Wine } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { EVENT_NAME, PRODUCT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/event";
+import { DRINK_MENU } from "@/constants/drinks";
+import { PRODUCT_NAME, VENUE } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
+import { MISSIONS } from "@/constants/missions";
+import { SCENES } from "@/constants/scenes";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
+import { RunwayWordmark } from "@/components/runway-wordmark";
+import { TextReminders } from "@/components/text-reminders";
+import { IMessageIcon } from "@/components/imessage-icon";
 import { HeroBentoLeft, HeroBentoRight } from "@/components/hero-bento-walls";
 import { GemIcon } from "@/components/gem-icon";
 import { cn } from "@/lib/utils";
@@ -25,13 +31,6 @@ const LINKS: NavLink[] = [
     Icon: QrCode,
     primary: true,
     hint: "Text or web check-in: get your gem and first mission.",
-  },
-  {
-    href: "/sms",
-    label: "Save contact",
-    note: "text Ariadne",
-    Icon: MessageSquare,
-    hint: "Add Ariadne to your phone so our texts show with a name and photo.",
   },
   {
     href: "/play",
@@ -79,6 +78,28 @@ const STEPS: { Icon: LucideIcon; title: string; body: string }[] = [
   },
 ];
 
+/** Marketing presentation for each quest, keyed to the mission id so titles and
+ *  points stay sourced from the canonical MISSIONS catalog. */
+const QUEST_PRESENTATION: Record<string, { Icon: LucideIcon; blurb: string }> = {
+  "color-constellation": {
+    Icon: Palette,
+    blurb:
+      "Your gem is a hue on the color wheel. Find two more guests whose colors complete a triangle, all primaries or all secondaries.",
+  },
+  "word-thread": {
+    Icon: Users,
+    blurb:
+      "You carry half of a hidden phrase. Track down the guest holding the other half, then text in their game ID.",
+  },
+  "riddle-labyrinth": {
+    Icon: Puzzle,
+    blurb:
+      "Three riddles, each a systems term hiding a second, everyday meaning. Crack all three to clear the maze.",
+  },
+};
+
+const COCKTAILS = DRINK_MENU.filter((d) => d.category === "cocktail" && d.available);
+
 export default function Home() {
   return (
     <main className="flex flex-col">
@@ -86,21 +107,31 @@ export default function Home() {
       <section className="grid min-h-dvh grid-cols-1 gap-2 p-2 lg:h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)]">
         <HeroBentoLeft />
 
-        <section className="bgimg-nyx-waves relative flex flex-col items-center justify-center overflow-hidden border border-nyx-line/70 px-6 py-16 text-center">
+        <section className="bgimg-nyx-waves relative flex flex-col items-center justify-center overflow-hidden border border-nyx-line/70 px-6 py-20 text-center">
           <div className="absolute inset-0 bg-gradient-to-b from-nyx/75 via-nyx/40 to-nyx/85" />
           <div className="scanlines absolute inset-0" />
+          <div
+            className="pointer-events-none absolute left-1/2 top-[32%] h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-helio/20 blur-[100px]"
+            aria-hidden
+          />
 
           <div className="relative z-[3] flex w-full max-w-md flex-col items-center animate-rise">
-            <LabyrinthThread size={150} animate />
+            <LabyrinthThread size={132} animate />
 
-            <h1 className="mt-7 font-display text-7xl font-extralight tracking-tight text-cloud sm:text-8xl">
+            <h1 className="mt-6 font-display text-7xl font-extralight leading-[0.95] tracking-tight text-cloud sm:text-8xl">
               {PRODUCT_NAME}
             </h1>
-            <p className="mt-3 text-sm uppercase tracking-[0.35em] text-helio">{PRODUCT_TAGLINE}</p>
 
-            <p className="mt-6 max-w-md text-sm leading-relaxed text-ash">
-              A phone-first game for <span className="text-cloud">{EVENT_NAME}</span> at {VENUE}. Check
-              in, get a gem and secret word, solve the labyrinth, and order drinks, all by text.
+            <div className="mt-5 flex items-center gap-3">
+              <span className="h-px w-8 bg-gradient-to-r from-transparent to-helio/50" aria-hidden />
+              <span className="text-[11px] uppercase tracking-[0.4em] text-ash">your personal agent for</span>
+              <span className="h-px w-8 bg-gradient-to-l from-transparent to-helio/50" aria-hidden />
+            </div>
+            <RunwayWordmark size="md" className="mt-2" />
+
+            <p className="mt-6 max-w-sm text-sm leading-relaxed text-ash">
+              A phone-first game at {VENUE}. Check in, get a gem and a secret word, solve the
+              labyrinth, and order drinks, all by text.
             </p>
 
             <nav className="mt-10 w-full">
@@ -137,12 +168,12 @@ export default function Home() {
                 ))}
               </div>
             </nav>
-
-            <p className="mt-10 flex items-center gap-2 text-xs text-ash/60">
-              <span className="crosshair" aria-hidden />
-              Scroll for how the night works
-            </p>
           </div>
+
+          <p className="absolute inset-x-0 bottom-6 z-[3] flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.25em] text-ash/60">
+            <span className="crosshair" aria-hidden />
+            scroll for how the night works
+          </p>
         </section>
 
         <HeroBentoRight />
@@ -153,7 +184,7 @@ export default function Home() {
         <div className="mx-auto max-w-5xl">
           <p className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-helio">
             <span className="crosshair" aria-hidden />
-            The thread
+            The night
           </p>
           <h2 className="mt-3 font-display text-4xl font-extralight tracking-tight text-cloud sm:text-5xl">
             How the night works
@@ -174,6 +205,19 @@ export default function Home() {
                 <p className="mt-2 text-sm leading-relaxed text-ash group-hover:text-cloud/80">{s.body}</p>
               </div>
             ))}
+          </div>
+
+          <div className="mt-3 border border-nyx-line/70 bg-nyx-soft/60 p-6 sm:flex sm:items-center sm:justify-between sm:gap-8">
+            <div>
+              <h3 className="font-display text-2xl font-extralight tracking-tight text-cloud">
+                Everything happens by text
+              </h3>
+              <p className="mt-2 max-w-sm text-sm leading-relaxed text-ash">
+                No app to download. Save Ariadne the first time she texts you, then just reply to
+                play all night.
+              </p>
+            </div>
+            <TextReminders className="mt-6 w-full max-w-xs sm:mt-0" />
           </div>
         </div>
       </section>
@@ -208,6 +252,160 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* The quests */}
+      <section className="border-t border-nyx-line/60 px-6 py-20 sm:py-24">
+        <div className="mx-auto max-w-5xl">
+          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-helio">
+            <Target className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            The quests
+          </p>
+          <h2 className="mt-3 font-display text-4xl font-extralight tracking-tight text-cloud sm:text-5xl">
+            Three quests, one labyrinth
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-ash">
+            Solve them in any order, entirely by text. Points stack live on the room board, and the
+            fastest, most social players rise to the top.
+          </p>
+          <p className="mt-5 inline-flex items-center gap-2 border border-nyx-line/70 bg-nyx-soft/60 px-3 py-2 text-xs text-ash">
+            <IMessageIcon size={16} />
+            Text your answers to Ariadne, no app required.
+          </p>
+          <div className="mt-8 grid gap-3 md:grid-cols-3">
+            {MISSIONS.map((m) => {
+              const q = QUEST_PRESENTATION[m.id];
+              if (!q) return null;
+              return (
+                <div
+                  key={m.id}
+                  className="group flex flex-col border border-nyx-line/70 bg-nyx-soft/60 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-helio/40"
+                >
+                  <div className="flex items-center justify-between">
+                    <q.Icon className="h-6 w-6 text-helio" strokeWidth={1.5} aria-hidden />
+                    <span className="text-xs tabular-nums tracking-[0.2em] text-helio">{m.points} pts</span>
+                  </div>
+                  <h3 className="mt-4 text-lg text-cloud">{m.title}</h3>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-ash group-hover:text-cloud/80">
+                    {q.blurb}
+                  </p>
+                  <span
+                    className={cn(
+                      "mt-4 inline-flex w-fit items-center gap-1.5 border px-2.5 py-1 text-[10px] uppercase tracking-[0.2em]",
+                      m.requiresPartner
+                        ? "border-gem-aquamarine/40 text-gem-aquamarine"
+                        : "border-nyx-line/70 text-ash",
+                    )}
+                  >
+                    {m.requiresPartner ? <Users className="h-3 w-3" strokeWidth={1.5} aria-hidden /> : null}
+                    {m.requiresPartner ? "needs a partner" : "solo quest"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* The bar + the booth */}
+      <section className="border-t border-nyx-line/60 px-6 py-20 sm:py-24">
+        <div className="mx-auto max-w-5xl">
+          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-helio">
+            <Wine className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            The bar + the booth
+          </p>
+          <h2 className="mt-3 font-display text-4xl font-extralight tracking-tight text-cloud sm:text-5xl">
+            Order a drink, request a song
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-ash">
+            No line, no tab. Text Ariadne and she routes it: one signature cocktail on the house,
+            with beer, wine, and zero-proof unlimited all night.
+          </p>
+          <div className="mt-8 grid gap-3 lg:grid-cols-3">
+            <div className="border border-nyx-line/70 bg-nyx-soft/60 p-6 lg:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-2 text-sm text-cloud">
+                  <IMessageIcon size={18} />
+                  ask for drinks
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-helio">
+                  one cocktail on the house
+                </span>
+              </div>
+              <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                {COCKTAILS.map((d) => (
+                  <div key={d.id} className="border border-nyx-line/70 bg-nyx px-3 py-4 text-center">
+                    <p className="text-sm text-cloud">{d.label}</p>
+                    <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-ash">signature</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-xs leading-relaxed text-ash">
+                Beer, wine, and zero-proof drinks are free and unlimited. Ariadne pings you the moment
+                your order is ready at pickup.
+              </p>
+            </div>
+            <div className="flex flex-col border border-nyx-line/70 bg-nyx-soft/60 p-6">
+              <span className="inline-flex items-center gap-2 text-sm text-cloud">
+                <IMessageIcon size={18} />
+                request songs
+              </span>
+              <h3 className="mt-4 flex items-center gap-2 text-lg text-cloud">
+                <Disc3 className="h-5 w-5 text-helio" strokeWidth={1.5} aria-hidden />
+                Feed the booth
+              </h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-ash">
+                Text a track and Ariadne drops it in the DJ queue. The booth pulls live requests
+                straight from the room.
+              </p>
+              <p className="mt-4 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-helio">
+                <Music className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                live DJ queue
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* The room / live board */}
+      <section className="border-t border-nyx-line/60 px-6 py-20 sm:py-24">
+        <div className="mx-auto max-w-5xl">
+          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-helio">
+            <MonitorPlay className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            The room
+          </p>
+          <h2 className="mt-3 font-display text-4xl font-extralight tracking-tight text-cloud sm:text-5xl">
+            The whole room, on one board
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-ash">
+            Every gem, score, and solve lands on a live projection down the runway. The night moves
+            through four stages, and you can watch it climb in real time.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            {SCENES.map((s, i) => (
+              <div
+                key={s.id}
+                className="w-full border border-nyx-line/70 bg-nyx-soft/60 p-5 sm:w-[calc(50%-0.375rem)] lg:w-[calc(20%-0.6rem)]"
+              >
+                <span className="text-xs tabular-nums tracking-[0.2em] text-ash">0{i + 1}</span>
+                <h3 className="mt-3 text-base text-cloud">{s.headline}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ash">{s.tagline}</p>
+              </div>
+            ))}
+          </div>
+          <Link
+            href="/projection"
+            className="group mt-6 inline-flex items-center gap-2 border border-helio/50 bg-helio/10 px-5 py-3 text-sm text-cloud transition-colors hover:bg-helio/20"
+          >
+            <LayoutGrid className="h-4 w-4 text-helio" strokeWidth={1.5} aria-hidden />
+            Open the live board
+            <ArrowRight
+              className="h-4 w-4 text-helio transition-transform group-hover:translate-x-1"
+              strokeWidth={2}
+              aria-hidden
+            />
+          </Link>
         </div>
       </section>
 

@@ -263,7 +263,7 @@ export function hostRequestDeclinedCopy(): string {
 
 /** Shown with the first vCard attachment. */
 export function contactCardIntroCopy(): string {
-  return `Save my contact from the card above so my texts always reach you.\n\nThe game starts soon, keep an eye on this thread.`;
+  return `Save my contact from the card above so my texts always reach you.\n\nThe game starts soon. Keep this chat handy and reply here anytime.`;
 }
 
 /** Wraps an operator's typed announcement so guests see it as a venue notice, not a reply. */

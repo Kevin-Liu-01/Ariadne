@@ -60,15 +60,6 @@ export function StageHero({ sceneMeta, children }: { sceneMeta: Scene; children?
   );
 }
 
-export function RoomMetric({ label, value, accent }: { label: string; value: number; accent?: string }) {
-  return (
-    <div>
-      <dt className="text-[10px] uppercase tracking-widest text-ash">{label}</dt>
-      <dd className={cn("mt-0.5 text-lg tabular-nums text-cloud", accent)}>{value}</dd>
-    </div>
-  );
-}
-
 /** Quest-progress dots: how far a guest is through the three quests (their level). */
 export function QuestPips({ done, accent }: { done: number; accent: SceneAccent }) {
   return (

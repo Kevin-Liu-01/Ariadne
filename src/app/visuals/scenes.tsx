@@ -107,32 +107,44 @@ function logoEffect(a: AudioLevels): ReactNode {
 
 export interface Scene {
   name: string;
-  render: (a: AudioLevels) => ReactNode;
+  /** The full-screen shader stack, WITHOUT the Dedalus mark (see `renderScene`). */
+  background: (a: AudioLevels) => ReactNode;
+}
+
+/**
+ * Compose a scene for a `<Shader>`: its background stack, optionally topped by the
+ * Dedalus mark. The audio-reactive venue stage passes the mark; the calm projection
+ * backdrops drop it (`withLogo={false}`) so text reads cleanly over the shader.
+ */
+export function renderScene(scene: Scene, a: AudioLevels, withLogo = true): ReactNode {
+  return (
+    <>
+      {scene.background(a)}
+      {withLogo ? logoEffect(a) : null}
+    </>
+  );
 }
 
 /** Pixel Beams: a plasma sliced into square beams, dithered to a helio/violet grid. */
 function pixelBeams(a: AudioLevels): ReactNode {
   return (
-    <>
-      <Dither colorA={BRAND.nyxViolet} colorB={BRAND.helio} pattern="bayer8" pixelSize={7} threshold={0.41 - a.beat * 0.18}>
-        <Plasma
+    <Dither colorA={BRAND.nyxViolet} colorB={BRAND.helio} pattern="bayer8" pixelSize={7} threshold={0.41 - a.beat * 0.18}>
+      <Plasma
         colorA={BRAND.cloud}
         contrast={0.9}
         density={0.65 + a.treble * 0.5}
         intensity={1.3 + a.bass * 2.2 + a.beat * 2}
-          speed={1 + a.level * 1.4}
-        />
-        <WaveDistortion
-          angle={188}
-          edges="mirror"
-          frequency={1.8 + a.mid * 2.6}
-          strength={0.7 + a.bass * 1.2 + a.beat * 0.8}
-          visible={true}
-          waveType="square"
-        />
-      </Dither>
-      {logoEffect(a)}
-    </>
+        speed={1 + a.level * 1.4}
+      />
+      <WaveDistortion
+        angle={188}
+        edges="mirror"
+        frequency={1.8 + a.mid * 2.6}
+        strength={0.7 + a.bass * 1.2 + a.beat * 0.8}
+        visible={true}
+        waveType="square"
+      />
+    </Dither>
   );
 }
 
@@ -149,9 +161,7 @@ function softRegister(a: AudioLevels): ReactNode {
         distortion={0.8 + a.level * 0.8 + a.beat * 0.7}
         seed={29}
       />
-      <Halftone blendMode="overlay" frequency={180} opacity={0.2 + a.bass * 0.3 + a.beat * 0.25} style="cmyk" />
-      {logoEffect(a)}
-    </>
+      <Halftone blendMode="overlay" frequency={180} opacity={0.2 + a.bass * 0.3 + a.beat * 0.25} style="cmyk" />    </>
   );
 }
 
@@ -168,9 +178,7 @@ function spectralBloom(a: AudioLevels): ReactNode {
         mode="custom"
         scale={1.6 + a.bass * 3 + a.beat * 2}
       />
-      <Halftone frequency={125} misprint={0.0055} opacity={0.05 + a.treble * 0.12} style="cmyk" />
-      {logoEffect(a)}
-    </>
+      <Halftone frequency={125} misprint={0.0055} opacity={0.05 + a.treble * 0.12} style="cmyk" />    </>
   );
 }
 
@@ -188,9 +196,7 @@ function pistons(a: AudioLevels): ReactNode {
           spotty={0}
         />
       </Ascii>
-      <Paper displacement={0} grainScale={3} roughness={0.85} />
-      {logoEffect(a)}
-    </>
+      <Paper displacement={0} grainScale={3} roughness={0.85} />    </>
   );
 }
 
@@ -209,9 +215,7 @@ function fluidChrome(a: AudioLevels): ReactNode {
       >
         <Swirl blend={56} colorA={BRAND.amethyst} colorB={BRAND.cloud} colorSpace="oklab" detail={6} speed={0.1 + a.level * 0.7} />
         <FlowField detail={2} evolutionSpeed={1.5 + a.mid * 1.8} speed={1.8 + a.bass * 2.2 + a.beat * 1.5} strength={0.5 + a.level * 0.7} />
-      </Glass>
-      {logoEffect(a)}
-    </>
+      </Glass>    </>
   );
 }
 
@@ -242,9 +246,7 @@ function chromaFlow(a: AudioLevels): ReactNode {
         softness={1}
         speed={0.15 + a.level * 0.5}
       />
-      <FilmGrain strength={0.05} />
-      {logoEffect(a)}
-    </>
+      <FilmGrain strength={0.05} />    </>
   );
 }
 
@@ -265,9 +267,7 @@ function drift(a: AudioLevels): ReactNode {
         mouseInfluence={0}
         mouseRadius={0.07}
         speed={6.2 + a.bass * 5 + a.beat * 4}
-      />
-      {logoEffect(a)}
-    </>
+      />    </>
   );
 }
 
@@ -277,9 +277,7 @@ function mosaic(a: AudioLevels): ReactNode {
     <>
       <Swirl colorA={BRAND.nyxViolet} colorB={GEM.aquamarine} colorSpace="oklab" detail={3.2} speed={0.6 + a.level * 0.9} visible={true} />
       {/* scale = pixels per edge, so a lower number = bigger blocks; the bass crushes it down. */}
-      <Pixelate scale={Math.max(8, 70 - a.bass * 48 - a.beat * 22)} />
-      {logoEffect(a)}
-    </>
+      <Pixelate scale={Math.max(8, 70 - a.bass * 48 - a.beat * 22)} />    </>
   );
 }
 
@@ -298,9 +296,7 @@ function circuit(a: AudioLevels): ReactNode {
       >
         <Grid blendMode="hardLight" cells={44} color={BRAND.helio} thickness={3.5} transform={{ scale: 0.75 }} />
       </WaveDistortion>
-      <GridDistortion decay={1.8} edges="wrap" gridSize={8} intensity={1.2 + a.bass * 2.6 + a.beat * 1.4} radius={1 + a.bass * 1.2 + a.beat * 0.5} />
-      {logoEffect(a)}
-    </>
+      <GridDistortion decay={1.8} edges="wrap" gridSize={8} intensity={1.2 + a.bass * 2.6 + a.beat * 1.4} radius={1 + a.bass * 1.2 + a.beat * 0.5} />    </>
   );
 }
 
@@ -339,21 +335,24 @@ function dedalusBloom(a: AudioLevels): ReactNode {
         thickness={0.7}
         visible={true}
       />
-      <FilmGrain strength={0.1} />
-      {logoEffect(a)}
-    </>
+      <FilmGrain strength={0.1} />    </>
   );
 }
 
 export const SCENES: Scene[] = [
-  { name: "Pixel Beams", render: pixelBeams },
-  { name: "Soft Register", render: softRegister },
-  { name: "Spectral Bloom", render: spectralBloom },
-  { name: "Pistons", render: pistons },
-  { name: "Fluid Chrome", render: fluidChrome },
-  { name: "Chroma Flow", render: chromaFlow },
-  { name: "Drift", render: drift },
-  { name: "Mosaic", render: mosaic },
-  { name: "Circuit", render: circuit },
-  { name: "Dedalus Bloom", render: dedalusBloom },
+  { name: "Pixel Beams", background: pixelBeams },
+  { name: "Soft Register", background: softRegister },
+  { name: "Spectral Bloom", background: spectralBloom },
+  { name: "Pistons", background: pistons },
+  { name: "Fluid Chrome", background: fluidChrome },
+  { name: "Chroma Flow", background: chromaFlow },
+  { name: "Drift", background: drift },
+  { name: "Mosaic", background: mosaic },
+  { name: "Circuit", background: circuit },
+  { name: "Dedalus Bloom", background: dedalusBloom },
 ];
+
+/** Scene lookup by name, for projection backdrops that pick a specific ambient look. */
+export const SCENE_BY_NAME: Record<string, Scene> = Object.fromEntries(
+  SCENES.map((s) => [s.name, s]),
+);

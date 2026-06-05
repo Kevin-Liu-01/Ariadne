@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Shader } from "shaders/react";
 import type { AudioEngine } from "@/app/visuals/audio";
-import { SCENES, type AudioLevels, ZERO_LEVELS } from "@/app/visuals/scenes";
+import { SCENES, renderScene, type AudioLevels, ZERO_LEVELS } from "@/app/visuals/scenes";
 
 const TRANSITION_MS = 1600; // crossfade length between scenes
 const HOLD_MS = 22000; // how long each scene holds before the next crossfade
@@ -101,7 +101,7 @@ export function Stage({ engine }: { engine: AudioEngine }) {
           style={{ opacity: shown.has(l.id) ? 1 : 0, transition: `opacity ${TRANSITION_MS}ms ease-in-out` }}
         >
           <Shader disableTelemetry className="block h-full w-full" style={{ width: "100%", height: "100%" }}>
-            {SCENES[l.scene].render(levels)}
+            {renderScene(SCENES[l.scene], levels)}
           </Shader>
         </div>
       ))}

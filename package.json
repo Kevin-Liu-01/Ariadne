@@ -2,7 +2,7 @@
   "name": "ariadne",
   "version": "0.1.0",
   "private": true,
-  "description": "Ariadne - the thread through the labyrinth. A phone-first event backbone you strap onto a running agent.",
+  "description": "Ariadne - your personal agent for the night. A phone-first event backbone you strap onto a running agent.",
   "scripts": {
     "dev": "next dev -p 3939",
     "build": "next build",

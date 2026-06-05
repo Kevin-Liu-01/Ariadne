@@ -1,15 +1,15 @@
 # Ariadne
 
-**The thread through the labyrinth.** A phone-first event backbone you strap onto
+**Your personal agent for the night.** A phone-first event backbone you strap onto
 a running agent (Claude Code, OpenClaw, or AgentPhone hosted) so it can host a
 live event end-to-end: check guests in, assign color gems and secret words, issue
 labyrinth missions, take free drink orders, and drive a projected room board.
 
-Built for **Run(way)time** — Dedalus's tech-merch runway × AI × art × HCI brand
-experience at Lume Studios. Daedalus built the labyrinth; **Ariadne** is the
-thread that guides you through it. The mission set is literally the *Dedalus
-Labyrinth*, so the orchestration layer that connects agent ↔ phone ↔ missions ↔
-projection is the thread.
+Built for **Run(time)way** — Dedalus's tech-merch runway × AI × art × HCI brand
+experience at Lume Studios. Daedalus built the labyrinth; **Ariadne** knows the way
+through it and guides each guest. The mission set is literally the *Dedalus
+Labyrinth*, and the orchestration layer connects agent ↔ phone ↔ missions ↔
+projection.
 
 > Partner: **AgentPhone** is the confirmed phone/SMS/voice surface. Fuser
 > (creative/projection visuals) is intentionally **not** a runtime dependency in

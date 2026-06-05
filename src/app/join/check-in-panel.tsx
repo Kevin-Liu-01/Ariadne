@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Hash,
   KeyRound,
-  MessageSquare,
   Sparkles,
   Target,
   TriangleAlert,
@@ -14,6 +13,8 @@ import { useState } from "react";
 import { EVENT_NAME } from "@/constants/event";
 import type { GemId } from "@/constants/gems";
 import { GemIcon } from "@/components/gem-icon";
+import { IMessageIcon } from "@/components/imessage-icon";
+import { TextReminders } from "@/components/text-reminders";
 import { cn } from "@/lib/utils";
 
 interface RegisterResult {
@@ -127,14 +128,8 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
           </div>
         ) : null}
 
-        <div className="mt-6 flex items-start gap-2 border-t border-nyx-line/60 pt-4 text-xs leading-relaxed text-ash">
-          <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ash" strokeWidth={1.5} aria-hidden />
-          <p>
-            Keep this thread going by text{phoneNumber ? <span className="text-cloud"> to {phoneNumber}</span> : null}:
-            send a <span className="text-cloud">mission answer</span> to solve it, a{" "}
-            <span className="text-cloud">drink</span> to order it, or{" "}
-            <span className="text-cloud">HELP</span> anytime.
-          </p>
+        <div className="mt-6 border-t border-nyx-line/60 pt-5">
+          <TextReminders title="text Ariadne to" />
         </div>
       </div>
     );
@@ -153,7 +148,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
           className="block border border-helio/40 bg-helio/10 px-6 py-5 text-center transition-colors hover:bg-helio/15"
         >
           <span className="flex items-center justify-center gap-2 text-xs uppercase tracking-[0.25em] text-helio">
-            <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            <IMessageIcon size={18} />
             text to check in
           </span>
           <span className="mt-1 block text-xl tabular-nums tracking-[0.1em] text-cloud">
@@ -239,7 +234,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
               busy && "opacity-60",
             )}
           >
-            {busy ? "threading…" : "check in"}
+            {busy ? "checking in…" : "check in"}
             {busy ? null : <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden />}
           </button>
         </form>

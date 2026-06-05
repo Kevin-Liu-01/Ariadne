@@ -30,6 +30,10 @@ export interface MissionTemplate {
   readonly hint?: string;
 }
 
+/** Max phrase pairs in play. Caps the live word bank so the projected board stays
+ *  readable and the match pool stays tight; bump this to widen the bank. */
+export const WORD_BANK_MAX = 25;
+
 /**
  * Half-phrase words. Each guest gets one as their `secret_word` at check-in; the
  * word-match mission is to find the guest holding the complement that completes
@@ -40,8 +44,10 @@ export interface MissionTemplate {
  * and handed out in order (see `assignSecretWord`), so both halves land early and
  * the match stays solvable. Some words appear in more than one pair (e.g. "open");
  * `wordsPair` accepts any listed pairing, so that's fine.
+ *
+ * This is the full curated bank; the live `WORD_PAIRS` below is its first slice.
  */
-export const WORD_PAIRS: ReadonlyArray<readonly [string, string]> = [
+const WORD_BANK_FULL: ReadonlyArray<readonly [string, string]> = [
   // Brand slogans: "give your agent wings", "drip and ship", "runway", AgentPhone,
   // Lume Studios. First, so these meaningful pairs are the most likely to be used.
   ["give", "wings"],
@@ -49,7 +55,7 @@ export const WORD_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["run", "way"],
   ["agent", "phone"],
   ["lume", "studio"],
-  ["thread", "maze"],
+  ["myth", "maze"],
   ["sub", "second"],
   ["open", "call"],
   ["night", "circuit"],
@@ -67,7 +73,7 @@ export const WORD_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["dedalus", "route"],
   ["signals", "pulse"],
   ["kernels", "panic"],
-  ["threads", "spawn"],
+  ["daemons", "spawn"],
   ["queues", "build"],
   ["graphs", "expand"],
   ["nodes", "connect"],
@@ -156,6 +162,16 @@ export const WORD_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ["worlds", "merge"],
   ["futures", "branch"],
 ];
+
+/**
+ * The live word bank: the first WORD_BANK_MAX pairs (brand slogans first). Secret-word
+ * assignment, match validation, and the projection board all read this, so the bank a
+ * guest sees on the board is exactly the set that can complete their phrase.
+ */
+export const WORD_PAIRS: ReadonlyArray<readonly [string, string]> = WORD_BANK_FULL.slice(
+  0,
+  WORD_BANK_MAX,
+);
 
 export const MISSIONS: readonly MissionTemplate[] = [
   {

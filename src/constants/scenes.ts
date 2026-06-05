@@ -31,6 +31,13 @@ export const SCENES = [
     accent: "aquamarine",
   },
   {
+    id: "opening",
+    note: "The Run(time)way opening: a cinematic shader title card before the game. Use it to gather the room and hype the night; no tiles, no texts. Pick 'game' to start play.",
+    headline: "Run(time)way",
+    tagline: "Find your place. The game begins in a moment.",
+    accent: "helio",
+  },
+  {
     id: "game",
     note: "The game is live: one board for the whole night. Every guest, the quest they're on, points, plus the color/word/riddle panels together. Guests progress color -> word -> riddle at their own pace.",
     headline: "The game is live",
@@ -48,7 +55,7 @@ export const SCENES = [
     id: "runway",
     note: "The runway show closes the night. The board goes calm and cinematic while the room watches.",
     headline: "The runway is live",
-    tagline: "Eyes up. The thread is holding.",
+    tagline: "Eyes up. The room is yours.",
     accent: "cloud",
   },
 ] as const satisfies readonly Scene[];

@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { EVENT_NAME } from "@/constants/event";
 import { sceneMeta } from "@/constants/scenes";
+import { GameLiveHeadline } from "@/components/game-live-headline";
+import { RunwayWordmark } from "@/components/runway-wordmark";
+import { ShaderBackdrop } from "@/components/shader-backdrop";
 import { SiteNav } from "@/components/site-nav";
 import { ACCENT, type BoardView } from "@/app/projection/board-parts";
 import { BoardStage } from "@/app/projection/stages";
@@ -20,6 +23,18 @@ const EMPTY_STATS: Stats = { checkedIn: 0, missionsCompleted: 0, drinksActive: 0
 function formatScene(scene: string): string {
   return scene.replace(/_/g, " ");
 }
+
+/**
+ * Ambient shaders.com look per scene. Cinematic scenes (arrival/opening/runway) run
+ * bold; the game/finale boards keep it faint so the live content stays readable.
+ */
+const SCENE_BACKDROP: Record<string, { scene: string; className: string }> = {
+  arrival: { scene: "Soft Register", className: "opacity-[0.3]" },
+  opening: { scene: "Fluid Chrome", className: "opacity-[0.24]" },
+  game: { scene: "Soft Register", className: "opacity-[0.1]" },
+  finale: { scene: "Spectral Bloom", className: "opacity-[0.16]" },
+  runway: { scene: "Dedalus Bloom", className: "opacity-[0.28]" },
+};
 
 function vmForScene(participantIds: string[], activeScene: string): Record<string, boolean> {
   if (!projectionGameplayActive(activeScene)) return {};
@@ -197,6 +212,7 @@ export default function ProjectionPage() {
   const activeCount = ordered.filter((t) => !t.eliminated).length;
   const activeScene = previewScene ?? scene;
   const meta = sceneMeta(activeScene);
+  const backdrop = SCENE_BACKDROP[activeScene] ?? SCENE_BACKDROP.game;
   const view: BoardView = {
     ordered,
     stats,
@@ -211,29 +227,42 @@ export default function ProjectionPage() {
   };
 
   return (
-    <main className="relative flex min-h-dvh flex-col bg-nyx px-10 py-8 scanlines">
+    <main className="relative flex h-dvh flex-col overflow-hidden bg-nyx px-10 py-8 scanlines">
+      <ShaderBackdrop sceneName={backdrop.scene} className={backdrop.className} />
       <header className="relative z-[2] border-b border-nyx-line pb-4">
         <SiteNav
           actions={
-            <div className="flex flex-wrap items-end gap-8">
-              <Stat label="checked in" value={stats.checkedIn} Icon={Users} />
-              <Stat label="missions solved" value={stats.missionsCompleted} Icon={Target} accent="helio" />
-              <Stat label="drinks pouring" value={stats.drinksActive} Icon={Wine} accent="topaz" />
-              <span
-                className={cn(
-                  "mb-1.5 h-2.5 w-2.5 rounded-full",
-                  connected ? "bg-gem-peridot animate-pulse-slow" : "bg-gem-garnet",
-                )}
-                title={connected ? "live" : "reconnecting"}
-              />
-            </div>
+            <span
+              className={cn(
+                "mb-1.5 h-2.5 w-2.5 rounded-full",
+                connected ? "bg-gem-peridot animate-pulse-slow" : "bg-gem-garnet",
+              )}
+              title={connected ? "live" : "reconnecting"}
+            />
           }
         />
-        <p className="mt-3 text-[11px] uppercase tracking-[0.3em] text-ash">
-          {EVENT_NAME} · scene ·{" "}
-          <span className={ACCENT[meta.accent].text}>{formatScene(activeScene)}</span>
-          {previewScene ? <span className="ml-2 text-ash/70">(preview)</span> : null}
-        </p>
+        {activeScene === "game" ? (
+          <div className="mt-4 flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
+            <RunwayWordmark size="xl" />
+            <div className="text-right">
+              <GameLiveHeadline headline={meta.headline} />
+              <div className="mt-3 flex items-end justify-end gap-8">
+                <Stat label="checked in" value={stats.checkedIn} Icon={Users} />
+                <Stat label="missions solved" value={stats.missionsCompleted} Icon={Target} accent="helio" />
+                <Stat label="drinks pouring" value={stats.drinksActive} Icon={Wine} accent="topaz" />
+              </div>
+              {previewScene ? (
+                <p className="mt-1 text-[10px] uppercase tracking-[0.35em] text-ash/60">preview</p>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <p className="mt-3 text-[11px] uppercase tracking-[0.3em] text-ash">
+            {EVENT_NAME} · scene ·{" "}
+            <span className={ACCENT[meta.accent].text}>{formatScene(activeScene)}</span>
+            {previewScene ? <span className="ml-2 text-ash/70">(preview)</span> : null}
+          </p>
+        )}
       </header>
 
       <BoardStage scene={activeScene} view={view} />

@@ -13,10 +13,10 @@ export interface Clue {
 
 export const CLUES: readonly Clue[] = [
   {
-    id: "thread",
+    id: "cache",
     prompt:
-      "In technical terms, this lightweight unit of execution shares a process; in myth, Ariadne used one to escape the labyrinth.",
-    answers: ["thread"],
+      "In systems, this is the fast local store that keeps hot data close at hand. Out in the world, it is a hidden stash you bury to dig up later.",
+    answers: ["cache"],
   },
   {
     id: "daemon",

@@ -2,8 +2,6 @@ import { EVENT_NAME, PRODUCT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/ev
 
 export interface VcardInput {
   displayName: string;
-  /** vCard N: Family;Given;Middle;Prefix;Suffix */
-  structuredName?: string;
   phone: string;
   organization: string;
   title: string;
@@ -16,17 +14,6 @@ export interface VcardInput {
 /** Escape text for a vCard 3.0 property value, including `;` (used for FN, ORG, NOTE, ...). */
 function escape(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/;/g, "\\;").replace(/,/g, "\\,");
-}
-
-/**
- * Escape one slot of the structured `N` field. The `;` between slots are STRUCTURAL
- * delimiters, so we must not escape them (that bug made iMessage render the whole name as
- * the literal "Run(time)way;Ariadne Agent;;;"). We escape only intra-slot specials.
- */
-function structuredName(value: string): string {
-  const escapeSlot = (slot: string): string =>
-    slot.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,");
-  return value.split(";").map(escapeSlot).join(";");
 }
 
 /** Fold long lines at 75 octets per RFC 2426. */
@@ -61,12 +48,15 @@ function photoBase64Property(png: Buffer): string {
   return lines.join("\r\n");
 }
 
-/** Build a vCard 3.0 document guests can save from iMessage or SMS. */
+/**
+ * Build a vCard 3.0 document guests can save from iMessage or SMS. FN only, no
+ * structured N: iMessage renders an N field's "Family;Given;;;" slots literally,
+ * semicolons and all, so the formatted name is the single source of the display name.
+ */
 export function buildVcard(input: VcardInput): string {
   const lines = [
     "BEGIN:VCARD",
     "VERSION:3.0",
-    ...(input.structuredName ? [fold(`N:${structuredName(input.structuredName)}`)] : []),
     property("FN", input.displayName),
     property("ORG", input.organization),
     property("TITLE", input.title),
@@ -83,8 +73,7 @@ export function buildVcard(input: VcardInput): string {
 export function defaultAriadneVcard(phone: string, publicBaseUrl: string, photoPng: Buffer): string {
   const base = publicBaseUrl.replace(/\/$/, "");
   return buildVcard({
-    displayName: "Ariadne Agent Run(time)way",
-    structuredName: "Run(time)way;Ariadne Agent;;;",
+    displayName: PRODUCT_NAME,
     phone,
     organization: "Dedalus Labs",
     title: EVENT_NAME,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CheckCheck, LogOut, Wine, X } from "lucide-react";
+import { Check, CheckCheck, LogOut, Trash2, TriangleAlert, Wine } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EVENT_NAME } from "@/constants/event";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
@@ -16,9 +16,9 @@ function guestName(order: OperatorOrder): string {
 
 /**
  * One order. Bartender taps the single main button through its life: Ready (it is
- * made) then Picked up (the guest took it). A small Remove sits apart, in the
- * card corner, and asks for a second tap so it is never hit by accident; removing
- * an unclaimed order texts the guest a single expiry notice.
+ * made) then Picked up (the guest took it). A bold Delete sits right beside it but
+ * opens a confirmation dialog before anything is removed, so it is never destructive
+ * on a single tap; removing an unclaimed order texts the guest a single expiry notice.
  */
 function DrinkCard({
   order,
@@ -44,42 +44,7 @@ function DrinkCard({
         making ? "border-nyx-line bg-nyx-soft/80" : "border-gem-peridot/40 bg-gem-peridot/5",
       )}
     >
-      {/* Remove sits in the corner, away from the main action, and confirms on a second tap. */}
-      <div className="absolute right-2 top-2">
-        {confirmRemove ? (
-          <span className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => {
-                setConfirmRemove(false);
-                onExpire();
-              }}
-              disabled={busy}
-              className="border border-gem-garnet/60 px-2 py-1 text-[10px] uppercase tracking-widest text-gem-garnet disabled:opacity-50"
-            >
-              remove
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmRemove(false)}
-              className="px-2 py-1 text-[10px] uppercase tracking-widest text-ash"
-            >
-              keep
-            </button>
-          </span>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmRemove(true)}
-            aria-label="Remove order"
-            className="flex h-7 w-7 items-center justify-center text-ash/50 transition-colors hover:text-gem-garnet"
-          >
-            <X className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-          </button>
-        )}
-      </div>
-
-      <div className="flex items-center gap-4 pr-8">
+      <div className="flex items-center gap-4">
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-nyx-line/70 text-ash">
           <CategoryIcon className="h-7 w-7" strokeWidth={1.5} aria-hidden />
         </span>
@@ -92,28 +57,90 @@ function DrinkCard({
             <p className="mt-0.5 truncate text-sm text-ash">{order.modifiers.join(", ")}</p>
           ) : null}
         </div>
-        {making ? (
+
+        <div className="flex shrink-0 items-center gap-2">
+          {making ? (
+            <button
+              type="button"
+              onClick={onReady}
+              disabled={busy}
+              className="flex h-16 w-32 shrink-0 items-center justify-center gap-2 bg-gem-peridot text-lg font-bold uppercase tracking-wide text-nyx transition-opacity disabled:opacity-50"
+            >
+              <Check className="h-6 w-6" strokeWidth={3} aria-hidden />
+              Ready
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onPickedUp}
+              disabled={busy}
+              className="flex h-16 w-32 shrink-0 items-center justify-center gap-2 border border-gem-peridot/60 bg-gem-peridot/10 text-base font-bold uppercase tracking-wide text-gem-peridot transition-opacity disabled:opacity-50"
+            >
+              <CheckCheck className="h-6 w-6" strokeWidth={2.5} aria-hidden />
+              Picked up
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={onReady}
+            onClick={() => setConfirmRemove(true)}
             disabled={busy}
-            className="flex h-16 w-32 shrink-0 items-center justify-center gap-2 bg-gem-peridot text-lg font-bold uppercase tracking-wide text-nyx transition-opacity disabled:opacity-50"
+            aria-label={`Delete ${order.label} for ${guestName(order)}`}
+            className="flex h-16 w-20 shrink-0 flex-col items-center justify-center gap-1 border border-gem-garnet/60 bg-gem-garnet/15 text-gem-garnet transition-colors hover:bg-gem-garnet/25 disabled:opacity-50"
           >
-            <Check className="h-6 w-6" strokeWidth={3} aria-hidden />
-            Ready
+            <Trash2 className="h-6 w-6" strokeWidth={2} aria-hidden />
+            <span className="text-[10px] font-bold uppercase tracking-wide">Delete</span>
           </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onPickedUp}
-            disabled={busy}
-            className="flex h-16 w-32 shrink-0 items-center justify-center gap-2 border border-gem-peridot/60 bg-gem-peridot/10 text-base font-bold uppercase tracking-wide text-gem-peridot transition-opacity disabled:opacity-50"
-          >
-            <CheckCheck className="h-6 w-6" strokeWidth={2.5} aria-hidden />
-            Picked up
-          </button>
-        )}
+        </div>
       </div>
+
+      {confirmRemove ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm delete order"
+          onClick={() => setConfirmRemove(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-nyx/80 p-6 backdrop-blur-sm"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm animate-rise border border-gem-garnet/50 bg-nyx-soft p-6 text-center"
+          >
+            <div className="flex justify-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full border border-gem-garnet/50 bg-gem-garnet/10 text-gem-garnet">
+                <TriangleAlert className="h-6 w-6" strokeWidth={1.5} aria-hidden />
+              </span>
+            </div>
+            <h2 className="mt-4 text-lg font-semibold text-cloud">Delete this order?</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ash">
+              <span className="text-cloud">{order.label}</span> for{" "}
+              <span className="text-cloud">{guestName(order)}</span> will be removed from the queue and
+              the guest gets a single text that it expired. This cannot be undone.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmRemove(false)}
+                className="flex-1 border border-nyx-line bg-nyx px-4 py-3 text-sm font-medium uppercase tracking-wide text-cloud transition-colors hover:border-helio/50"
+              >
+                Keep order
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmRemove(false);
+                  onExpire();
+                }}
+                disabled={busy}
+                className="flex flex-1 items-center justify-center gap-2 bg-gem-garnet px-4 py-3 text-sm font-bold uppercase tracking-wide text-cloud transition-opacity disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </li>
   );
 }

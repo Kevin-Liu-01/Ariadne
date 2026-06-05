@@ -7,6 +7,7 @@ import { MISSIONS } from "@/constants/missions";
 import { GemIcon } from "@/components/gem-icon";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { SiteNav } from "@/components/site-nav";
+import { TextReminders } from "@/components/text-reminders";
 import { env } from "@/lib/env";
 
 const STEPS: { Icon: LucideIcon; title: string; body: string }[] = [
@@ -58,6 +59,10 @@ export default function PlayPage() {
             </Link>
             .
           </p>
+        </section>
+
+        <section className="mt-3 border border-nyx-line bg-nyx-soft/90 p-6">
+          <TextReminders title="text Ariadne to" className="mx-auto max-w-xs" />
         </section>
 
         <ol className="mt-10 space-y-4">

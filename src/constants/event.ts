@@ -1,7 +1,7 @@
 /** Event-level brand + protocol constants. Tunable content lives in constants/. */
 
 export const PRODUCT_NAME = "Ariadne";
-export const PRODUCT_TAGLINE = "the thread through the labyrinth";
+export const PRODUCT_TAGLINE = "your personal agent for the night";
 export const EVENT_NAME = "Run(time)way";
 export const VENUE = "Lume Studios";
 
