@@ -19,10 +19,10 @@ export interface TextableAction {
 }
 
 export const TEXTABLE_ACTIONS = [
-  { id: "drinks", label: "ask for drinks", body: "Can I get a drink?" },
-  { id: "songs", label: "request songs", body: "Can you play a song?" },
-  { id: "missions", label: "answer missions", body: "What's my next mission?" },
-  { id: "help", label: "get help anytime", body: "I need help" },
+  { id: "drinks", label: "ask for drinks", body: "I want to order a " },
+  { id: "songs", label: "request songs", body: "I want to request " },
+  { id: "missions", label: "answer missions", body: "My mission answer is " },
+  { id: "help", label: "get help anytime", body: "I need help with " },
 ] as const satisfies readonly TextableAction[];
 
 export type TextableActionId = (typeof TEXTABLE_ACTIONS)[number]["id"];

@@ -221,16 +221,21 @@ export class ReminderService {
     const planned = planReminders(ctx);
     const byKind: Record<ReminderKind, number> = { pickup: 0, name: 0, activity: 0 };
     let sent = 0;
+    const reserved: PlannedSend[] = [];
     for (const send of planned) {
       // Reserve the slot before sending so parallel cron sweeps cannot double-text.
-      const reserved = await this.repos.reminders.tryRecord(
+      const ok = await this.repos.reminders.tryRecord(
         this.eventId,
         send.participantId,
         send.kind,
         send.refId,
       );
-      if (!reserved) continue;
-      const ok = await sendText(send.phone, send.text);
+      if (ok) reserved.push(send);
+    }
+    const results = await Promise.all(
+      reserved.map(async (send) => ({ send, ok: await sendText(send.phone, send.text) })),
+    );
+    for (const { send, ok } of results) {
       if (!ok) continue;
       byKind[send.kind] += 1;
       sent += 1;
