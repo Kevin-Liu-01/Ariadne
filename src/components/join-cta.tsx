@@ -3,6 +3,7 @@ import Link from "next/link";
 import { IMessageIcon } from "@/components/imessage-icon";
 import { env } from "@/lib/env";
 import { cn } from "@/lib/utils";
+import { formatPhoneDisplay, smsHref } from "@/domain/phone";
 
 /**
  * Primary "check in" call to action. Leads with the iMessage mark because the
@@ -25,9 +26,8 @@ export function JoinCta({
   className?: string;
 }) {
   const phone = env.agentphone.phoneNumber;
-  const smsHref = phone ? `sms:${phone}?&body=JOIN` : null;
-  const destination = href ?? smsHref ?? "/join";
-  const displayLabel = label ?? phone ?? "Join";
+  const destination = href ?? smsHref(phone, "JOIN") ?? "/join";
+  const displayLabel = label ?? (phone ? formatPhoneDisplay(phone) : "Join");
   const isSms = destination.startsWith("sms:");
 
   const body = (

@@ -42,7 +42,7 @@ export default async function JoinPage({
 
             {phoneNumber ? (
               <div className="mt-8 border-t border-nyx-line/60 pt-6">
-                <TextReminders title="once you're in, text Ariadne to" />
+                <TextReminders phone={phoneNumber} title="once you're in, text Ariadne to" />
               </div>
             ) : null}
           </div>

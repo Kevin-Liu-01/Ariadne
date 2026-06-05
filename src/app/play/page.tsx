@@ -23,7 +23,7 @@ import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { TextReminders } from "@/components/text-reminders";
 import { cn } from "@/lib/utils";
 import { env } from "@/lib/env";
-import { formatPhoneDisplay } from "@/domain/phone";
+import { formatPhoneDisplay, smsHref } from "@/domain/phone";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +67,7 @@ const COCKTAILS = DRINK_MENU.filter((d) => d.category === "cocktail" && d.availa
 
 export default function PlayPage() {
   const phone = env.agentphone.phoneNumber;
-  const smsHref = phone ? `sms:${phone}?&body=JOIN` : null;
+  const checkInHref = smsHref(phone, "JOIN");
 
   return (
     <main className="relative min-h-dvh bg-nyx scanlines">
@@ -95,9 +95,9 @@ export default function PlayPage() {
             </p>
 
             <div className="mt-9 w-full max-w-sm">
-              {smsHref ? (
+              {checkInHref ? (
                 <a
-                  href={smsHref}
+                  href={checkInHref}
                   className="group block border border-helio/50 bg-helio/15 px-6 py-5 text-center backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-helio/25"
                 >
                   <span className="flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.3em] text-helio">
@@ -266,7 +266,7 @@ export default function PlayPage() {
             logins, just the same thread for missions, drinks, and songs.
           </p>
           <div className="mt-6 border border-nyx-line/70 bg-nyx-soft/60 p-6">
-            <TextReminders className="mx-auto max-w-xs" />
+            <TextReminders phone={phone} className="mx-auto max-w-xs" />
           </div>
         </section>
 

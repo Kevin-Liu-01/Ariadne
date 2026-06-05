@@ -245,7 +245,9 @@ function fluidChrome(a: AudioLevels): ReactNode {
         aberration={0.8 + a.treble * 1.0 + a.beat * 0.7}
         edgeSoftness={0.2}
         refraction={1.1 + a.bass * 1.0 + a.beat * 0.6}
-        scale={1.05 + a.beat * 0.14}
+        // The lens is sized well past the mark (see logoEffect) so its refraction stays
+        // full-bleed and the diagonal wings always sit inside it with margin as both pulse.
+        scale={1.35 + a.beat * 0.26 + a.bass * 0.075}
         thickness={0.27}
       >
         <Swirl blend={56} colorA={BRAND.amethyst} colorB={BRAND.cloud} colorSpace="oklab" detail={6} speed={0.15 + a.level * 1.1 + a.beat * 0.5} />

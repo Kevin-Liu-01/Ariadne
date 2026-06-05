@@ -24,7 +24,7 @@ export function normalizePhone(raw: string): string {
 
 /**
  * Render an E.164 number for human display: US/NANP numbers (`+1` + 10 digits)
- * become `(+1) 815-997-0034`. Anything else — international, an iMessage email
+ * become `+1 (815) 997-0034`. Anything else — international, an iMessage email
  * handle, or a malformed value — is returned trimmed-but-unchanged so we never
  * mangle a number we can't confidently group.
  *
@@ -46,5 +46,23 @@ export function formatPhoneDisplay(e164: string): string {
         : null;
   if (!national) return trimmed;
 
-  return `(+1) ${national.slice(0, 3)}-${national.slice(3, 6)}-${national.slice(6)}`;
+  return `+1 (${national.slice(0, 3)}) ${national.slice(3, 6)}-${national.slice(6)}`;
+}
+
+/**
+ * The one canonical `sms:` deep link builder. Opens the guest's Messages app to
+ * our event number with an optional prefilled, editable body. The `?&body=` shape
+ * is the cross-platform form (iOS historically wanted the `&`; Android/macOS
+ * tolerate it), and the body is URL-encoded so spaces and punctuation survive.
+ *
+ * Pass the raw E.164 number or iMessage handle, not the prettified
+ * {@link formatPhoneDisplay} string; dialers want the canonical value. Returns
+ * null when no destination is provisioned so callers fail closed to a
+ * non-interactive state instead of linking to `sms:`.
+ */
+export function smsHref(destination: string, body?: string): string | null {
+  const to = destination.trim();
+  if (!to) return null;
+  if (!body) return `sms:${to}`;
+  return `sms:${to}?&body=${encodeURIComponent(body)}`;
 }

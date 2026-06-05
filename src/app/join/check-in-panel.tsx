@@ -16,7 +16,7 @@ import { GemIcon } from "@/components/gem-icon";
 import { IMessageIcon } from "@/components/imessage-icon";
 import { TextReminders } from "@/components/text-reminders";
 import { cn } from "@/lib/utils";
-import { formatPhoneDisplay } from "@/domain/phone";
+import { formatPhoneDisplay, smsHref } from "@/domain/phone";
 
 interface RegisterResult {
   isNew: boolean;
@@ -45,7 +45,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
   const [result, setResult] = useState<RegisterResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const smsHref = phoneNumber ? `sms:${phoneNumber}?&body=JOIN` : null;
+  const checkInHref = smsHref(phoneNumber, "JOIN");
 
   async function submitWeb(e: React.FormEvent) {
     e.preventDefault();
@@ -130,7 +130,7 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
         ) : null}
 
         <div className="mt-6 border-t border-nyx-line/60 pt-5">
-          <TextReminders title="text Ariadne to" />
+          <TextReminders phone={phoneNumber} title="text Ariadne to" />
         </div>
       </div>
     );
@@ -143,9 +143,9 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
         mission, then play all night by text.
       </p>
 
-      {smsHref ? (
+      {checkInHref ? (
         <a
-          href={smsHref}
+          href={checkInHref}
           className="block border border-helio/40 bg-helio/10 px-6 py-5 text-center transition-colors hover:bg-helio/15"
         >
           <span className="flex items-center justify-center gap-2 text-xs uppercase tracking-[0.25em] text-helio">

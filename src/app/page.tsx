@@ -6,14 +6,18 @@ import { PRODUCT_NAME, VENUE } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import { MISSIONS } from "@/constants/missions";
 import { SCENES } from "@/constants/scenes";
+import { textableAction } from "@/constants/textable-actions";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { RunwayWordmark } from "@/components/runway-wordmark";
 import { TextReminders } from "@/components/text-reminders";
-import { IMessageIcon } from "@/components/imessage-icon";
+import { IMessageLink } from "@/components/imessage-link";
 import { JoinCta } from "@/components/join-cta";
 import { HeroBentoLeft, HeroBentoRight } from "@/components/hero-bento-walls";
 import { GemIcon } from "@/components/gem-icon";
+import { env } from "@/lib/env";
 import { cn } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
 
 interface NavLink {
   href: string;
@@ -74,10 +78,11 @@ const QUEST_PRESENTATION: Record<string, { Icon: LucideIcon; blurb: string }> = 
 const COCKTAILS = DRINK_MENU.filter((d) => d.category === "cocktail" && d.available);
 
 export default function Home() {
+  const phone = env.agentphone.phoneNumber;
   return (
     <main className="flex flex-col">
       {/* Hero: photo bento walls flanking the wordmark */}
-      <section className="grid min-h-dvh grid-cols-1 gap-2 p-2 lg:h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)]">
+      <section className="grid min-h-dvh grid-cols-1 gap-2 p-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)]">
         <HeroBentoLeft />
 
         <section className="bgimg-nyx-waves relative flex flex-col items-center justify-center overflow-hidden border border-nyx-line/70 px-6 py-20 text-center">
@@ -172,7 +177,7 @@ export default function Home() {
                 play all night.
               </p>
             </div>
-            <TextReminders className="mt-6 w-full max-w-xs sm:mt-0" />
+            <TextReminders phone={phone} className="mt-6 w-full max-w-xs sm:mt-0" />
           </div>
         </div>
       </section>
@@ -224,10 +229,14 @@ export default function Home() {
             Solve them in any order, entirely by text. Points stack live on the room board, and the
             fastest, most social players rise to the top.
           </p>
-          <p className="mt-5 inline-flex items-center gap-2 border border-nyx-line/70 bg-nyx-soft/60 px-3 py-2 text-xs text-ash">
-            <IMessageIcon size={16} />
+          <IMessageLink
+            phone={phone}
+            body={textableAction("missions").body}
+            iconSize={16}
+            className="mt-5 inline-flex items-center gap-2 border border-nyx-line/70 bg-nyx-soft/60 px-3 py-2 text-xs text-ash hover:border-helio/50"
+          >
             Text your answers to Ariadne, no app required.
-          </p>
+          </IMessageLink>
           <div className="mt-8 grid gap-3 md:grid-cols-3">
             {MISSIONS.map((m) => {
               const q = QUEST_PRESENTATION[m.id];
@@ -280,10 +289,14 @@ export default function Home() {
           <div className="mt-8 grid gap-3 lg:grid-cols-3">
             <div className="border border-nyx-line/70 bg-nyx-soft/60 p-6 lg:col-span-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-2 text-sm text-cloud">
-                  <IMessageIcon size={18} />
+                <IMessageLink
+                  phone={phone}
+                  body={textableAction("drinks").body}
+                  iconSize={18}
+                  className="inline-flex items-center gap-2 text-sm text-cloud"
+                >
                   ask for drinks
-                </span>
+                </IMessageLink>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-helio">
                   one cocktail on the house
                 </span>
@@ -302,10 +315,14 @@ export default function Home() {
               </p>
             </div>
             <div className="flex flex-col border border-nyx-line/70 bg-nyx-soft/60 p-6">
-              <span className="inline-flex items-center gap-2 text-sm text-cloud">
-                <IMessageIcon size={18} />
+              <IMessageLink
+                phone={phone}
+                body={textableAction("songs").body}
+                iconSize={18}
+                className="inline-flex items-center gap-2 text-sm text-cloud"
+              >
                 request songs
-              </span>
+              </IMessageLink>
               <h3 className="mt-4 flex items-center gap-2 text-lg text-cloud">
                 <Disc3 className="h-5 w-5 text-helio" strokeWidth={1.5} aria-hidden />
                 Feed the booth

@@ -3,6 +3,7 @@
 import {
   Clapperboard,
   Disc3,
+  Home,
   LayoutGrid,
   LogOut,
   Music,
@@ -54,9 +55,36 @@ const TABS: ConsoleTab<TabId>[] = [
 const DISPLAYS: { href: string; label: string; Icon: LucideIcon }[] = [
   { href: "/bar", label: "bar", Icon: Tablet },
   { href: "/dj", label: "dj", Icon: Disc3 },
-  { href: "/visuals", label: "stage", Icon: Sparkles },
+  { href: "/visuals", label: "visuals", Icon: Sparkles },
   { href: "/projection", label: "board", Icon: LayoutGrid },
 ];
+
+const navLinkClass =
+  "flex items-center gap-1.5 border border-nyx-line px-2.5 py-1.5 text-[10px] uppercase tracking-widest text-ash transition-colors hover:border-helio/50 hover:text-cloud";
+
+function StaffNavLinks({ displays }: { displays: boolean }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Link href="/" className={navLinkClass}>
+        <Home className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+        home
+      </Link>
+      {displays ? (
+        DISPLAYS.map((d) => (
+          <Link key={d.href} href={d.href} target="_blank" className={navLinkClass}>
+            <d.Icon className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            {d.label}
+          </Link>
+        ))
+      ) : (
+        <Link href="/visuals" target="_blank" className={navLinkClass}>
+          <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+          visuals
+        </Link>
+      )}
+    </div>
+  );
+}
 
 export default function OperatorPage() {
   const { token, input, setInput, unlock, lock } = useOperatorToken();
@@ -64,7 +92,10 @@ export default function OperatorPage() {
 
   if (!token) {
     return (
-      <main className="relative flex min-h-dvh flex-1 flex-col bg-nyx px-6 py-8 scanlines">
+      <main className="relative flex min-h-dvh flex-1 flex-col bg-nyx px-4 py-6 scanlines sm:px-6">
+        <div className="relative z-[2] flex justify-end pb-4">
+          <StaffNavLinks displays={false} />
+        </div>
         <div className="relative z-[2] flex flex-1 items-center justify-center py-8">
           <OperatorGate
             title="Staff console"
@@ -110,17 +141,7 @@ export default function OperatorPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {DISPLAYS.map((d) => (
-              <Link
-                key={d.href}
-                href={d.href}
-                target="_blank"
-                className="flex items-center gap-1.5 border border-nyx-line px-2.5 py-1.5 text-[10px] uppercase tracking-widest text-ash transition-colors hover:border-helio/50 hover:text-cloud"
-              >
-                <d.Icon className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-                {d.label}
-              </Link>
-            ))}
+            <StaffNavLinks displays />
             <button
               type="button"
               onClick={lock}
