@@ -1,7 +1,9 @@
 "use client";
 
-import { Disc3, Lock, LogOut, Sparkles, Tablet } from "lucide-react";
+import { Disc3, LayoutGrid, LogOut, SlidersHorizontal, Sparkles, Tablet, Wine } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { OperatorGate } from "@/components/operator-gate";
 import { SiteNav } from "@/components/site-nav";
 import { AlertsPanel } from "@/app/operator/alerts-panel";
 import { AnnouncementsPanel } from "@/app/operator/announcements-panel";
@@ -14,6 +16,14 @@ import { SongsPanel } from "@/app/operator/songs-panel";
 import { StatsRail } from "@/app/operator/stats-rail";
 import { useOperatorToken } from "@/app/operator/use-operator-token";
 
+/** The surfaces the console drives, shown on the locked gate so staff know what they're opening. */
+const CONSOLE_SURFACES: { Icon: LucideIcon; label: string }[] = [
+  { Icon: Wine, label: "Bar queue" },
+  { Icon: Disc3, label: "DJ requests" },
+  { Icon: Sparkles, label: "Stage visuals" },
+  { Icon: LayoutGrid, label: "Live board" },
+];
+
 export default function OperatorPage() {
   const { token, input, setInput, unlock, lock } = useOperatorToken();
 
@@ -21,28 +31,32 @@ export default function OperatorPage() {
     return (
       <main className="relative flex min-h-dvh flex-1 flex-col bg-nyx px-6 py-8 scanlines">
         <SiteNav className="relative z-[2] justify-center" />
-        <div className="relative z-[2] flex flex-1 items-center justify-center">
-          <div className="w-full max-w-sm animate-rise border border-nyx-line bg-nyx-soft p-6">
-            <h1 className="flex items-center justify-center gap-2 text-lg font-semibold">
-              <Lock className="h-4 w-4 text-helio" strokeWidth={1.5} aria-hidden />
-              operator console
-            </h1>
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && unlock()}
-              type="password"
-              placeholder="operator token"
-              className="mt-4 w-full border border-nyx-line bg-nyx px-4 py-3 text-cloud outline-none focus:border-helio/50"
-            />
-            <button
-              type="button"
-              onClick={unlock}
-              className="mt-3 w-full bg-helio px-4 py-3 font-medium uppercase tracking-wide text-nyx"
-            >
-              unlock
-            </button>
-          </div>
+        <div className="relative z-[2] flex flex-1 items-center justify-center py-8">
+          <OperatorGate
+            title="Staff console"
+            Icon={SlidersHorizontal}
+            description="Run-of-show, drinks, songs, and the live roster: the whole night from one screen. Paste your operator token to unlock the console."
+            value={input}
+            onChange={setInput}
+            onUnlock={unlock}
+          >
+            <div>
+              <p className="text-center text-[11px] uppercase tracking-[0.25em] text-helio">
+                what you&apos;ll run
+              </p>
+              <ul className="mt-3 grid grid-cols-2 gap-2">
+                {CONSOLE_SURFACES.map((s) => (
+                  <li
+                    key={s.label}
+                    className="flex items-center gap-2 border border-nyx-line/70 bg-nyx px-3 py-2 text-xs text-cloud"
+                  >
+                    <s.Icon className="h-3.5 w-3.5 shrink-0 text-helio" strokeWidth={1.5} aria-hidden />
+                    {s.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </OperatorGate>
         </div>
       </main>
     );
