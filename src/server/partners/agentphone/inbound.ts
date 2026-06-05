@@ -25,19 +25,16 @@ export async function processInboundText(
     // without await so it can never delay the reply; iMessage-only and best-effort.
     void sendTypingIndicator(interaction.channel, interaction.externalConversationId);
     const reply = await bb.brain.process(interaction);
-    if (reply.participantId) {
-      const guest = await bb.repos.participants.findById(reply.participantId);
-      if (guest) void bb.projection.emit("participant.messaged", { gameId: guest.gameId });
-    }
     await deliverReply(bb, reply, interaction);
     await bb.repos.partnerEvents.markStatus(webhookId, "processed");
+    void emitParticipantMessage(bb, reply.participantId);
   } catch (err) {
     await bb.repos.partnerEvents.markStatus(webhookId, "error");
     console.error("[ariadne] brain error", err);
   }
 }
 
-/** Send the reply, then mirror lightweight state back onto the AgentPhone conversation. */
+/** Send the reply; post-reply mirroring stays off the guest-visible path. */
 async function deliverReply(
   bb: Backbone,
   reply: BrainReply,
@@ -46,13 +43,34 @@ async function deliverReply(
   await deliverGuestReply(interaction.from, reply.conversationId, reply.text, {
     forceContactCard: reply.attachContactCard ?? false,
   });
-  if (interaction.externalConversationId && reply.participantId) {
+  void mirrorReplyConversation(bb, reply, interaction.externalConversationId);
+}
+
+async function emitParticipantMessage(bb: Backbone, participantId: string | null): Promise<void> {
+  if (!participantId) return;
+  try {
+    const guest = await bb.repos.participants.findById(participantId);
+    if (guest) await bb.projection.emit("participant.messaged", { gameId: guest.gameId });
+  } catch (err) {
+    console.error("[ariadne] participant message emit failed", err);
+  }
+}
+
+async function mirrorReplyConversation(
+  bb: Backbone,
+  reply: BrainReply,
+  externalConversationId: string | null,
+): Promise<void> {
+  if (!externalConversationId || !reply.participantId) return;
+  try {
     const conversation = await bb.repos.conversations.findById(reply.conversationId);
-    await mirrorConversation(interaction.externalConversationId, {
+    await mirrorConversation(externalConversationId, {
       participant_id: reply.participantId,
       event_id: bb.eventId,
       current_flow: conversation?.currentFlow ?? null,
       current_mission_id: conversation?.currentMissionId ?? null,
     });
+  } catch (err) {
+    console.error("[ariadne] conversation mirror failed", err);
   }
 }

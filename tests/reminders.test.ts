@@ -171,4 +171,40 @@ describe("ReminderService.run (integration)", () => {
     const second = await svc.run(spy);
     expect(second.sent).toBe(0);
   });
+
+  it("starts independent sends without waiting for earlier deliveries", async () => {
+    const bb = await freshBackbone();
+    await bb.registration.register({ phone: "+1000000001", externalConversationId: "c_a", channel: "sms" });
+    await bb.registration.register({ phone: "+1000000002", externalConversationId: "c_b", channel: "sms" });
+
+    const svc = new ReminderService(bb.eventId, bb.repos, bb.missions, EAGER);
+    const calls: string[] = [];
+    let firstStarted!: () => void;
+    let releaseFirst!: () => void;
+    const firstSendStarted = new Promise<void>((resolve) => {
+      firstStarted = resolve;
+    });
+    const firstSendBlocked = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+
+    const run = svc.run(async (phone) => {
+      calls.push(phone);
+      if (calls.length === 1) {
+        firstStarted();
+        await firstSendBlocked;
+      }
+      return true;
+    });
+
+    await firstSendStarted;
+    await Promise.resolve();
+    try {
+      expect(calls).toHaveLength(2);
+      expect(await bb.repos.reminders.listByEvent(bb.eventId)).toHaveLength(2);
+    } finally {
+      releaseFirst();
+    }
+    expect((await run).sent).toBe(2);
+  });
 });
