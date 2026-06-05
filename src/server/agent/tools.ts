@@ -277,7 +277,7 @@ const orderDrink: Tool = {
     function: {
       name: "order_drink",
       description:
-        "Route a drink to the bar. Pass the guest's request verbatim; the menu match and queueing are deterministic. If the result is 'clarify', ask the guest what they want.",
+        "Route a drink to the bar. Call this for ANY drink the guest names, passing their exact words. The menu match (including alternate names, e.g. 'moscow mule' is the Machina Mule) and queueing are deterministic, so never decide yourself whether something is on the menu. If the guest is confirming a drink you suggested on a previous turn (e.g. they reply 'yes' or 'yeah'), pass that drink's name as the text, not the bare confirmation. Only if the result is 'clarify' should you ask the guest what they want.",
       parameters: {
         type: "object",
         properties: { text: { type: "string", description: "the guest's drink request, verbatim" } },
