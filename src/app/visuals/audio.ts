@@ -5,8 +5,10 @@ export interface Frame {
   wave: Uint8Array; // time-domain samples, 0..255 (getByteTimeDomainData)
   energy: number; // overall loudness, 0..1
   bass: number; // low-band energy, 0..1 (drives beats)
+  mid: number; // mid-band energy, 0..1 (vocals/leads)
   treble: number; // high-band energy, 0..1
   beat: boolean; // a bass transient this frame
+  beatEnv: number; // a 1->0 decaying pulse after each beat (smooth shader input)
   level: number; // smoothed energy for meters
 }
 
@@ -25,6 +27,7 @@ export class AudioEngine {
   private wave = new Uint8Array(0);
   private avgBass = 0;
   private level = 0;
+  private beatEnv = 0;
   private lastBeatMs = 0;
 
   async start(): Promise<void> {
@@ -50,18 +53,25 @@ export class AudioEngine {
     this.analyser.getByteTimeDomainData(this.wave);
     const n = this.freq.length;
     const energy = average(this.freq) / 255;
+    // Three bands across the usable spectrum: lows drive the kick, mids the leads,
+    // highs the shimmer. Boundaries are fractions of the FFT bins.
     const bass = average(this.freq, 0, Math.floor(n * 0.08)) / 255;
+    const mid = average(this.freq, Math.floor(n * 0.08), Math.floor(n * 0.3)) / 255;
     const treble = average(this.freq, Math.floor(n * 0.5), n) / 255;
 
-    // Beat: a bass spike above a decaying baseline, with a refractory gap.
+    // Beat: a bass spike above a decaying baseline, with a refractory gap. Tuned a
+    // little hot (lower ratio + floor) so busy tracks trigger reliably on the venue PA.
     this.avgBass = this.avgBass * 0.92 + bass * 0.08;
     let beat = false;
-    if (bass > this.avgBass * 1.35 && bass > 0.18 && nowMs - this.lastBeatMs > 180) {
+    if (bass > this.avgBass * 1.28 && bass > 0.15 && nowMs - this.lastBeatMs > 160) {
       beat = true;
       this.lastBeatMs = nowMs;
     }
+    // Smooth 1->0 pulse: snap to 1 on a beat, otherwise decay. Shaders read this for
+    // a kick that punches then eases rather than a hard on/off flag.
+    this.beatEnv = beat ? 1 : this.beatEnv * 0.9;
     this.level = this.level * 0.85 + energy * 0.15;
-    return { freq: this.freq, wave: this.wave, energy, bass, treble, beat, level: this.level };
+    return { freq: this.freq, wave: this.wave, energy, bass, mid, treble, beat, beatEnv: this.beatEnv, level: this.level };
   }
 
   stop(): void {
@@ -69,24 +79,5 @@ export class AudioEngine {
     void this.ctx?.close();
     this.ctx = null;
     this.analyser = null;
-  }
-}
-
-/** Fires once when the music drops near-silent then returns: a track change. */
-export class TransitionDetector {
-  private quietMs = 0;
-  private lastFireMs = 0;
-
-  update(energy: number, dtMs: number, nowMs: number): boolean {
-    if (energy < 0.05) this.quietMs += dtMs;
-    else this.quietMs = Math.max(0, this.quietMs - dtMs * 1.5);
-
-    const cameBack = this.quietMs > 450 && energy > 0.14;
-    if (cameBack && nowMs - this.lastFireMs > 7000) {
-      this.lastFireMs = nowMs;
-      this.quietMs = 0;
-      return true;
-    }
-    return false;
   }
 }
