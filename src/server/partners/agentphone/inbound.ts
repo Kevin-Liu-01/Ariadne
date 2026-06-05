@@ -1,7 +1,7 @@
 import type { BrainReply } from "@/server/agent/brain";
 import type { Backbone } from "@/server/backbone";
 import { deliverGuestReply } from "@/server/partners/agentphone/contact-card";
-import { mirrorConversation } from "@/server/partners/agentphone/outbound";
+import { mirrorConversation, sendTypingIndicator } from "@/server/partners/agentphone/outbound";
 import type { InteractionEvent } from "@/domain/types";
 
 /**
@@ -21,6 +21,9 @@ export async function processInboundText(
   webhookId: string,
 ): Promise<void> {
   try {
+    // Show the iMessage typing bubble while the (multi-second) brain turn runs. Fired
+    // without await so it can never delay the reply; iMessage-only and best-effort.
+    void sendTypingIndicator(interaction.channel, interaction.externalConversationId);
     const reply = await bb.brain.process(interaction);
     if (reply.participantId) {
       const guest = await bb.repos.participants.findById(reply.participantId);
