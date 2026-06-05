@@ -1,3 +1,4 @@
+import { DEFAULT_HOME_MODE, type HomeMode } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import { DEFAULT_PUZZLE_ID, PUZZLE_BY_ID, puzzleById, toPublicPuzzle } from "@/constants/puzzles";
 import { env } from "@/lib/env";
@@ -36,11 +37,18 @@ export class ProjectionService {
     return typeof id === "string" && PUZZLE_BY_ID.has(id) ? id : DEFAULT_PUZZLE_ID;
   }
 
+  /** Home-page check-in surface, derived from the last operator toggle. Defaults to iMessage. */
+  async homeMode(): Promise<HomeMode> {
+    const last = await this.repos.projection.lastOfType(this.eventId, "home_mode.changed");
+    return last?.data.mode === "play" ? "play" : DEFAULT_HOME_MODE;
+  }
+
   async snapshot(): Promise<ProjectionSnapshot> {
-    const [participants, scene, puzzleId, latestSeq, missionsCompleted, active, questCounts] =
+    const [participants, scene, homeMode, puzzleId, latestSeq, missionsCompleted, active, questCounts] =
       await Promise.all([
         this.repos.participants.listByEvent(this.eventId),
         this.scene(),
+        this.homeMode(),
         this.currentPuzzleId(),
         this.repos.projection.latestSeq(this.eventId),
         this.repos.participantMissions.countCompleted(this.eventId),
@@ -62,6 +70,7 @@ export class ProjectionService {
       eventId: this.eventId,
       eventPhone: env.agentphone.phoneNumber,
       scene,
+      homeMode,
       puzzle,
       latestSeq,
       generatedAt: now(),

@@ -138,6 +138,7 @@ export type ProjectionEventType =
   | "scene.changed"
   | "puzzle.changed"
   | "announcement.posted"
+  | "home_mode.changed"
   | "fuser_asset.added";
 
 export interface ProjectionEvent {

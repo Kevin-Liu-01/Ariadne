@@ -1,23 +1,33 @@
 "use client";
 
-import { Clapperboard, Eye, EyeOff } from "lucide-react";
+import { Clapperboard, Eye, EyeOff, MessageSquare, MonitorPlay } from "lucide-react";
 import { useEffect, useState } from "react";
+import { type HomeMode } from "@/constants/event";
 import { SCENES, nextScene } from "@/constants/scenes";
 import { authedFetch } from "@/app/operator/api";
 import { RecommendationStrip, type Suggestion } from "@/app/operator/recommendation-strip";
+import { cn } from "@/lib/utils";
+
+const HOME_MODE_OPTIONS: { mode: HomeMode; label: string; Icon: typeof MessageSquare }[] = [
+  { mode: "imessage", label: "Text in (iMessage)", Icon: MessageSquare },
+  { mode: "play", label: "Live Player screen", Icon: MonitorPlay },
+];
 
 export function ProjectionControls({ token }: { token: string }) {
   const [scene, setScene] = useState<string | null>(null);
+  const [homeMode, setHomeMode] = useState<HomeMode | null>(null);
   const [gameId, setGameId] = useState("");
   const [note, setNote] = useState<string | null>(null);
 
-  // Load the current scene so we can recommend the next one in the run of show.
+  // Load the current scene + home mode so the controls reflect live state.
   useEffect(() => {
     let cancelled = false;
     fetch("/api/projection/state")
       .then((res) => (res.ok ? res.json() : null))
-      .then((snap: { scene?: string } | null) => {
-        if (!cancelled && snap?.scene) setScene(snap.scene);
+      .then((snap: { scene?: string; homeMode?: HomeMode } | null) => {
+        if (cancelled || !snap) return;
+        if (snap.scene) setScene(snap.scene);
+        if (snap.homeMode) setHomeMode(snap.homeMode);
       })
       .catch(() => undefined);
     return () => {
@@ -47,6 +57,11 @@ export function ProjectionControls({ token }: { token: string }) {
     void post({ action: "scene", scene: id }, `scene to ${id}`);
   }
 
+  function pickHomeMode(mode: HomeMode) {
+    setHomeMode(mode);
+    void post({ action: "home_mode", mode }, mode === "play" ? "home -> Live Player" : "home -> iMessage");
+  }
+
   return (
     <section className="border border-nyx-line bg-nyx-soft p-5">
       <h2 className="flex items-center gap-2 text-sm uppercase tracking-[0.25em] text-helio">
@@ -64,6 +79,29 @@ export function ProjectionControls({ token }: { token: string }) {
           onPick={pickScene}
           columns={3}
         />
+      </div>
+
+      <p className="mt-5 text-xs text-ash">
+        home screen: which check-in the landing page leads with for everyone
+      </p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {HOME_MODE_OPTIONS.map((opt) => (
+          <button
+            key={opt.mode}
+            type="button"
+            onClick={() => pickHomeMode(opt.mode)}
+            aria-pressed={homeMode === opt.mode}
+            className={cn(
+              "flex items-center justify-center gap-2 border px-3 py-2 text-xs transition-colors",
+              homeMode === opt.mode
+                ? "border-helio/60 bg-helio/15 text-cloud"
+                : "border-nyx-line text-ash hover:border-helio/40 hover:text-cloud",
+            )}
+          >
+            <opt.Icon className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       <p className="mt-5 text-xs leading-relaxed text-ash">

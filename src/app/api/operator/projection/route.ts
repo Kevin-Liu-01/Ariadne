@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HOME_MODES } from "@/constants/event";
 import { PUZZLES } from "@/constants/puzzles";
 import { env } from "@/lib/env";
 import { getBackbone } from "@/server/backbone";
@@ -14,6 +15,7 @@ export const maxDuration = 60;
 
 const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("scene"), scene: z.string().trim().min(1).max(40) }),
+  z.object({ action: z.literal("home_mode"), mode: z.enum(HOME_MODES) }),
   z.object({ action: z.literal("puzzle"), step: z.enum(["next", "prev"]) }),
   z.object({ action: z.literal("eliminate"), gameId: z.string().trim().min(1) }),
   z.object({ action: z.literal("restore"), gameId: z.string().trim().min(1) }),
@@ -45,6 +47,9 @@ export async function POST(req: Request): Promise<Response> {
       if (changed) await bb.announcements.broadcastScene(body.scene, sendGuestText);
       return json(ev);
     }
+    case "home_mode":
+      // Purely a home-page display switch: persisted, no room broadcast.
+      return json(await bb.projection.emit("home_mode.changed", { mode: body.mode }));
     case "puzzle": {
       const currentId = await bb.projection.currentPuzzleId();
       const at = PUZZLES.findIndex((p) => p.id === currentId);

@@ -1,3 +1,4 @@
+import type { HomeMode } from "@/constants/event";
 import type { GemId } from "@/constants/gems";
 import type { PublicPuzzle } from "@/constants/puzzles";
 
@@ -23,6 +24,8 @@ export interface ProjectionSnapshot {
   /** Public event line guests text to join; shown on the arrival board. */
   eventPhone: string;
   scene: string;
+  /** Which check-in surface the home page leads with (staff-controlled). */
+  homeMode: HomeMode;
   /** The image-puzzle currently posed to the room (answers never included). */
   puzzle: PublicPuzzle;
   latestSeq: number;

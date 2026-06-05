@@ -1,15 +1,17 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MonitorPlay } from "lucide-react";
 import Link from "next/link";
+import { DEFAULT_HOME_MODE, type HomeMode } from "@/constants/event";
 import { IMessageIcon } from "@/components/imessage-icon";
 import { env } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import { formatPhoneDisplay, smsHref } from "@/domain/phone";
 
 /**
- * Primary "check in" call to action. Leads with the iMessage mark because the
- * whole game is phone-first: tapping through lands on the join card where guests
- * text Ariadne. A bespoke, richer treatment than the secondary nav chips — a
- * green logo bloom, a hover sheen sweep, and an arrow chip that fills on hover.
+ * Primary "check in" call to action. In the default `imessage` mode it leads with
+ * the iMessage mark (the phone-first path) and a green logo bloom; in `play` mode,
+ * which staff flip on from the operator console, it leads guests to the web Live
+ * Player at /play/live with a helio screen mark instead. Both share the same
+ * bespoke chrome: a lit top edge, a hover sheen sweep, and an arrow chip.
  */
 const CTA_CLASS =
   "group relative flex w-full items-center gap-4 overflow-hidden border border-helio/40 bg-gradient-to-br from-helio/20 via-helio/10 to-transparent px-5 py-4 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-helio/70 hover:from-helio/30 hover:via-helio/15 hover:shadow-[0_22px_50px_-22px_rgba(210,190,255,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-helio/60 focus-visible:ring-offset-2 focus-visible:ring-offset-nyx sm:py-5";
@@ -17,17 +19,21 @@ const CTA_CLASS =
 export function JoinCta({
   href,
   label,
-  note = "text in for your first mission",
+  note,
   className,
+  mode = DEFAULT_HOME_MODE,
 }: {
   href?: string;
   label?: string;
   note?: string;
   className?: string;
+  mode?: HomeMode;
 }) {
   const phone = env.agentphone.phoneNumber;
-  const destination = href ?? smsHref(phone, "JOIN") ?? "/join";
-  const displayLabel = label ?? (phone ? formatPhoneDisplay(phone) : "Join");
+  const isPlay = mode === "play";
+  const destination = href ?? (isPlay ? "/play/live" : (smsHref(phone, "JOIN") ?? "/join"));
+  const displayLabel = label ?? (isPlay ? "Play on this screen" : phone ? formatPhoneDisplay(phone) : "Join");
+  const noteText = note ?? (isPlay ? "tap in, no texting needed" : "text in for your first mission");
   const isSms = destination.startsWith("sms:");
 
   const body = (
@@ -43,16 +49,33 @@ export function JoinCta({
         aria-hidden
       />
 
-      {/* iMessage mark with a soft green bloom behind it. */}
+      {/* The check-in mark: iMessage glyph (green bloom) or a screen mark (helio bloom) for play. */}
       <span className="relative flex shrink-0 items-center justify-center">
-        <span
-          className="absolute -inset-1 rounded-2xl bg-[#2fd64a]/25 blur-md transition-all duration-300 group-hover:bg-[#2fd64a]/45 group-hover:blur-lg"
-          aria-hidden
-        />
-        <IMessageIcon
-          size={46}
-          className="relative drop-shadow-[0_3px_10px_rgba(25,209,60,0.4)] transition-transform duration-300 group-hover:scale-[1.06]"
-        />
+        {isPlay ? (
+          <>
+            <span
+              className="absolute -inset-1 rounded-2xl bg-helio/25 blur-md transition-all duration-300 group-hover:bg-helio/45 group-hover:blur-lg"
+              aria-hidden
+            />
+            <MonitorPlay
+              size={46}
+              className="relative text-helio drop-shadow-[0_3px_10px_rgba(210,190,255,0.4)] transition-transform duration-300 group-hover:scale-[1.06]"
+              strokeWidth={1.5}
+              aria-hidden
+            />
+          </>
+        ) : (
+          <>
+            <span
+              className="absolute -inset-1 rounded-2xl bg-[#2fd64a]/25 blur-md transition-all duration-300 group-hover:bg-[#2fd64a]/45 group-hover:blur-lg"
+              aria-hidden
+            />
+            <IMessageIcon
+              size={46}
+              className="relative drop-shadow-[0_3px_10px_rgba(25,209,60,0.4)] transition-transform duration-300 group-hover:scale-[1.06]"
+            />
+          </>
+        )}
       </span>
 
       <span className="relative flex-1 text-left">
@@ -64,7 +87,7 @@ export function JoinCta({
         >
           {displayLabel}
         </span>
-        <span className="mt-0.5 block text-[11px] uppercase tracking-[0.3em] text-helio">{note}</span>
+        <span className="mt-0.5 block text-[11px] uppercase tracking-[0.3em] text-helio">{noteText}</span>
       </span>
 
       <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-helio/40 bg-nyx/40 text-helio transition-all duration-300 group-hover:border-helio group-hover:bg-helio group-hover:text-nyx">
