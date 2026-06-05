@@ -17,6 +17,9 @@ export type ValidationRule =
 export const RIDDLE_POINTS_EACH = 50;
 export const RIDDLE_QUEST_COUNT = 3;
 
+/** The color quest triangle is your own gem plus this many other guests (three gems total). */
+export const COLOR_QUEST_PARTNER_COUNT = 2;
+
 export interface MissionTemplate {
   readonly id: string;
   readonly type: MissionType;
@@ -28,6 +31,14 @@ export interface MissionTemplate {
   readonly validation: ValidationRule;
   /** One-line nudge sent on a wrong answer. Never the answer itself. */
   readonly hint?: string;
+  /**
+   * Staff-only skip phrase. A guest who texts this retires *this* game (marks it
+   * skipped, no points) and is moved to the next quest. Deliberately distinctive
+   * so a guest never hits it by accident; surfaced to staff on the console so they
+   * can hand it to anyone stuck. Matched loosely (case/spacing/punctuation), so
+   * keep these collision-free with secret words, riddle answers, and game ids.
+   */
+  readonly bypassCode: string;
 }
 
 /** Max phrase pairs in play. Caps the live word bank so the projected board stays
@@ -179,12 +190,13 @@ export const MISSIONS: readonly MissionTemplate[] = [
     type: "color_quest",
     title: "Color Quest",
     promptCopy:
-      "Your gem is a color on the wheel. Find three guests whose colors form a triangle: all primaries (red, yellow, blue) or all secondaries (purple, green, orange). Hint: what three hues sit evenly across the color wheel? Text me their three game IDs.",
+      "Your gem is one color on the wheel. Find two other guests so your three colors form a triangle: all primaries (red, yellow, blue) or all secondaries (purple, green, orange). Hint: which two hues sit evenly across the wheel from yours? Text me their two game IDs.",
     points: 100,
     requiresPartner: true,
     projectionEffect: "constellation",
     validation: { kind: "color_combo" },
-    hint: "You need exactly three other guests, each a different wheel color, forming either the primary triangle or the secondary triangle.",
+    hint: "You plus two other guests, three different wheel colors that make the primary triangle or the secondary triangle. Text their two game IDs.",
+    bypassCode: "labyrinth-prism",
   },
   {
     id: "word-thread",
@@ -197,6 +209,7 @@ export const MISSIONS: readonly MissionTemplate[] = [
     projectionEffect: "thread",
     validation: { kind: "word_collab" },
     hint: "find a new partner, ask their secret word, then text me their game ID and that word.",
+    bypassCode: "labyrinth-cipher",
   },
   {
     id: "riddle-labyrinth",
@@ -208,6 +221,7 @@ export const MISSIONS: readonly MissionTemplate[] = [
     projectionEffect: "labyrinth",
     validation: { kind: "riddle_set" },
     hint: "one word, a systems term hiding a second, everyday meaning.",
+    bypassCode: "labyrinth-sphinx",
   },
 ] as const;
 

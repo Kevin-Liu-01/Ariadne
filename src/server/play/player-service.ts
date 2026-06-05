@@ -7,7 +7,7 @@ import {
   songQueuedCopy,
 } from "@/constants/copy";
 import { GEMS, type GemId } from "@/constants/gems";
-import { MISSIONS } from "@/constants/missions";
+import { MISSIONS, MISSION_BY_ID } from "@/constants/missions";
 import { gameplayAllowed } from "@/constants/show-gate";
 import { summarizeHostIssue } from "@/server/agent/host-issue";
 import type { Repositories } from "@/server/db/repositories";
@@ -104,13 +104,14 @@ export class PlayerService {
   ) {}
 
   async me(participantId: string): Promise<PlayerView | null> {
-    const [participant, finishedIds, scene, drink, song, roster] = await Promise.all([
+    const [participant, finishedIds, scene, drink, song, roster, conversation] = await Promise.all([
       this.repos.participants.findById(participantId),
       this.repos.participantMissions.finishedMissionIds(participantId),
       this.projection.scene(),
       this.repos.drinkOrders.findLatestActiveByParticipant(participantId),
       this.repos.songRequests.findLatestByParticipant(participantId),
       this.repos.participants.listByEvent(this.eventId),
+      this.repos.conversations.findLatestByParticipant(participantId),
     ]);
     if (!participant) return null;
 
@@ -121,8 +122,11 @@ export class PlayerService {
       title: m.title,
       done: finished.has(m.id),
     }));
-    // The next quest is read-only here (no assignment): the truth is the finished set.
-    const currentTemplate = open ? (MISSIONS.find((m) => !finished.has(m.id)) ?? null) : null;
+    // Read-only here (no assignment): the operator's stage pointer wins when it sits
+    // on an unfinished game, otherwise fall back to the first incomplete quest.
+    const pointerId = conversation?.currentMissionId ?? null;
+    const pointer = pointerId && !finished.has(pointerId) ? MISSION_BY_ID.get(pointerId) : undefined;
+    const currentTemplate = open ? (pointer ?? MISSIONS.find((m) => !finished.has(m.id)) ?? null) : null;
     const rankIndex = roster.findIndex((p) => p.id === participant.id);
 
     return {

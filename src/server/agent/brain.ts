@@ -22,6 +22,7 @@ import { MISSION_BY_ID } from "@/constants/missions";
 import { isContactCardRequest } from "@/domain/contact-request";
 import { parseDrink } from "@/domain/drink-parse";
 import { newId } from "@/domain/ids";
+import { matchBypassCode } from "@/domain/mission-parse";
 import { stripDashes } from "@/domain/text";
 import { now } from "@/lib/time";
 import { env } from "@/lib/env";
@@ -33,7 +34,7 @@ import type { AgentRunner } from "@/server/agent/runner";
 import { summarizeHostIssue } from "@/server/agent/host-issue";
 import type { ConversationService } from "@/server/services/conversations";
 import { drinkOutcomeSay, type DrinkService } from "@/server/services/drinks";
-import type { MissionService } from "@/server/services/missions";
+import { missionOutcomeSay, type MissionService } from "@/server/services/missions";
 import type { ProjectionService } from "@/server/services/projection";
 
 export interface BrainReply {
@@ -136,6 +137,15 @@ export class AgentBrain {
         return makeReply(
           missionDeliverCopy({ title: delivered.mission.title, prompt: delivered.prompt }),
         );
+      }
+
+      // Staff skip-phrase: retire a game deterministically, before the model ever runs,
+      // so a code word can never be talked around or missed by the router.
+      if (matchBypassCode(command)) {
+        const gate = await this.gameplayGate();
+        if (gate) return makeReply(gate);
+        const outcome = await this.missions.submit(participant, conversationNow, command);
+        return makeReply(missionOutcomeSay(outcome), participant);
       }
 
       const hostReply = await this.tryHostRequestFlow(event.text, participant, conversationNow);

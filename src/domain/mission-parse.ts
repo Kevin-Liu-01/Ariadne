@@ -1,7 +1,7 @@
 import { CLUES, type Clue } from "@/constants/clues";
 import type { GemId } from "@/constants/gems";
 import { isValidColorTriangle } from "@/domain/gem-wheel";
-import { WORD_PAIRS } from "@/constants/missions";
+import { MISSIONS, WORD_PAIRS, type MissionTemplate } from "@/constants/missions";
 import { tokenize } from "@/domain/text";
 
 /**
@@ -12,6 +12,23 @@ export function extractGameIds(text: string): string[] {
   const tokens = text.toUpperCase().split(/[^A-Z0-9]+/u).filter(Boolean);
   const candidates = tokens.filter((t) => /^[A-Z0-9]{3,6}$/u.test(t));
   return [...new Set(candidates)];
+}
+
+/** Lowercase, strip every non-alphanumeric char so spacing/punctuation/case can't dodge a match. */
+function collapse(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/gu, "");
+}
+
+/**
+ * The game whose staff skip-phrase this message carries, if any. Matched as a
+ * collapsed substring so "labyrinth-prism", "LABYRINTH PRISM", and "use labyrinth
+ * prism now" all resolve; the codes are distinctive enough that no normal answer
+ * collides. Pass/fail stays deterministic: a code is a deliberate bypass, never a solve.
+ */
+export function matchBypassCode(text: string): MissionTemplate | null {
+  const haystack = collapse(text);
+  if (!haystack) return null;
+  return MISSIONS.find((m) => haystack.includes(collapse(m.bypassCode))) ?? null;
 }
 
 /** All words that complete a known phrase with `word` (order-independent). */
@@ -37,7 +54,7 @@ export function mentionsWord(text: string, word: string): boolean {
   return tokenize(text).includes(word.toLowerCase());
 }
 
-/** True if three guests' gems form a primary or secondary triangle on the color wheel. */
+/** True if the three gems (yours plus two others) form a primary or secondary wheel triangle. */
 export function isValidColorCombo(gems: readonly GemId[]): boolean {
   return isValidColorTriangle(gems);
 }

@@ -55,6 +55,13 @@ export interface OperatorAnnouncement {
   createdAt: string;
 }
 
+/** One game in the labyrinth, with this guest's status on it. */
+export interface OperatorQuestStage {
+  id: string;
+  title: string;
+  status: string;
+}
+
 export interface OperatorParticipant {
   id: string;
   gameId: string;
@@ -67,4 +74,8 @@ export interface OperatorParticipant {
   eliminated: boolean;
   phone: string | null;
   email: string | null;
+  /** The game id the guest is currently on (null before the game opens). */
+  stage: string | null;
+  /** Per-game status, in play order, for the stage toggle. */
+  quests: OperatorQuestStage[];
 }

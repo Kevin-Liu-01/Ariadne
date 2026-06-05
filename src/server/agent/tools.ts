@@ -8,6 +8,7 @@ import {
   gemColorLabel,
   helpCopy,
   hostRequestSubmittedCopy,
+  missionBypassedCopy,
   missionCorrectCopy,
   missionDeliverCopy,
   missionDuplicatePartnerCopy,
@@ -332,6 +333,11 @@ const answerMission: Tool = {
             total: outcome.total,
             nextRiddlePrompt: outcome.nextRiddlePrompt,
           }),
+        };
+      case "bypassed":
+        return {
+          result: "bypassed",
+          say: missionBypassedCopy({ title: outcome.title, nextMissionPrompt: outcome.nextPrompt ?? undefined }),
         };
       case "already":
         return { result: "already", say: "You already solved that one. Stay near the screen." };

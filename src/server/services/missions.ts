@@ -1,5 +1,6 @@
 import {
   allQuestsDoneCopy,
+  missionBypassedCopy,
   missionCorrectCopy,
   missionDuplicatePartnerCopy,
   missionPartnerInvalidCopy,
@@ -10,6 +11,7 @@ import { FLOWS } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import {
   MISSION_BY_ID,
+  COLOR_QUEST_PARTNER_COUNT,
   FIRST_MISSION_ID,
   MISSION_SEQUENCE,
   RIDDLE_MISSION_ID,
@@ -22,6 +24,7 @@ import { newId } from "@/domain/ids";
 import {
   extractGameIds,
   isValidColorCombo,
+  matchBypassCode,
   matchRiddleAnswer,
   riddlesForParticipant,
 } from "@/domain/mission-parse";
@@ -39,6 +42,7 @@ export type MissionOutcome =
   | { kind: "partner_invalid" }
   | { kind: "duplicate_partner" }
   | { kind: "riddle_progress"; solved: number; total: number; nextRiddlePrompt: string }
+  | { kind: "bypassed"; title: string; nextPrompt: string | null }
   | { kind: "already" };
 
 export interface DeliveredMission {
@@ -63,6 +67,8 @@ export function missionOutcomeSay(outcome: MissionOutcome): string {
         total: outcome.total,
         nextRiddlePrompt: outcome.nextRiddlePrompt,
       });
+    case "bypassed":
+      return missionBypassedCopy({ title: outcome.title, nextMissionPrompt: outcome.nextPrompt ?? undefined });
     case "already":
       return "You already solved that one. Stay near the screen.";
     case "no_mission":
@@ -135,6 +141,11 @@ export class MissionService {
     conversation: Conversation,
     rawText: string,
   ): Promise<MissionOutcome> {
+    // A staff skip-phrase short-circuits everything: it retires its game (no points)
+    // and surfaces the next, regardless of which quest is currently active.
+    const bypass = matchBypassCode(rawText);
+    if (bypass) return this.bypassGame(participant, conversation, bypass);
+
     const completed = new Set(await this.repos.participantMissions.completedMissionIds(participant.id));
     if (MISSION_SEQUENCE.every((id) => completed.has(id))) return { kind: "no_mission" };
 
@@ -168,10 +179,16 @@ export class MissionService {
     const word = MISSION_BY_ID.get(WORD_MISSION_ID);
 
     // Quests complete in any order, so route by what the message actually proves,
-    // not a fixed sequence. Exactly three partners forming a wheel triangle is a
-    // color solve; a named partner whose secret word appears is a word solve. A
-    // wrong count is only a failed *color* attempt when no word match is possible.
-    if (color && !completed.has(COLOR_MISSION_ID) && fresh.length === 3 && isValidColorCombo(fresh.map((p) => p.gem))) {
+    // not a fixed sequence. Two other guests whose gems join the solver's own to
+    // form a wheel triangle is a color solve; a named partner whose secret word
+    // appears is a word solve. A wrong count is only a failed *color* attempt
+    // when no word match is possible.
+    if (
+      color &&
+      !completed.has(COLOR_MISSION_ID) &&
+      fresh.length === COLOR_QUEST_PARTNER_COUNT &&
+      isValidColorCombo([participant.gem, ...fresh.map((p) => p.gem)])
+    ) {
       return this.complete(participant, conversation, color, rawText, fresh.map((p) => p.gameId));
     }
 
@@ -338,7 +355,7 @@ export class MissionService {
 
   private remainingPartnerHint(completed: Set<string>): string {
     if (!completed.has(COLOR_MISSION_ID)) {
-      return "for the color quest, text everyone's game IDs, yours included.";
+      return "for the color quest, find two other guests whose colors complete your triangle and text their game IDs.";
     }
     if (!completed.has(WORD_MISSION_ID)) {
       return "for the word quest, text a new partner's game ID and their secret word.";
@@ -367,8 +384,62 @@ export class MissionService {
 
   /** Exemplar bypass: skip color quest and surface the next quest. */
   async skipColorQuest(participant: Participant, conversation: Conversation): Promise<string | null> {
-    await this.repos.participantMissions.markSkipped(this.eventId, participant.id, "color-constellation");
+    const color = MISSION_BY_ID.get(COLOR_MISSION_ID);
+    if (!color) return null;
+    const outcome = await this.bypassGame(participant, conversation, color);
+    return outcome.kind === "bypassed" ? outcome.nextPrompt : null;
+  }
+
+  /** Retire one game (skip it, no points) and surface the next incomplete quest. */
+  async bypassGame(
+    participant: Participant,
+    conversation: Conversation,
+    mission: MissionTemplate,
+  ): Promise<MissionOutcome> {
+    const finished = new Set(await this.repos.participantMissions.finishedMissionIds(participant.id));
+    if (!finished.has(mission.id)) {
+      await this.repos.participantMissions.markSkipped(this.eventId, participant.id, mission.id);
+    }
     const next = await this.advance(participant, conversation);
-    return next ? this.renderPrompt(next, participant) : null;
+    return {
+      kind: "bypassed",
+      title: mission.title,
+      nextPrompt: next ? this.renderPrompt(next, participant) : null,
+    };
+  }
+
+  /**
+   * Operator override: put a guest on a specific game. Sets the conversation pointer
+   * (the text/agent surface) and reopens the game if it had been skipped or failed,
+   * so it surfaces as current on both the text thread and the web player. Completed
+   * games are left intact, so this never double-scores or erases a real win.
+   */
+  async setStage(
+    participant: Participant,
+    conversation: Conversation,
+    missionId: string,
+  ): Promise<{ prompt: string } | null> {
+    const mission = MISSION_BY_ID.get(missionId);
+    if (!mission) return null;
+    const existing = await this.repos.participantMissions.find(participant.id, missionId);
+    if (!existing) {
+      await this.repos.participantMissions.assign(this.eventId, participant.id, missionId);
+    } else if (existing.status === "skipped" || existing.status === "failed") {
+      await this.repos.participantMissions.setStatus(participant.id, missionId, "assigned");
+    }
+    await this.conversations.setFlow(conversation.id, FLOWS.MISSION, missionId);
+    return { prompt: this.renderPrompt(mission, participant) };
+  }
+
+  /** {@link setStage} keyed by participant id (the operator console path). */
+  async setStageForParticipant(
+    participantId: string,
+    missionId: string,
+  ): Promise<{ gameId: string; prompt: string } | null> {
+    const participant = await this.repos.participants.findById(participantId);
+    if (!participant) return null;
+    const conversation = await this.conversations.resolveForParticipant(participantId);
+    const res = await this.setStage(participant, conversation, missionId);
+    return res ? { gameId: participant.gameId, prompt: res.prompt } : null;
   }
 }

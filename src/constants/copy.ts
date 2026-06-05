@@ -131,6 +131,13 @@ export function riddleProgressCopy(p: { solved: number; total: number; nextRiddl
   return p.nextRiddlePrompt ? `${head}\n\nNext:\n${p.nextRiddlePrompt}` : head;
 }
 
+export function missionBypassedCopy(p: { title: string; nextMissionPrompt?: string }): string {
+  const base = `${p.title} bypassed.`;
+  return p.nextMissionPrompt
+    ? `${base}\n\nNext:\n${p.nextMissionPrompt}`
+    : `${base}\n\nAll three quests complete. Stay near the screen.`;
+}
+
 export function allQuestsDoneCopy(): string {
   return "All three quests complete. Stay near the screen.";
 }
@@ -152,7 +159,7 @@ export function drinkClarifyCopy(): string {
 }
 
 export function drinkMenuCopy(): string {
-  return `Tonight's bar:\n\n${menuSummary()}\n\nOne special cocktail voucher per guest. Beer, wine, and non-alcoholic drinks are unlimited.\n\nReply with one item.`;
+  return `Tonight's bar:\n\n${menuSummary()}\n\nReply with one item.`;
 }
 
 export function songPromptCopy(): string {

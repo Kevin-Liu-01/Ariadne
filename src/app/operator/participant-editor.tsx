@@ -12,6 +12,22 @@ import { cn } from "@/lib/utils";
 
 const SCORE_STEPS = [...new Set(MISSIONS.map((m) => m.points))].sort((a, b) => a - b);
 
+/** Short tag for a guest's status on a game; the active highlight already marks "current". */
+function stageNote(status: string): string | undefined {
+  switch (status) {
+    case "completed":
+      return "cleared";
+    case "skipped":
+      return "bypassed";
+    case "submitted":
+      return "in progress";
+    case "failed":
+      return "missed";
+    default:
+      return undefined;
+  }
+}
+
 /** Edit a guest's name, gem, score, and fade state, or delete them. Recommends a balanced gem. */
 export function ParticipantEditor({
   token,
@@ -33,6 +49,9 @@ export function ParticipantEditor({
   const [gem, setGem] = useState<GemId>(participant.gem);
   const [score, setScore] = useState(participant.score);
   const [eliminated, setEliminated] = useState(participant.eliminated);
+  const [stage, setStageLocal] = useState<string | null>(participant.stage);
+  const [quests, setQuests] = useState(participant.quests);
+  const [stageBusy, setStageBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +73,31 @@ export function ParticipantEditor({
       })),
     [balanced],
   );
+
+  const stageItems: Suggestion[] = useMemo(
+    () => quests.map((q) => ({ id: q.id, label: q.title, note: stageNote(q.status) })),
+    [quests],
+  );
+
+  // Stage moves apply immediately (a guest can be mid-game), separate from the Save button.
+  async function pickStage(missionId: string) {
+    if (missionId === stage || stageBusy) return;
+    setStageBusy(true);
+    setError(null);
+    const res = await authedFetch(token, `/api/operator/participants/${participant.id}/stage`, {
+      method: "POST",
+      body: JSON.stringify({ missionId }),
+    });
+    setStageBusy(false);
+    if (!res.ok) {
+      setError(res.status === 401 ? "token rejected, lock and re-enter" : "could not move stage, try again");
+      return;
+    }
+    const updated = (await res.json()) as OperatorParticipant;
+    setStageLocal(updated.stage);
+    setQuests(updated.quests);
+    onChanged();
+  }
 
   async function send(method: "PATCH" | "DELETE") {
     setSaving(true);
@@ -127,6 +171,15 @@ export function ParticipantEditor({
           />
         </label>
       </div>
+
+      <RecommendationStrip
+        label="game stage"
+        hint={stageBusy ? "moving…" : "applies immediately"}
+        items={stageItems}
+        activeId={stage}
+        onPick={(id) => void pickStage(id)}
+        columns={3}
+      />
 
       <RecommendationStrip
         label="gem"

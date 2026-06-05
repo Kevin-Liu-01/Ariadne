@@ -82,6 +82,23 @@ export class ParticipantMissionsRepository extends BaseRepository {
     return rows.map((r) => r.mission_id);
   }
 
+  /** Per-participant mission status map for the whole event (one query for the operator roster). */
+  async statusesByEvent(
+    eventId: string,
+  ): Promise<Map<string, Record<string, ParticipantMissionStatus>>> {
+    const rows = await this.db.query<{ participant_id: string; mission_id: string; status: string }>(
+      `SELECT participant_id, mission_id, status FROM participant_missions WHERE event_id = $1`,
+      [eventId],
+    );
+    const map = new Map<string, Record<string, ParticipantMissionStatus>>();
+    for (const r of rows) {
+      const rec = map.get(r.participant_id) ?? {};
+      rec[r.mission_id] = r.status as ParticipantMissionStatus;
+      map.set(r.participant_id, rec);
+    }
+    return map;
+  }
+
   async markSkipped(eventId: string, participantId: string, missionId: string): Promise<void> {
     await this.assign(eventId, participantId, missionId);
     await this.setStatus(participantId, missionId, "skipped");
