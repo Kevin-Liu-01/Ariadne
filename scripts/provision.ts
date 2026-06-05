@@ -1,6 +1,8 @@
 /**
  * Provision (idempotently) the AgentPhone surface for Ariadne:
- *   1. create/reuse a dedicated "Ariadne · Run(way)time" agent (webhook mode),
+ *   1. create OR update a dedicated "Ariadne · Run(time)way" agent (webhook mode),
+ *      always pushing the current name, description, system prompt, and begin
+ *      message so config edits in the repo propagate to the live agent,
  *   2. ensure it has a phone number (provision one if missing),
  *   3. point a PER-AGENT webhook at this server (leaves the account master
  *      webhook + any other agents untouched),
@@ -10,12 +12,17 @@
  *        pnpm provision --no-number (only (re)configure agent + webhook)
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { EVENT_NAME, PRODUCT_NAME } from "@/constants/event";
 import { ARIADNE_BEGIN_MESSAGE, ARIADNE_SYSTEM_PROMPT } from "@/constants/prompts";
 import { env, loadScriptEnv, requireAgentphoneApi } from "@/lib/env";
 import { AgentphoneClient } from "@/server/partners/agentphone/client";
 import type { AgentResponse } from "@/server/partners/agentphone/types";
 
-const AGENT_NAME = "Ariadne · Run(way)time";
+/** Live agent identity, sourced from the brand constants so it tracks the rebrand. */
+const AGENT_NAME = `${PRODUCT_NAME} · ${EVENT_NAME}`;
+const AGENT_DESCRIPTION = `${PRODUCT_NAME}, the phone-first host for ${EVENT_NAME}.`;
+/** Pre-rebrand agent names to adopt + rename in place instead of creating a duplicate. */
+const LEGACY_AGENT_NAMES = ["Ariadne · Run(way)time"];
 
 loadScriptEnv();
 
@@ -41,20 +48,29 @@ async function main(): Promise<void> {
     console.warn("⚠ ARIADNE_PUBLIC_BASE_URL is localhost — AgentPhone cannot reach it. Start a tunnel first.");
   }
 
-  const agents = await client.listAgents();
-  let agent: AgentResponse | undefined = agents.data.find((a) => a.name === AGENT_NAME);
+  const agentConfig = {
+    name: AGENT_NAME,
+    description: AGENT_DESCRIPTION,
+    systemPrompt: ARIADNE_SYSTEM_PROMPT,
+    beginMessage: ARIADNE_BEGIN_MESSAGE,
+  };
 
-  if (agent) {
-    console.log(`• reusing agent ${agent.id} (${AGENT_NAME})`);
+  // Prefer the id we already stored (so a rename updates in place); else match the
+  // current or a legacy name. Found agents keep the `numbers` from listAgents.
+  const agents = await client.listAgents();
+  const existing =
+    (env.agentphone.agentId ? agents.data.find((a) => a.id === env.agentphone.agentId) : undefined) ??
+    agents.data.find((a) => a.name === AGENT_NAME) ??
+    agents.data.find((a) => LEGACY_AGENT_NAMES.includes(a.name));
+
+  let agent: AgentResponse;
+  if (existing) {
+    await client.updateAgent(existing.id, agentConfig);
+    agent = existing;
+    console.log(`• updated agent ${existing.id} -> ${AGENT_NAME} (prompt + begin message refreshed)`);
   } else {
-    agent = await client.createAgent({
-      name: AGENT_NAME,
-      description: "Ariadne — phone-first host for Run(way)time.",
-      voiceMode: "webhook",
-      systemPrompt: ARIADNE_SYSTEM_PROMPT,
-      beginMessage: ARIADNE_BEGIN_MESSAGE,
-    });
-    console.log(`• created agent ${agent.id}`);
+    agent = await client.createAgent({ voiceMode: "webhook", ...agentConfig });
+    console.log(`• created agent ${agent.id} (${AGENT_NAME})`);
   }
 
   let numberId = agent.numbers?.[0]?.id ?? "";
