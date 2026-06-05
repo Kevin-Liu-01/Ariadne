@@ -116,7 +116,9 @@ function voiceStream(bb: Backbone, interaction: InteractionEvent, webhookId: str
 }
 
 async function deliver(reply: BrainReply, interaction: InteractionEvent): Promise<void> {
-  await deliverGuestReply(interaction.from, reply.conversationId, reply.text);
+  await deliverGuestReply(interaction.from, reply.conversationId, reply.text, {
+    forceContactCard: reply.attachContactCard ?? false,
+  });
   if (interaction.externalConversationId && reply.participantId) {
     const conversation = await getBackbone().repos.conversations.findById(reply.conversationId);
     await mirrorConversation(interaction.externalConversationId, {

@@ -16,15 +16,22 @@ export function firstContactMessageBody(replyText: string): string {
 }
 
 /**
- * Send the guest reply. On the first turn for a conversation, attach the vCard in
- * the same outbound message so iMessage renders the contact card above the text.
- * The send is CLAIMED atomically before dispatch so racing inbound messages cannot
- * double-post onboarding. On failure we release the claim and fall back to text-only.
+ * Send the guest reply, attaching the saveable vCard when appropriate.
+ *
+ * Two ways the card rides along:
+ *  - First contact: attach it to the opening bubble (intro copy + reply) so iMessage
+ *    renders the contact above the text. CLAIMED atomically before dispatch so racing
+ *    inbound messages cannot double-post onboarding; on failure we release and fall
+ *    back to text-only.
+ *  - `forceContactCard`: the guest explicitly asked for the contact, so attach the
+ *    card to this reply even after the one-time send already fired. We mark the claim
+ *    on success so the automatic first-contact path never adds a second card.
  */
 export async function deliverGuestReply(
   toNumber: string,
   conversationId: string,
   replyText: string,
+  opts?: { forceContactCard?: boolean },
 ): Promise<void> {
   if (!outboundEnabled()) return;
 
@@ -36,6 +43,14 @@ export async function deliverGuestReply(
   }
 
   const repo = getBackbone().repos.conversations;
+
+  if (opts?.forceContactCard) {
+    const sent = await sendGuestText(toNumber, replyText, { mediaUrls: [mediaUrl] });
+    if (sent) await repo.claimContactCardSend(conversationId);
+    else await sendGuestText(toNumber, replyText);
+    return;
+  }
+
   const firstContact = await repo.claimContactCardSend(conversationId);
 
   if (!firstContact) {

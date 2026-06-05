@@ -19,6 +19,7 @@ import { gameplayAllowed, runOfShowCopy } from "@/constants/show-gate";
 import { EVENT_NAME } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import { MISSION_BY_ID } from "@/constants/missions";
+import { isContactCardRequest } from "@/domain/contact-request";
 import { parseDrink } from "@/domain/drink-parse";
 import { newId } from "@/domain/ids";
 import { stripDashes } from "@/domain/text";
@@ -40,6 +41,12 @@ export interface BrainReply {
   channel: InboundChannel;
   participantId: string | null;
   conversationId: string;
+  /**
+   * Attach the saveable vCard to this reply. Set when the guest explicitly asks
+   * for the contact ("send me your contact"), so the card is delivered every time
+   * it is requested, not only on the one-time first-contact send.
+   */
+  attachContactCard?: boolean;
 }
 
 const PROMPT_INJECTION_GUARD =
@@ -81,11 +88,16 @@ export class AgentBrain {
     let conversationNow = (await this.repos.conversations.findById(conversation.id)) ?? conversation;
     const participant = await this.lookup(conversationNow, event.from);
 
+    // Deciding to send the contact card is deterministic, not the LLM's call:
+    // any reply to an explicit contact request rides out with the vCard attached.
+    const wantsContactCard = isContactCardRequest(event.text);
+
     const makeReply = (text: string, p: Participant | null = participant): BrainReply => ({
       text: stripDashes(text),
       channel: event.channel,
       participantId: p?.id ?? null,
       conversationId: conversationNow.id,
+      attachContactCard: wantsContactCard,
     });
 
     const command = event.text.trim();
@@ -168,6 +180,7 @@ export class AgentBrain {
       channel: event.channel,
       participantId: after?.id ?? null,
       conversationId: conversationNow.id,
+      attachContactCard: wantsContactCard,
     };
   }
 
