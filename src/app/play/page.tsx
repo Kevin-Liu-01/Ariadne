@@ -118,10 +118,10 @@ export default function PlayPage() {
               )}
               <p className="mt-3 text-center text-xs leading-relaxed text-ash">
                 No app to download. Prefer a screen?{" "}
-                <Link href="/join" className="text-helio underline-offset-2 hover:underline">
-                  check in on the web
-                </Link>
-                .
+                <Link href="/play/live" className="text-helio underline-offset-2 hover:underline">
+                  play live on this screen
+                </Link>{" "}
+                instead, no texting needed.
               </p>
             </div>
           </div>
@@ -337,6 +337,9 @@ export default function PlayPage() {
             />
           </Link>
           <footer className="mt-10 flex flex-wrap items-center justify-center gap-4 border-t border-nyx-line pt-6 text-xs uppercase tracking-[0.2em] text-ash">
+            <Link href="/play/live" className="hover:text-cloud">
+              play live
+            </Link>
             <Link href="/projection" className="hover:text-cloud">
               live board
             </Link>

@@ -94,6 +94,15 @@ export class ConversationsRepository extends BaseRepository {
     return rows[0] ? toConversation(rows[0]) : null;
   }
 
+  /** The guest's most recent linked thread, so the web player reuses it instead of forking a new one. */
+  async findLatestByParticipant(participantId: string): Promise<Conversation | null> {
+    const rows = await this.db.query<ConversationRow>(
+      `SELECT * FROM conversations WHERE participant_id = $1 ORDER BY updated_at DESC LIMIT 1`,
+      [participantId],
+    );
+    return rows[0] ? toConversation(rows[0]) : null;
+  }
+
   /** Every linked conversation for the event, newest first. The sweep maps these by participant. */
   async listByEvent(eventId: string): Promise<Conversation[]> {
     const rows = await this.db.query<ConversationRow>(

@@ -67,6 +67,17 @@ export const env = {
   get agentToken(): string {
     return process.env.ARIADNE_AGENT_TOKEN ?? "";
   },
+  /**
+   * HMAC key for web Live Player session tokens. A dedicated secret can harden it,
+   * but it falls back to the operator token (always set for a live event) so the
+   * player path needs no new config. Empty only when nothing is set, which makes
+   * token verification fail closed.
+   */
+  get playerSecret(): string {
+    return (
+      process.env.ARIADNE_PLAYER_SECRET || env.operatorToken || env.agentphone.webhookSecret
+    );
+  },
   /** Shared secret the reminder sweep cron must present. Vercel Cron sends it as a bearer token. */
   get cronSecret(): string {
     return process.env.CRON_SECRET ?? "";

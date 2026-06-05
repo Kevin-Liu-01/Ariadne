@@ -109,6 +109,17 @@ export class DrinkOrdersRepository extends BaseRepository {
     return rows[0] ? toDrinkOrder(rows[0]) : null;
   }
 
+  /** A guest's most recent still-open order, so the Live Player can show its live status. */
+  async findLatestActiveByParticipant(participantId: string): Promise<DrinkOrder | null> {
+    const rows = await this.db.query<DrinkOrderRow>(
+      `SELECT * FROM drink_orders
+       WHERE participant_id = $1 AND status IN ('queued','in_progress','ready')
+       ORDER BY created_at DESC LIMIT 1`,
+      [participantId],
+    );
+    return rows[0] ? toDrinkOrder(rows[0]) : null;
+  }
+
   /**
    * A still-open order for the same item the guest placed since `sinceIso`. Used to
    * collapse accidental double-submits (model retry, double-tap, deferred-intent

@@ -60,6 +60,21 @@ export class ConversationService {
     await this.repos.conversations.setParticipant(conversationId, participantId);
   }
 
+  /**
+   * The conversation a checked-in guest's web Live Player should mutate. Reuses
+   * their existing thread (phone or web) so text and screen share one flow, and
+   * only mints a `web:<participantId>` thread if none exists yet. The mission
+   * "current quest" pointer lives on the conversation, but pass/fail and score are
+   * participant-scoped, so sharing or forking a thread never changes the outcome.
+   */
+  async resolveForParticipant(participantId: string): Promise<Conversation> {
+    const existing = await this.repos.conversations.findLatestByParticipant(participantId);
+    if (existing) return existing;
+    const conversation = await this.resolve(`web:${participantId}`, null, null);
+    await this.linkParticipant(conversation.id, participantId);
+    return { ...conversation, participantId };
+  }
+
   async setFlow(conversationId: string, flow: Flow, missionId: string | null): Promise<void> {
     await this.repos.conversations.setFlow(conversationId, flow, missionId);
   }

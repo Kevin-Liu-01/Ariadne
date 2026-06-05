@@ -3,6 +3,7 @@ import { GEMS } from "@/constants/gems";
 import { normalizeEmail } from "@/domain/email";
 import { normalizePhone } from "@/domain/phone";
 import { getBackbone } from "@/server/backbone";
+import { signPlayerToken } from "@/server/play/session";
 import { waitlistLookup } from "@/server/door/waitlist";
 import { json, problem } from "@/server/http/respond";
 
@@ -29,12 +30,13 @@ export async function POST(req: Request): Promise<Response> {
   // The waitlist is the door: no approved email, no check-in.
   const email = normalizeEmail(input.email);
   const listing = waitlistLookup(email);
-  if (!listing.onList) return problem(403, "not on the waitlist");
+  if (!listing.onList) return problem(403, "not on the list");
 
   const bb = getBackbone();
-  const result = await bb.registration.register({
+  // Resume an existing guest (including one already checked in by text) by their
+  // waitlist email so a web check-in never mints a duplicate board tile.
+  const result = await bb.registration.checkInByEmail({
     phone: input.phone ? normalizePhone(input.phone) || null : null,
-    externalConversationId: null,
     channel: input.channel ?? null,
     name: input.name ?? listing.name ?? null,
     email,
@@ -43,8 +45,10 @@ export async function POST(req: Request): Promise<Response> {
   });
   const p = result.participant;
 
+  // The signed token is the browser's identity for the web Live Player (/play/live).
   return json({
     isNew: result.isNew,
+    playerToken: signPlayerToken(p.id),
     participant: {
       gameId: p.gameId,
       gem: p.gem,

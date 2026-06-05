@@ -27,6 +27,21 @@ export interface RegisterResult {
   firstMission: MissionTemplate | null;
 }
 
+export interface CheckInByEmailInput {
+  email: string;
+  name?: string | null;
+  phone?: string | null;
+  stationId?: string | null;
+  channel?: InboundChannel | null;
+  category?: string | null;
+}
+
+export interface CheckInByEmailResult {
+  participant: Participant;
+  isNew: boolean;
+  firstMission: MissionTemplate | null;
+}
+
 /** Creates the canonical participant at check-in. Idempotent per phone/conversation. */
 export class RegistrationService {
   constructor(
@@ -86,6 +101,37 @@ export class RegistrationService {
       isNew: true,
       firstMission: MISSION_BY_ID.get(FIRST_MISSION_ID) ?? null,
     };
+  }
+
+  /**
+   * Check in from the web (no phone thread to key off). The waitlist email is the
+   * identity: an existing guest (including one already checked in by text) resumes
+   * the same participant rather than minting a duplicate board tile. A phone is
+   * backfilled when a previously phone-less web guest later links their texts.
+   */
+  async checkInByEmail(input: CheckInByEmailInput): Promise<CheckInByEmailResult> {
+    const email = input.email.trim().toLowerCase();
+    const firstMission = MISSION_BY_ID.get(FIRST_MISSION_ID) ?? null;
+
+    const existing = await this.repos.participants.findByEmail(this.eventId, email);
+    if (existing) {
+      const participant =
+        input.phone && !existing.phone
+          ? ((await this.repos.participants.applyEdits(existing.id, { phone: input.phone })) ?? existing)
+          : existing;
+      return { participant, isNew: false, firstMission };
+    }
+
+    const result = await this.register({
+      phone: input.phone ?? null,
+      externalConversationId: null,
+      channel: input.channel ?? null,
+      name: input.name ?? null,
+      email,
+      category: input.category ?? null,
+      stationId: input.stationId ?? null,
+    });
+    return { participant: result.participant, isNew: result.isNew, firstMission: result.firstMission };
   }
 
   private async findExisting(

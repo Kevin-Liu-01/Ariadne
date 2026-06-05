@@ -9,17 +9,20 @@ import {
   Target,
   TriangleAlert,
 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { CONTACT_NAME, EVENT_NAME } from "@/constants/event";
 import type { GemId } from "@/constants/gems";
 import { GemIcon } from "@/components/gem-icon";
 import { IMessageIcon } from "@/components/imessage-icon";
 import { TextReminders } from "@/components/text-reminders";
+import { setPlayerToken } from "@/app/play/live/player-token";
 import { cn } from "@/lib/utils";
 import { formatPhoneDisplay, smsHref } from "@/domain/phone";
 
 interface RegisterResult {
   isNew: boolean;
+  playerToken: string;
   participant: {
     gameId: string;
     gem: GemId;
@@ -67,7 +70,10 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
         return;
       }
       if (!res.ok) throw new Error(await res.text());
-      setResult((await res.json()) as RegisterResult);
+      const data = (await res.json()) as RegisterResult;
+      // Stash the token so "Continue on this screen" drops straight into the Live Player.
+      setPlayerToken(data.playerToken);
+      setResult(data);
     } catch {
       setError("check-in failed, try texting the number instead.");
     } finally {
@@ -116,6 +122,21 @@ export function CheckInPanel({ phoneNumber, stationId }: Props) {
             <p className="mt-1 text-sm leading-relaxed text-cloud">{result.firstMission.prompt}</p>
           </div>
         ) : null}
+
+        <Link
+          href="/play/live"
+          className="group mt-5 flex items-center justify-center gap-2 border border-helio/50 bg-helio/15 px-5 py-3.5 text-sm uppercase tracking-[0.15em] text-cloud transition-colors hover:bg-helio/25"
+        >
+          play on this screen
+          <ArrowRight
+            className="h-4 w-4 text-helio transition-transform group-hover:translate-x-1"
+            strokeWidth={2}
+            aria-hidden
+          />
+        </Link>
+        <p className="mt-2 text-center text-[11px] text-ash">
+          no texting needed, the whole game runs right here
+        </p>
 
         {phoneNumber ? (
           <div className="mt-5 border border-helio/40 bg-helio/10 px-4 py-3">

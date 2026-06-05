@@ -78,6 +78,15 @@ export class SongRequestsRepository extends BaseRepository {
     return rows.map(toSongRequest);
   }
 
+  /** The guest's most recent request, so the Live Player can show its accepted/played status. */
+  async findLatestByParticipant(participantId: string): Promise<SongRequest | null> {
+    const rows = await this.db.query<SongRequestRow>(
+      `SELECT * FROM song_requests WHERE participant_id = $1 ORDER BY created_at DESC LIMIT 1`,
+      [participantId],
+    );
+    return rows[0] ? toSongRequest(rows[0]) : null;
+  }
+
   async setStatus(id: string, status: SongStatus): Promise<SongRequest | null> {
     const rows = await this.db.query<SongRequestRow>(
       `UPDATE song_requests SET status = $1, decided_at = $2 WHERE id = $3 RETURNING *`,

@@ -1,3 +1,11 @@
+import {
+  allQuestsDoneCopy,
+  missionCorrectCopy,
+  missionDuplicatePartnerCopy,
+  missionPartnerInvalidCopy,
+  missionWrongCopy,
+  riddleProgressCopy,
+} from "@/constants/copy";
 import { FLOWS } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import {
@@ -8,6 +16,7 @@ import {
   RIDDLE_QUEST_COUNT,
   type MissionTemplate,
 } from "@/constants/missions";
+import { assertNever } from "@/lib/assert";
 import { QUEST_BASE, partnerQuestPoints, speedBonus } from "@/domain/scoring";
 import { newId } from "@/domain/ids";
 import {
@@ -35,6 +44,32 @@ export type MissionOutcome =
 export interface DeliveredMission {
   mission: MissionTemplate;
   prompt: string;
+}
+
+/** The single guest-facing line for a mission outcome, shared by the agent tool and the web player. */
+export function missionOutcomeSay(outcome: MissionOutcome): string {
+  switch (outcome.kind) {
+    case "correct":
+      return missionCorrectCopy({ points: outcome.points, nextMissionPrompt: outcome.nextPrompt ?? undefined });
+    case "incorrect":
+      return missionWrongCopy(outcome.hint);
+    case "partner_invalid":
+      return missionPartnerInvalidCopy();
+    case "duplicate_partner":
+      return missionDuplicatePartnerCopy();
+    case "riddle_progress":
+      return riddleProgressCopy({
+        solved: outcome.solved,
+        total: outcome.total,
+        nextRiddlePrompt: outcome.nextRiddlePrompt,
+      });
+    case "already":
+      return "You already solved that one. Stay near the screen.";
+    case "no_mission":
+      return allQuestsDoneCopy();
+    default:
+      return assertNever(outcome);
+  }
 }
 
 const COLOR_MISSION_ID = "color-constellation";
