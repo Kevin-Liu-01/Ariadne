@@ -33,10 +33,27 @@ describe("DrinkService rejections", () => {
     expect((await bb.drinks.createFromText(p, convId, "still water")).kind).toBe("queued");
   });
 
+  it("queues a margarita ordered by its stylized menu name", async () => {
+    const bb = await freshBackbone();
+    const { p, convId } = await checkIn(bb, "+1000000007");
+    const outcome = await bb.drinks.createFromText(p, convId, "can I get a Margar(AI)ta");
+    expect(outcome.kind).toBe("queued");
+    if (outcome.kind === "queued") expect(outcome.order.menuItemId).toBe("margaraita");
+  });
+
+  it("queues sparkling water (its name contains 'water' but it is one drink)", async () => {
+    const bb = await freshBackbone();
+    const { p, convId } = await checkIn(bb, "+1000000008");
+    const outcome = await bb.drinks.createFromText(p, convId, "sparkling water please");
+    expect(outcome.kind).toBe("queued");
+    if (outcome.kind === "queued") expect(outcome.order.menuItemId).toBe("sparkling_water");
+  });
+
   it("rejects a multi-drink message", async () => {
     const bb = await freshBackbone();
     const { p, convId } = await checkIn(bb, "+1000000003");
     expect((await bb.drinks.createFromText(p, convId, "can I get two beers")).kind).toBe("invalid_quantity");
+    expect((await bb.drinks.createFromText(p, convId, "a modelo and a stella")).kind).toBe("invalid_quantity");
   });
 
   it("asks for clarification on something not on the menu", async () => {
