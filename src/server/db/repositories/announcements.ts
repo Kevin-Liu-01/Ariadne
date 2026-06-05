@@ -61,4 +61,13 @@ export class AnnouncementsRepository extends BaseRepository {
     );
     return rows.map(toAnnouncement);
   }
+
+  /** Operator delete: drop a sent announcement from the history log. */
+  async remove(id: string): Promise<boolean> {
+    const rows = await this.db.query<{ id: string }>(
+      `DELETE FROM announcements WHERE id = $1 RETURNING id`,
+      [id],
+    );
+    return rows.length === 1;
+  }
 }

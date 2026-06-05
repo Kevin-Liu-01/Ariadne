@@ -27,6 +27,8 @@ export function ParticipantEditor({
   onChanged: () => void;
 }) {
   const [displayName, setDisplayName] = useState(participant.displayName ?? "");
+  const [phone, setPhone] = useState(participant.phone ?? "");
+  const [email, setEmail] = useState(participant.email ?? "");
   const [secretWord, setSecretWord] = useState(participant.secretWord);
   const [gem, setGem] = useState<GemId>(participant.gem);
   const [score, setScore] = useState(participant.score);
@@ -63,6 +65,8 @@ export function ParticipantEditor({
             method,
             body: JSON.stringify({
               displayName: trimmed.length > 0 ? trimmed : null,
+              phone: phone.trim() || null,
+              email: email.trim() || null,
               gem,
               secretWord: secretWord.trim() || participant.secretWord,
               score,
@@ -100,6 +104,29 @@ export function ParticipantEditor({
           className="mt-2 w-full border border-nyx-line bg-nyx px-3 py-2 text-sm text-cloud outline-none focus:border-helio/50"
         />
       </label>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-helio">phone</span>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+1 555 000 0000"
+            inputMode="tel"
+            className="mt-2 w-full border border-nyx-line bg-nyx px-3 py-2 text-sm tabular-nums text-cloud outline-none focus:border-helio/50"
+          />
+        </label>
+        <label className="block">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-helio">email</span>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="guest@email.com"
+            inputMode="email"
+            className="mt-2 w-full border border-nyx-line bg-nyx px-3 py-2 text-sm lowercase text-cloud outline-none focus:border-helio/50"
+          />
+        </label>
+      </div>
 
       <RecommendationStrip
         label="gem"

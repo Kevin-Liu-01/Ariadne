@@ -3,7 +3,6 @@ import { PRODUCT_NAME, PRODUCT_TAGLINE, VENUE } from "@/constants/event";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
 import { RunwayWordmark } from "@/components/runway-wordmark";
 import { TextReminders } from "@/components/text-reminders";
-import { SiteNav } from "@/components/site-nav";
 import { CheckInPanel } from "@/app/join/check-in-panel";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +16,6 @@ export default async function JoinPage({
   const phoneNumber = env.agentphone.phoneNumber;
   return (
     <main className="relative flex min-h-dvh flex-1 flex-col bg-nyx px-6 py-6 scanlines">
-      <SiteNav className="relative z-[2] justify-center" />
       <div className="relative z-[2] flex flex-1 flex-col items-center justify-center py-8">
         {/* A contact card for Ariadne: identity up top, the check-in action and
             textable reminders below, like saving a contact then messaging it. */}

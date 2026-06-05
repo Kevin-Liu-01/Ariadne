@@ -11,6 +11,22 @@ export const dynamic = "force-dynamic";
 
 const PatchBody = z.object({
   displayName: z.string().trim().max(40).nullable().optional(),
+  // Empty string clears to null; undefined leaves the field untouched.
+  phone: z
+    .string()
+    .trim()
+    .max(30)
+    .nullable()
+    .optional()
+    .transform((v) => (v === "" ? null : v)),
+  // Same clear-on-empty rule; non-empty is lowercased to match the lookup index.
+  email: z
+    .string()
+    .trim()
+    .max(120)
+    .nullable()
+    .optional()
+    .transform((v) => (v === "" ? null : v ? v.toLowerCase() : v)),
   gem: z.enum(GEM_IDS as [GemId, ...GemId[]]).optional(),
   secretWord: z.string().trim().min(1).max(40).optional(),
   score: z.number().int().min(0).max(100000).optional(),

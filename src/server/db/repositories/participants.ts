@@ -153,6 +153,8 @@ export class ParticipantsRepository extends BaseRepository {
     const values: unknown[] = [];
     const columns: [keyof ParticipantEdit, string][] = [
       ["displayName", "display_name"],
+      ["phone", "phone"],
+      ["email", "email"],
       ["gem", "gem"],
       ["secretWord", "secret_word"],
       ["score", "score"],
@@ -183,9 +185,11 @@ export class ParticipantsRepository extends BaseRepository {
   }
 }
 
-/** Fields an operator may change on a guest. Absent fields are left untouched. */
+/** Fields an operator may change on a guest. Absent fields are left untouched; null clears. */
 export interface ParticipantEdit {
   displayName?: string | null;
+  phone?: string | null;
+  email?: string | null;
   gem?: GemId;
   secretWord?: string;
   score?: number;

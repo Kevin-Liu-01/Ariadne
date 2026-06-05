@@ -14,5 +14,6 @@ export function participantView(p: Participant) {
     score: p.score,
     eliminated: p.eliminated,
     phone: p.phone,
+    email: p.email,
   };
 }

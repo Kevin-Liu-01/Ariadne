@@ -66,4 +66,5 @@ export interface OperatorParticipant {
   score: number;
   eliminated: boolean;
   phone: string | null;
+  email: string | null;
 }

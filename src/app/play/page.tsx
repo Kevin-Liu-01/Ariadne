@@ -79,7 +79,7 @@ export default function PlayPage() {
           aria-hidden
         />
         <div className="relative z-[2] mx-auto w-full max-w-3xl">
-          <div className="flex flex-col items-center text-center animate-rise">
+          <div className="mt-6 flex flex-col items-center text-center animate-rise">
             <LabyrinthThread size={88} animate />
             <p className="mt-6 flex items-center gap-2 text-[11px] uppercase tracking-[0.35em] text-ash">
               <span className="crosshair" aria-hidden />

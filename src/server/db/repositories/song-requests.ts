@@ -85,4 +85,13 @@ export class SongRequestsRepository extends BaseRepository {
     );
     return rows[0] ? toSongRequest(rows[0]) : null;
   }
+
+  /** Operator delete: drop a request from the queue entirely. */
+  async remove(id: string): Promise<boolean> {
+    const rows = await this.db.query<{ id: string }>(
+      `DELETE FROM song_requests WHERE id = $1 RETURNING id`,
+      [id],
+    );
+    return rows.length === 1;
+  }
 }

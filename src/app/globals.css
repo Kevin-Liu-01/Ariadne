@@ -233,6 +233,26 @@ body {
   animation: ariadne-pulse 2.6s ease-in-out infinite;
 }
 
+/* Nav console popping out from the docked Ariadne mark (bottom-right origin). */
+@keyframes ariadne-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-pop {
+  animation: ariadne-pop 0.22s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-pop {
+    animation: none;
+  }
+}
+
 /* Ariadne thread drawing itself through the labyrinth, then the knot blooming. */
 @keyframes ariadne-draw {
   to {

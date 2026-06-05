@@ -8,8 +8,7 @@ import { sceneMeta } from "@/constants/scenes";
 import { GameLiveHeadline } from "@/components/game-live-headline";
 import { RunwayWordmark } from "@/components/runway-wordmark";
 import { ShaderBackdrop } from "@/components/shader-backdrop";
-import { SiteNav } from "@/components/site-nav";
-import { ACCENT, type BoardView } from "@/app/projection/board-parts";
+import type { BoardView } from "@/app/projection/board-parts";
 import { BoardStage } from "@/app/projection/stages";
 import type { ProjectionSnapshot, TileState } from "@/domain/projection";
 import { projectionGameplayActive } from "@/domain/projection-gameplay";
@@ -19,10 +18,6 @@ import { cn } from "@/lib/utils";
 type Tiles = Record<string, TileState>;
 type Stats = ProjectionSnapshot["stats"];
 const EMPTY_STATS: Stats = { checkedIn: 0, missionsCompleted: 0, drinksActive: 0 };
-
-function formatScene(scene: string): string {
-  return scene.replace(/_/g, " ");
-}
 
 /**
  * Ambient shaders.com look per scene. Cinematic scenes (arrival/opening/runway) run
@@ -229,41 +224,33 @@ export default function ProjectionPage() {
   return (
     <main className="relative flex h-dvh flex-col overflow-hidden bg-nyx px-10 py-8 scanlines">
       <ShaderBackdrop sceneName={backdrop.scene} className={backdrop.className} />
-      <header className="relative z-[2] border-b border-nyx-line pb-4">
-        <SiteNav
-          actions={
+      {/* The projected board carries no nav chrome. Cinematic scenes paint full-bleed;
+          only the live game keeps a thin stats bar up top. */}
+      {activeScene === "game" ? (
+        <header className="relative z-[2] flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-b border-nyx-line pb-4">
+          <div className="flex items-center gap-3">
+            <RunwayWordmark size="xl" />
             <span
               className={cn(
-                "mb-1.5 h-2.5 w-2.5 rounded-full",
+                "mb-1 h-2.5 w-2.5 rounded-full",
                 connected ? "bg-gem-peridot animate-pulse-slow" : "bg-gem-garnet",
               )}
               title={connected ? "live" : "reconnecting"}
             />
-          }
-        />
-        {activeScene === "game" ? (
-          <div className="mt-4 flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
-            <RunwayWordmark size="xl" />
-            <div className="text-right">
-              <GameLiveHeadline headline={meta.headline} />
-              <div className="mt-3 flex items-end justify-end gap-8">
-                <Stat label="checked in" value={stats.checkedIn} Icon={Users} />
-                <Stat label="missions solved" value={stats.missionsCompleted} Icon={Target} accent="helio" />
-                <Stat label="drinks pouring" value={stats.drinksActive} Icon={Wine} accent="topaz" />
-              </div>
-              {previewScene ? (
-                <p className="mt-1 text-[10px] uppercase tracking-[0.35em] text-ash/60">preview</p>
-              ) : null}
-            </div>
           </div>
-        ) : (
-          <p className="mt-3 text-[11px] uppercase tracking-[0.3em] text-ash">
-            {EVENT_NAME} · scene ·{" "}
-            <span className={ACCENT[meta.accent].text}>{formatScene(activeScene)}</span>
-            {previewScene ? <span className="ml-2 text-ash/70">(preview)</span> : null}
-          </p>
-        )}
-      </header>
+          <div className="text-right">
+            <GameLiveHeadline headline={meta.headline} />
+            <div className="mt-3 flex items-end justify-end gap-8">
+              <Stat label="checked in" value={stats.checkedIn} Icon={Users} />
+              <Stat label="missions solved" value={stats.missionsCompleted} Icon={Target} accent="helio" />
+              <Stat label="drinks pouring" value={stats.drinksActive} Icon={Wine} accent="topaz" />
+            </div>
+            {previewScene ? (
+              <p className="mt-1 text-[10px] uppercase tracking-[0.35em] text-ash/60">preview</p>
+            ) : null}
+          </div>
+        </header>
+      ) : null}
 
       <BoardStage scene={activeScene} view={view} />
 

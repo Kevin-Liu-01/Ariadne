@@ -1,6 +1,6 @@
 "use client";
 
-import { Megaphone, Send } from "lucide-react";
+import { Megaphone, Send, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { authedFetch, type OperatorAnnouncement } from "@/app/operator/api";
 import { cn } from "@/lib/utils";
@@ -65,6 +65,16 @@ export function AnnouncementsPanel({ token }: { token: string }) {
       setSending(false);
     }
   }, [token, body, refresh]);
+
+  const removeRecent = useCallback(
+    async (id: string) => {
+      // Optimistic: drop it locally, then reconcile from the server.
+      setRecent((prev) => prev.filter((a) => a.id !== id));
+      await authedFetch(token, `/api/operator/announcements/${id}`, { method: "DELETE" });
+      await refresh();
+    },
+    [token, refresh],
+  );
 
   const trimmed = body.trim();
 
@@ -141,12 +151,20 @@ export function AnnouncementsPanel({ token }: { token: string }) {
           <p className="text-[10px] uppercase tracking-[0.2em] text-ash">recent</p>
           <ul className="mt-2 space-y-2">
             {recent.slice(0, 5).map((a) => (
-              <li key={a.id} className="flex items-start gap-3 text-sm">
+              <li key={a.id} className="group flex items-start gap-3 text-sm">
                 <span className="mt-0.5 shrink-0 text-[10px] tabular-nums text-ash">{timeLabel(a.createdAt)}</span>
                 <span className="min-w-0 flex-1 text-cloud">{a.body}</span>
                 <span className="shrink-0 text-[10px] tabular-nums text-ash">
                   {a.delivered}/{a.recipients}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => void removeRecent(a.id)}
+                  aria-label="delete announcement"
+                  className="shrink-0 text-ash/60 transition-colors hover:text-gem-garnet"
+                >
+                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                </button>
               </li>
             ))}
           </ul>

@@ -35,3 +35,14 @@ export async function PATCH(
   }
   return json(updated);
 }
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<Response> {
+  if (!bearerOk(req, env.operatorToken)) return problem(401, "unauthorized");
+  const { id } = await params;
+  const removed = await getBackbone().repos.songRequests.remove(id);
+  if (!removed) return problem(404, "request not found");
+  return json({ ok: true });
+}

@@ -73,6 +73,29 @@ describe("operator admin: edit, change, delete", () => {
     expect(tile?.eliminated).toBe(true);
   });
 
+  it("edits a guest's phone and email, lowercasing nothing it isn't given", async () => {
+    const bb = await freshBackbone();
+    const alice = await checkIn(bb, "+1000000001", "Alice");
+
+    const updated = await bb.participantAdmin.edit(alice.id, {
+      phone: "+1999999999",
+      email: "alice@example.com",
+    });
+    expect(updated?.phone).toBe("+1999999999");
+    expect(updated?.email).toBe("alice@example.com");
+    // Untouched fields stay put.
+    expect(updated?.displayName).toBe(alice.displayName);
+
+    const reread = await bb.repos.participants.findById(alice.id);
+    expect(reread?.phone).toBe("+1999999999");
+    expect(reread?.email).toBe("alice@example.com");
+
+    // Clearing is explicit (null), distinct from "leave alone" (undefined).
+    const cleared = await bb.participantAdmin.edit(alice.id, { phone: null });
+    expect(cleared?.phone).toBeNull();
+    expect(cleared?.email).toBe("alice@example.com");
+  });
+
   it("returns null when editing a missing guest", async () => {
     const bb = await freshBackbone();
     expect(await bb.participantAdmin.edit("par_missing", { score: 10 })).toBeNull();
@@ -96,6 +119,37 @@ describe("operator admin: edit, change, delete", () => {
     expect(snap.participants[0]?.gameId).toBe(bob.gameId);
 
     expect(await bb.participantAdmin.remove(alice.id)).toBe(false);
+  });
+});
+
+describe("operator song requests", () => {
+  it("creates, decides, and deletes a song request", async () => {
+    const bb = await freshBackbone();
+    const alice = await checkIn(bb, "+1000000001", "Alice");
+
+    const req = await bb.repos.songRequests.create("test-event", alice.id, "Sandstorm");
+    expect(req.status).toBe("requested");
+    expect(req.decidedAt).toBeNull();
+
+    const accepted = await bb.repos.songRequests.setStatus(req.id, "accepted");
+    expect(accepted?.status).toBe("accepted");
+    expect(accepted?.decidedAt).not.toBeNull();
+
+    expect(await bb.repos.songRequests.remove(req.id)).toBe(true);
+    expect(await bb.repos.songRequests.remove(req.id)).toBe(false);
+    expect(await bb.repos.songRequests.listByEvent("test-event")).toHaveLength(0);
+  });
+});
+
+describe("operator announcements", () => {
+  it("records then deletes an announcement from the history", async () => {
+    const bb = await freshBackbone();
+    const a = await bb.repos.announcements.insert("test-event", "Showcase in 5", 10, 9);
+    expect(await bb.repos.announcements.listRecent("test-event")).toHaveLength(1);
+
+    expect(await bb.repos.announcements.remove(a.id)).toBe(true);
+    expect(await bb.repos.announcements.remove(a.id)).toBe(false);
+    expect(await bb.repos.announcements.listRecent("test-event")).toHaveLength(0);
   });
 });
 
