@@ -16,9 +16,11 @@ import {
   missionWrongCopy,
   notOnListCopy,
   pickupConfirmedCopy,
+  riddleHintCopy,
   riddleProgressCopy,
   songQueuedCopy,
   statusCopy,
+  withCommandMenu,
 } from "@/constants/copy";
 import type { InboundChannel } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
@@ -301,7 +303,8 @@ const orderDrink: Tool = {
     const locked = await gameplayLock(ctx);
     if (locked) return locked;
     const outcome = await ctx.drinks.createFromText(participant, conversation.id, text);
-    return { status: outcome.kind, say: drinkOutcomeSay(outcome) };
+    const say = drinkOutcomeSay(outcome);
+    return { status: outcome.kind, say: outcome.kind === "queued" ? withCommandMenu(say) : say };
   },
 };
 
@@ -333,10 +336,17 @@ const answerMission: Tool = {
         return {
           result: "correct",
           points: outcome.points,
-          say: missionCorrectCopy({ points: outcome.points, nextMissionPrompt: outcome.nextPrompt ?? undefined }),
+          say: withCommandMenu(
+            missionCorrectCopy({ points: outcome.points, nextMissionPrompt: outcome.nextPrompt ?? undefined }),
+          ),
         };
       case "incorrect":
         return { result: "incorrect", say: missionWrongCopy(outcome.hint) };
+      case "riddle_incorrect":
+        return {
+          result: "riddle_incorrect",
+          say: riddleHintCopy({ riddleNumber: outcome.riddleNumber, nudge: outcome.nudge }),
+        };
       case "partner_invalid":
         return { result: "partner_invalid", say: missionPartnerInvalidCopy() };
       case "duplicate_partner":
@@ -353,7 +363,9 @@ const answerMission: Tool = {
       case "bypassed":
         return {
           result: "bypassed",
-          say: missionBypassedCopy({ title: outcome.title, nextMissionPrompt: outcome.nextPrompt ?? undefined }),
+          say: withCommandMenu(
+            missionBypassedCopy({ title: outcome.title, nextMissionPrompt: outcome.nextPrompt ?? undefined }),
+          ),
         };
       case "already":
         return { result: "already", say: "You already solved that one. Stay near the screen." };
@@ -361,9 +373,11 @@ const answerMission: Tool = {
         const delivered = await ctx.missions.deliverCurrent(participant, conversation);
         return {
           result: "no_mission",
-          say: delivered
-            ? missionDeliverCopy({ title: delivered.mission.title, prompt: delivered.prompt })
-            : allQuestsDoneCopy(),
+          say: withCommandMenu(
+            delivered
+              ? missionDeliverCopy({ title: delivered.mission.title, prompt: delivered.prompt })
+              : allQuestsDoneCopy(),
+          ),
         };
       }
       default:
@@ -428,7 +442,7 @@ const confirmPickup: Tool = {
     const order = await ctx.repos.drinkOrders.findReadyByParticipant(participant.id);
     if (!order) return { picked_up: false, say: "You don't have a drink waiting right now." };
     await ctx.drinks.updateStatus(order.id, "picked_up", null);
-    return { picked_up: true, label: order.label, say: pickupConfirmedCopy(order.label) };
+    return { picked_up: true, label: order.label, say: withCommandMenu(pickupConfirmedCopy(order.label)) };
   },
 };
 
@@ -466,7 +480,7 @@ const queueSong: Tool = {
       return { status: "clarify", say: "Which song? Reply with a title or artist and I'll send it to the DJ." };
     }
     await ctx.repos.songRequests.create(ctx.eventId, participant.id, song);
-    return { status: "queued", say: songQueuedCopy(song) };
+    return { status: "queued", say: withCommandMenu(songQueuedCopy(song)) };
   },
 };
 

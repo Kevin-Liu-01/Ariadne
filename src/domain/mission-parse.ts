@@ -2,7 +2,7 @@ import { CLUES, type Clue } from "@/constants/clues";
 import type { GemId } from "@/constants/gems";
 import { isValidColorTriangle } from "@/domain/gem-wheel";
 import { MISSIONS, WORD_PAIRS, type MissionTemplate } from "@/constants/missions";
-import { tokenize } from "@/domain/text";
+import { normalize, tokenize } from "@/domain/text";
 
 /**
  * Liberally extract candidate game IDs from a message. Over-extraction is safe:
@@ -87,12 +87,56 @@ export function riddlesForParticipant(gameId: string, count = 3): Clue[] {
   return picks;
 }
 
-/** Find which of a guest's assigned riddles a message answers (by id), if any. */
-export function matchRiddleAnswer(riddles: readonly Clue[], normalizedText: string): Clue | null {
-  for (const r of riddles) {
-    if (r.answers.some((a) => containsRiddleAnswer(normalizedText, a))) return r;
+/** A guest's riddle reply, split into the riddle number they filed it under (if any) and the answer text. */
+export interface RiddleAttempt {
+  /** 1-based riddle number from a leading "N:" prefix, or null when the reply is a bare answer. */
+  number: number | null;
+  /** The answer text with any leading riddle-number prefix stripped. */
+  answer: string;
+}
+
+/**
+ * Split a riddle reply into an optional leading riddle number and the answer, per the
+ * "<number>: <answer>" format guests are asked to use (e.g. "2: cache"). The number may
+ * be written as "2:", "2.", "2)", "2 -", "2 ", "#2", or "riddle 2:"; a reply that does
+ * not start with a number comes back with `number: null` (a bare answer). The number is
+ * what lets the validator bind an answer to one specific riddle, so a correct answer
+ * filed under the wrong number is rejected instead of silently credited.
+ */
+export function parseRiddleAttempt(rawText: string): RiddleAttempt {
+  const match = /^\s*(?:riddle\s+)?#?\s*(\d{1,3})[\s:.)\-]+(.+)$/iu.exec(rawText);
+  if (!match) return { number: null, answer: rawText.trim() };
+  return { number: Number(match[1]), answer: match[2].trim() };
+}
+
+/**
+ * Resolve which of a guest's assigned riddles a reply solves, or null.
+ *
+ * Guests file each answer under its riddle number ("2: cache"). When a number is present
+ * the answer is *bound* to that one riddle and only counts if it matches it, so a correct
+ * answer filed under the wrong number is rejected rather than credited to whichever riddle
+ * it happens to fit. A reply with no number falls back to matching any still-unsolved
+ * riddle whose answer appears, in any order. `riddles` is the guest's full ordered
+ * assignment (the number is a 1-based index into it); `solved` ids are never matched again.
+ */
+export function matchRiddleAnswer(
+  riddles: readonly Clue[],
+  rawText: string,
+  solved: ReadonlySet<string> = new Set<string>(),
+): Clue | null {
+  const { number, answer } = parseRiddleAttempt(rawText);
+  if (number !== null) {
+    const target = riddles[number - 1];
+    if (!target || solved.has(target.id)) return null;
+    return clueAccepts(target, answer) ? target : null;
   }
-  return null;
+  return riddles.find((r) => !solved.has(r.id) && clueAccepts(r, answer)) ?? null;
+}
+
+/** True if `answerText` carries one of the clue's accepted answers as a whole token. */
+function clueAccepts(clue: Clue, answerText: string): boolean {
+  const normalized = normalize(answerText);
+  return clue.answers.some((a) => containsRiddleAnswer(normalized, a));
 }
 
 function containsRiddleAnswer(normalizedText: string, answer: string): boolean {

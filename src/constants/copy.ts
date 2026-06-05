@@ -9,6 +9,7 @@ import { BULLET, CMD, commandList } from "@/constants/format";
 import type { GemId } from "@/constants/gems";
 import { GEMS } from "@/constants/gems";
 import { GEM_WHEEL_HUE } from "@/domain/gem-wheel";
+import type { RiddleNudge } from "@/domain/riddle-hints";
 
 export function gameStateBlock(p: {
   name?: string | null;
@@ -31,6 +32,19 @@ export function commandsIntroCopy(): string {
     `${CMD.song} [track]: DJ request`,
     `${CMD.help}: this list`,
   ]);
+}
+
+/** The command list under a short lead-in. Shown at check-in and re-shown after milestones. */
+export function commandMenuBlock(): string {
+  return `What you can text me:\n\n${commandsIntroCopy()}`;
+}
+
+/**
+ * Append the command menu to a milestone or action reply. The guiding rule on the
+ * text thread: when in doubt, re-show what they can do instead of ending on bare state.
+ */
+export function withCommandMenu(body: string): string {
+  return `${body}\n\n${commandMenuBlock()}`;
 }
 
 export function checkinAskNameCopy(): string {
@@ -65,7 +79,7 @@ export function checkedInCopy(p: {
   word: string;
   gameId: string;
 }): string {
-  return `${p.name}, you're checked in. 🪽\n\n${gameStateBlock(p)}\n\nThe game starts soon. I'll text you the moment it begins. Reply HELP anytime.`;
+  return `${p.name}, you're checked in. 🪽\n\n${gameStateBlock(p)}\n\nThe game starts soon. I'll text you the moment it begins.\n\n${commandMenuBlock()}`;
 }
 
 export function askNameCopy(): string {
@@ -84,7 +98,7 @@ export function alreadyHereCopy(p: {
   score: number;
 }): string {
   const who = p.name ?? "You";
-  return `${who}, you're already checked in. 🪽\n\n${gameStateBlock(p)}\n\nReply ${CMD.mission} or ${CMD.status}.`;
+  return `${who}, you're already checked in. 🪽\n\n${gameStateBlock(p)}\n\n${commandMenuBlock()}`;
 }
 
 export function missionDeliverCopy(p: { title: string; prompt: string }): string {
@@ -129,6 +143,18 @@ export function missionDuplicatePartnerCopy(): string {
 export function riddleProgressCopy(p: { solved: number; total: number; nextRiddlePrompt: string }): string {
   const head = `Riddle solved. ${p.solved} of ${p.total}.`;
   return p.nextRiddlePrompt ? `${head}\n\nNext:\n${p.nextRiddlePrompt}` : head;
+}
+
+/**
+ * Escalating help for a stuck riddle: a sharper hint per miss, then the answer
+ * once the hints run out. The reveal still asks them to text it back (it scores,
+ * at the reduced revealed rate), in the same "number: answer" format as the prompt.
+ */
+export function riddleHintCopy(p: { riddleNumber: number; nudge: RiddleNudge }): string {
+  if (p.nudge.kind === "reveal") {
+    return `Not quite. The answer to riddle ${p.riddleNumber} is "${p.nudge.answer}".\n\nReply "${p.riddleNumber}: ${p.nudge.answer}" to log it. Revealed answers score reduced points.`;
+  }
+  return `Not quite. Hint ${p.nudge.level} for riddle ${p.riddleNumber}:\n\n${p.nudge.text}\n\nReply "${p.riddleNumber}: your answer".`;
 }
 
 export function missionBypassedCopy(p: { title: string; nextMissionPrompt?: string }): string {

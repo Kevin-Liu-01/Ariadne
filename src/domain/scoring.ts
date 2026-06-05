@@ -19,6 +19,12 @@ export const QUEST_BASE: Record<MissionType, number> = {
   riddle_quest: 30, // per riddle; three complete the quest
 };
 
+/** A riddle whose answer we revealed (after the hint ladder) still counts, at a reduced rate. */
+export const REVEALED_RIDDLE_DIVISOR = 2;
+export function revealedRiddlePoints(base: number): number {
+  return Math.round(base / REVEALED_RIDDLE_DIVISOR);
+}
+
 export const SPEED_BONUS_FIRST = 60;
 export const SPEED_BONUS_STEP = 5;
 export const SPEED_BONUS_FLOOR = 10;

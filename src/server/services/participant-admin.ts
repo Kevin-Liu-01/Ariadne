@@ -44,6 +44,7 @@ export class ParticipantAdminService {
       await r.participantMissions.removeByParticipant(id);
       await r.missionEvents.removeByParticipant(id);
       await r.riddleSolves.removeByParticipant(id);
+      await r.riddleReveals.removeByParticipant(id);
       await r.conversations.unlinkParticipant(id);
       await r.participants.remove(id);
     });

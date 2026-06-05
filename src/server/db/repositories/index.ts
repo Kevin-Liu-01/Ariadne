@@ -13,6 +13,7 @@ import { ParticipantsRepository } from "@/server/db/repositories/participants";
 import { PartnerEventsRepository } from "@/server/db/repositories/partner-events";
 import { ProjectionEventsRepository } from "@/server/db/repositories/projection";
 import { RemindersRepository } from "@/server/db/repositories/reminders";
+import { RiddleRevealsRepository } from "@/server/db/repositories/riddle-reveals";
 import { RiddleSolvesRepository } from "@/server/db/repositories/riddle-solves";
 import { SongRequestsRepository } from "@/server/db/repositories/song-requests";
 
@@ -24,6 +25,7 @@ export class Repositories {
   readonly participantMissions: ParticipantMissionsRepository;
   readonly missionEvents: MissionEventsRepository;
   readonly riddleSolves: RiddleSolvesRepository;
+  readonly riddleReveals: RiddleRevealsRepository;
   readonly drinkOrders: DrinkOrdersRepository;
   readonly drinkOrderEvents: DrinkOrderEventsRepository;
   readonly projection: ProjectionEventsRepository;
@@ -41,6 +43,7 @@ export class Repositories {
     this.participantMissions = new ParticipantMissionsRepository(db);
     this.missionEvents = new MissionEventsRepository(db);
     this.riddleSolves = new RiddleSolvesRepository(db);
+    this.riddleReveals = new RiddleRevealsRepository(db);
     this.drinkOrders = new DrinkOrdersRepository(db);
     this.drinkOrderEvents = new DrinkOrderEventsRepository(db);
     this.projection = new ProjectionEventsRepository(db);

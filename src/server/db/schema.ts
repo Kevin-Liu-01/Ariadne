@@ -104,6 +104,18 @@ CREATE TABLE IF NOT EXISTS riddle_solves (
 );
 CREATE INDEX IF NOT EXISTS idx_riddle_solves_event ON riddle_solves(event_id);
 
+-- A riddle whose answer we revealed to a guest after they burned through every
+-- hint. One row per (participant, riddle); the solve then scores at the reduced
+-- revealed rate. Composite PK makes markRevealed idempotent under retries.
+CREATE TABLE IF NOT EXISTS riddle_reveals (
+  event_id       TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  riddle_id      TEXT NOT NULL,
+  created_at     TEXT NOT NULL,
+  PRIMARY KEY (participant_id, riddle_id)
+);
+CREATE INDEX IF NOT EXISTS idx_riddle_reveals_event ON riddle_reveals(event_id);
+
 CREATE TABLE IF NOT EXISTS drink_orders (
   id              TEXT PRIMARY KEY,
   event_id        TEXT NOT NULL,

@@ -194,3 +194,32 @@ describe("mission edge cases", () => {
     expect((await bb.missions.submit(solver, await convFor(), "anything")).kind).toBe("no_mission");
   });
 });
+
+/** The riddle answer must be filed under its own riddle number ("2: cache"); a right answer under the wrong number is not a solve. */
+describe("riddle number binding", () => {
+  it("rejects the right answer filed under the wrong riddle number, then accepts it under the right one", async () => {
+    const bb = await freshBackbone();
+    const guest = await checkIn(bb, "+1444000001", "Rin");
+    const riddles = riddlesForParticipant(guest.gameId);
+    const secondAnswer = riddles[1].answers[0];
+
+    // Riddle 2's answer, filed under riddle 1: a mismatch counted against riddle 1, not a solve, no points.
+    const mismatched = await bb.missions.submit(guest, await conv(bb, guest.phone!), `1: ${secondAnswer}`);
+    expect(mismatched.kind).toBe("riddle_incorrect");
+    if (mismatched.kind === "riddle_incorrect") expect(mismatched.riddleNumber).toBe(1);
+    expect((await bb.repos.participants.findById(guest.id))?.score).toBe(0);
+
+    // The same answer under its own number is a solve, at the full (unrevealed) rate.
+    const matched = await bb.missions.submit(guest, await conv(bb, guest.phone!), `2: ${secondAnswer}`);
+    expect(matched.kind).toBe("riddle_progress");
+    expect((await bb.repos.participants.findById(guest.id))?.score).toBe(QUEST_BASE.riddle_quest);
+  });
+
+  it("still accepts a bare one-word answer with no number (any order)", async () => {
+    const bb = await freshBackbone();
+    const guest = await checkIn(bb, "+1444000002", "Sol");
+    const riddles = riddlesForParticipant(guest.gameId);
+    const r = await bb.missions.submit(guest, await conv(bb, guest.phone!), riddles[2].answers[0]);
+    expect(r.kind).toBe("riddle_progress");
+  });
+});

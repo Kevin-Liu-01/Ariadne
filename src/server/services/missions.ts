@@ -5,6 +5,7 @@ import {
   missionDuplicatePartnerCopy,
   missionPartnerInvalidCopy,
   missionWrongCopy,
+  riddleHintCopy,
   riddleProgressCopy,
 } from "@/constants/copy";
 import { FLOWS } from "@/constants/event";
@@ -19,15 +20,18 @@ import {
   type MissionTemplate,
 } from "@/constants/missions";
 import { assertNever } from "@/lib/assert";
-import { QUEST_BASE, partnerQuestPoints, speedBonus } from "@/domain/scoring";
+import { QUEST_BASE, partnerQuestPoints, revealedRiddlePoints, speedBonus } from "@/domain/scoring";
 import { newId } from "@/domain/ids";
 import {
   extractGameIds,
   isValidColorCombo,
   matchBypassCode,
   matchRiddleAnswer,
+  parseRiddleAttempt,
   riddlesForParticipant,
 } from "@/domain/mission-parse";
+import { riddleNudge, type RiddleNudge } from "@/domain/riddle-hints";
+import type { Clue } from "@/constants/clues";
 import { containsPhrase, normalize } from "@/domain/text";
 import { now } from "@/lib/time";
 import type { Conversation, MissionResult, Participant } from "@/domain/types";
@@ -39,6 +43,7 @@ export type MissionOutcome =
   | { kind: "no_mission" }
   | { kind: "correct"; points: number; nextPrompt: string | null }
   | { kind: "incorrect"; hint: string | undefined }
+  | { kind: "riddle_incorrect"; riddleNumber: number; nudge: RiddleNudge }
   | { kind: "partner_invalid" }
   | { kind: "duplicate_partner" }
   | { kind: "riddle_progress"; solved: number; total: number; nextRiddlePrompt: string }
@@ -57,6 +62,8 @@ export function missionOutcomeSay(outcome: MissionOutcome): string {
       return missionCorrectCopy({ points: outcome.points, nextMissionPrompt: outcome.nextPrompt ?? undefined });
     case "incorrect":
       return missionWrongCopy(outcome.hint);
+    case "riddle_incorrect":
+      return riddleHintCopy({ riddleNumber: outcome.riddleNumber, nudge: outcome.nudge });
     case "partner_invalid":
       return missionPartnerInvalidCopy();
     case "duplicate_partner":
@@ -119,7 +126,7 @@ export class MissionService {
   private renderRiddlePrompt(participant: Participant): string {
     const riddles = riddlesForParticipant(participant.gameId);
     const lines = riddles.map((r, i) => `${i + 1}. ${r.prompt}`).join("\n\n");
-    return `Three riddles. Solve each and text me the one-word answer (any order).\n\n${lines}`;
+    return `Three riddles. Reply with the riddle number and your one-word answer, like "2: cache" (any order).\n\n${lines}`;
   }
 
   /** The next quest to surface (any incomplete one), assigning it if needed. */
@@ -206,7 +213,12 @@ export class MissionService {
     return { kind: "incorrect", hint: undefined };
   }
 
-  /** Riddle quest: solve the guest's three riddles in any order, 50 points each. */
+  /**
+   * Riddle quest: solve the guest's three riddles in any order. A miss escalates
+   * help on the riddle they're stuck on (the one they filed under, else the next
+   * unsolved): two progressively sharper hints, then a reveal of the answer. A
+   * riddle whose answer we revealed still scores, at the reduced revealed rate.
+   */
   private async submitRiddle(
     participant: Participant,
     conversation: Conversation,
@@ -217,22 +229,28 @@ export class MissionService {
 
     const riddles = riddlesForParticipant(participant.gameId);
     const solvedBefore = new Set(await this.repos.riddleSolves.solvedIds(participant.id));
-    const unsolved = riddles.filter((r) => !solvedBefore.has(r.id));
-    const match = matchRiddleAnswer(unsolved, normalize(rawText));
+    // Numbers bind: "2: cache" only solves riddle 2, so a right answer under the wrong
+    // number is rejected. A bare word still matches any unsolved riddle, in any order.
+    const match = matchRiddleAnswer(riddles, rawText, solvedBefore);
 
     if (!match) {
-      await this.recordEvent(participant, RIDDLE_MISSION_ID, rawText, [], "incorrect", 0);
-      return { kind: "incorrect", hint: riddle.hint };
+      return this.nudgeStuckRiddle(participant, riddles, solvedBefore, rawText);
     }
 
-    const riddleBase = QUEST_BASE.riddle_quest;
+    // A revealed riddle scores at the reduced rate; the persisted reveal is the
+    // canonical signal, so solving riddles out of order never mis-credits one.
+    const revealed = new Set(await this.repos.riddleReveals.revealedIds(participant.id));
+    const baseFor = (id: string): number =>
+      revealed.has(id) ? revealedRiddlePoints(QUEST_BASE.riddle_quest) : QUEST_BASE.riddle_quest;
+    const thisBase = baseFor(match.id);
+
     const firstSolve = await this.repos.riddleSolves.markSolved(this.eventId, participant.id, match.id);
     await this.repos.participantMissions.assign(this.eventId, participant.id, RIDDLE_MISSION_ID);
     await this.repos.participantMissions.markSubmitted(participant.id, RIDDLE_MISSION_ID);
-    await this.recordEvent(participant, RIDDLE_MISSION_ID, rawText, [], "correct", firstSolve ? riddleBase : 0);
+    await this.recordEvent(participant, RIDDLE_MISSION_ID, rawText, [], "correct", firstSolve ? thisBase : 0);
 
     if (firstSolve) {
-      const score = await this.repos.participants.addScore(participant.id, riddleBase);
+      const score = await this.repos.participants.addScore(participant.id, thisBase);
       await this.projection.emit("score.updated", { gameId: participant.gameId, score });
     }
 
@@ -241,10 +259,13 @@ export class MissionService {
       // Quickness bonus for finishing the riddle round, by how many already have.
       const prior = await this.repos.participantMissions.completedCountForMission(this.eventId, RIDDLE_MISSION_ID);
       const bonus = speedBonus(prior);
+      // Sum the actual per-riddle bases (revealed ones count less) for the record.
+      const solvedIds = [...solvedBefore, ...(firstSolve ? [match.id] : [])];
+      const baseTotal = solvedIds.reduce((sum, id) => sum + baseFor(id), 0);
       const transitioned = await this.repos.participantMissions.markCompleted(
         participant.id,
         RIDDLE_MISSION_ID,
-        riddleBase * RIDDLE_QUEST_COUNT + bonus,
+        baseTotal + bonus,
       );
       if (transitioned) {
         const score = await this.repos.participants.addScore(participant.id, bonus);
@@ -259,7 +280,7 @@ export class MissionService {
       const next = await this.advance(participant, conversation);
       return {
         kind: "correct",
-        points: riddleBase + (transitioned ? bonus : 0),
+        points: thisBase + (transitioned ? bonus : 0),
         nextPrompt: next ? this.renderPrompt(next, participant) : null,
       };
     }
@@ -272,6 +293,54 @@ export class MissionService {
       total: RIDDLE_QUEST_COUNT,
       nextRiddlePrompt: nextRiddle ? `${idx + 1}. ${nextRiddle.prompt}` : "",
     };
+  }
+
+  /**
+   * A riddle answer that matched nothing. Log the miss and escalate help on the
+   * riddle the guest is working: the one they filed under ("2: ..."), else the
+   * next unsolved. Two hints, then a reveal of the answer (recorded, so the
+   * eventual solve scores at the reduced rate).
+   */
+  private async nudgeStuckRiddle(
+    participant: Participant,
+    riddles: Clue[],
+    solvedBefore: ReadonlySet<string>,
+    rawText: string,
+  ): Promise<MissionOutcome> {
+    await this.recordEvent(participant, RIDDLE_MISSION_ID, rawText, [], "incorrect", 0);
+
+    const { number } = parseRiddleAttempt(rawText);
+    const targeted = number !== null ? riddles[number - 1] : undefined;
+    const focus =
+      targeted && !solvedBefore.has(targeted.id)
+        ? targeted
+        : riddles.find((r) => !solvedBefore.has(r.id));
+    if (!focus) return { kind: "incorrect", hint: MISSION_BY_ID.get(RIDDLE_MISSION_ID)?.hint };
+
+    const attempts = await this.riddleWrongStreak(participant.id);
+    const nudge = riddleNudge(focus, attempts);
+    if (nudge.kind === "reveal") {
+      await this.repos.riddleReveals.markRevealed(this.eventId, participant.id, focus.id);
+    }
+    const riddleNumber = riddles.findIndex((r) => r.id === focus.id) + 1;
+    return { kind: "riddle_incorrect", riddleNumber, nudge };
+  }
+
+  /**
+   * Consecutive wrong riddle answers since the guest's last riddle solve. A solve
+   * breaks the streak, so each riddle they move onto starts the hint ladder fresh.
+   * Counted from logged mission events, so there is no separate counter to sync.
+   */
+  private async riddleWrongStreak(participantId: string): Promise<number> {
+    const events = await this.repos.missionEvents.listByParticipant(participantId);
+    let streak = 0;
+    for (let i = events.length - 1; i >= 0; i -= 1) {
+      const event = events[i];
+      if (event.missionId !== RIDDLE_MISSION_ID) continue;
+      if (event.result !== "incorrect") break;
+      streak += 1;
+    }
+    return streak;
   }
 
   /** Mark a partner quest correct, score it, fan out projection, and queue the next quest. */
@@ -358,7 +427,7 @@ export class MissionService {
       return "for the color quest, find two other guests whose colors complete your triangle and text their game IDs.";
     }
     if (!completed.has(WORD_MISSION_ID)) {
-      return "for the word quest, text a new partner's game ID and their secret word.";
+      return "for the word quest, find the guest whose secret word completes a phrase with yours (the main screen lists the pairs), then text me their game ID and that word.";
     }
     return "you've cleared the labyrinth.";
   }

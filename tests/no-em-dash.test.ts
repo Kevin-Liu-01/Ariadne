@@ -81,10 +81,10 @@ describe("the agent's voice never uses an em/en dash", () => {
     expect(allCopy).not.toMatch(DASH);
   });
 
-  it("mission prompts/hints + clue prompts are dash-free", () => {
+  it("mission prompts/hints + clue prompts and hints are dash-free", () => {
     const text = [
       ...MISSIONS.flatMap((m) => [m.promptCopy, m.hint ?? ""]),
-      ...CLUES.map((c) => c.prompt),
+      ...CLUES.flatMap((c) => [c.prompt, ...c.hints]),
     ].join("\n");
     expect(text).not.toMatch(DASH);
   });
