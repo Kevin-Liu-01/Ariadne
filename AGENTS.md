@@ -18,6 +18,13 @@ pnpm simulate     # signed local inbound webhook
 pnpm mcp          # strap-on MCP server (stdio)
 ```
 
+**Process hygiene.** `pnpm dev`, `pnpm test`, and browser runs are agent-spawned. You
+own them — tear them down when done. `vitest` workers here have hung at ~100% CPU for
+hours across sessions; before ending a turn that started long-runners, kill stray
+test/watch processes **by group** (`kill -TERM -<PGID>`) and keep only the dev server
+you're actively using. Never kill the IDE or shared MCP servers. Full procedure:
+`cleanup-terminals-browsers` skill / `process-hygiene.mdc`.
+
 ## Conventions
 
 - **Stack**: Next 16 (App Router) · React 19 · TypeScript strict · Tailwind v4 +
