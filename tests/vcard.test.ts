@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { buildVcard, defaultAriadneVcard } from "@/server/contact/vcard";
 
 describe("vCard contact identity", () => {
-  it("uses FN only so iOS does not show N-field semicolons", () => {
+  it("emits a structured N with raw separators so iOS shows a person name", () => {
     const vcf = buildVcard({
       displayName: "Ariadne",
       phone: "+18159970034",
@@ -14,8 +14,12 @@ describe("vCard contact identity", () => {
       url: "https://ariadne-runway.vercel.app",
     });
     expect(vcf).toContain("FN:Ariadne");
-    expect(vcf).not.toMatch(/^N:/m);
-    expect(vcf).not.toContain(";Ariadne");
+    // A single-token name goes in the given slot; the four ";" component
+    // separators stay raw (escaping them is what made iMessage show literal
+    // semicolons and fall back to the ORG as the contact name).
+    expect(vcf).toMatch(/^N:/m);
+    expect(vcf).toContain("N:;Ariadne;;;");
+    expect(vcf).not.toContain("\\;");
   });
 
   it("embeds the labyrinth mark as base64 PNG", () => {
@@ -51,12 +55,14 @@ describe("vCard contact identity", () => {
     expect(Buffer.byteLength(vcf, "utf8")).toBeLessThan(24_000);
   });
 
-  it("omits the structured N field so iMessage shows a clean FN, not semicolons", () => {
+  it("carries a person name (N + FN) so iOS does not render an org-only company card", () => {
     const vcf = defaultAriadneVcard("+18159970034", "https://ariadne-runway.vercel.app", Buffer.from("x"));
-    // iMessage rendered N's "Family;Given;;;" slots literally (semicolons and all),
-    // so the default card carries FN only and never an N line.
+    // Last token is the family name, the rest is the given name: "Ariadne Agent"
+    // => N:Agent;Ariadne;;;. Without N, iOS treats an ORG-bearing card as a
+    // company and shows "Dedalus Labs" (and a blank avatar) instead.
+    expect(vcf).toContain("N:Agent;Ariadne;;;");
     expect(vcf).toContain("FN:Ariadne Agent");
-    expect(vcf).not.toMatch(/^N:/m);
-    expect(vcf).not.toContain(";;;");
+    expect(vcf).toContain("ORG:Dedalus Labs");
+    expect(vcf).not.toContain("\\;");
   });
 });

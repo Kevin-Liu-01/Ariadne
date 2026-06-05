@@ -23,15 +23,17 @@ async function writeMarkPng(name: string, px: number): Promise<void> {
 
 /**
  * Contact photo: the mark on a dark gray field, padded so the iOS circular crop
- * keeps the outer ring. Kept to a thumbnail size and palette-quantized so the
- * base64 the vCard embeds stays small enough for the SMS/MMS fallback to carry
- * (a full 512px render bloats the card past ~50KB).
+ * keeps the outer ring. Flattened to opaque truecolor RGB -- iOS renders indexed
+ * (palette) PNGs in a saved vCard as a blank white circle, so we trade a few KB
+ * for a photo that actually shows. A 256px render of this flat line art still
+ * keeps the embedded base64 well under the SMS/MMS budget (~20KB vCard).
  */
 async function writeContactAvatar(name: string, px: number): Promise<void> {
   const svg = labyrinthMarkSvg({ size: px, background: CONTACT_BG, wallOpacity: 0.6, scale: 0.78 });
   await sharp(Buffer.from(svg))
     .resize(px, px)
-    .png({ palette: true, compressionLevel: 9 })
+    .flatten({ background: CONTACT_BG })
+    .png({ compressionLevel: 9 })
     .toFile(join(APP, name));
 }
 

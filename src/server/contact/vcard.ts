@@ -34,6 +34,20 @@ function property(key: string, value: string): string {
   return fold(`${key}:${escape(value)}`);
 }
 
+/**
+ * Structured N derived from the display name: the last whitespace token is the
+ * family name, the rest is the given name ("Ariadne Agent" -> N:Agent;Ariadne;;;).
+ * The four ";" component separators are structural and stay raw; only the values
+ * are escaped. iOS needs a valid N to treat the card as a person -- with an ORG
+ * and no N it renders a company card (org as the name, blank circular avatar).
+ */
+function structuredNameLine(displayName: string): string {
+  const tokens = displayName.trim().split(/\s+/);
+  const family = tokens.length > 1 ? tokens[tokens.length - 1] : "";
+  const given = tokens.length > 1 ? tokens.slice(0, -1).join(" ") : displayName.trim();
+  return fold(`N:${escape(family)};${escape(given)};;;`);
+}
+
 /** Fold base64 PHOTO data after the property header line. */
 function photoBase64Property(png: Buffer): string {
   const b64 = png.toString("base64");
@@ -49,14 +63,17 @@ function photoBase64Property(png: Buffer): string {
 }
 
 /**
- * Build a vCard 3.0 document guests can save from iMessage or SMS. FN only, no
- * structured N: iMessage renders an N field's "Family;Given;;;" slots literally,
- * semicolons and all, so the formatted name is the single source of the display name.
+ * Build a vCard 3.0 document guests can save from iMessage or SMS. Carries both a
+ * structured N (raw ";" separators) and a formatted FN: the N marks it as a person
+ * card so iOS shows the display name and the embedded photo, instead of treating an
+ * ORG-bearing card as a company (org name, blank avatar). Escaping N's separators is
+ * what previously made iMessage show literal semicolons, so they are kept raw here.
  */
 export function buildVcard(input: VcardInput): string {
   const lines = [
     "BEGIN:VCARD",
     "VERSION:3.0",
+    structuredNameLine(input.displayName),
     property("FN", input.displayName),
     property("ORG", input.organization),
     property("TITLE", input.title),
