@@ -61,8 +61,10 @@ export const AUDIO_REACTIVE = {
     mid: { attack: 0.012, release: 0.14 },
     treble: { attack: 0.012, release: 0.14 },
   },
-  /** The kick pulse eases out over this half-life (attack is instant, see audio.ts). */
-  beatRelease: 0.09,
+  /** The kick pulse eases out over this half-life (attack is instant, see audio.ts). Longer =
+   *  each hit lingers and reads as a real punch instead of a blink; still clears before the
+   *  next kick at club tempos (~0.14s decays well under a 120-160 BPM beat interval). */
+  beatRelease: 0.14,
   /** Kick onset detector (see OnsetDetector). */
   onset: {
     /** Bass must clear this absolute level to count as a kick at all. */
@@ -76,11 +78,13 @@ export const AUDIO_REACTIVE = {
     /**
      * Kick strength = base + excess over the reference * gain, capped. A soft kick
      * still gives a solid pop; a hard one punches past 1 so the pulse tracks how hard
-     * the music actually hit instead of flattening every kick to the same height.
+     * the music actually hit instead of flattening every kick to the same height. Tuned
+     * generous: every `a.beat` term in the scenes rides this, so a bigger base/cap makes
+     * the whole room punch harder on the kick without re-touching each scene.
      */
-    strengthBase: 0.65,
-    strengthGain: 1.7,
-    maxStrength: 1.45,
+    strengthBase: 0.9,
+    strengthGain: 2.2,
+    maxStrength: 2.1,
   },
 } as const;
 
