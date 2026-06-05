@@ -16,8 +16,9 @@ export function welcomeImageMediaUrl(): string {
 export async function ensureWelcomeImage(toNumber: string, conversationId: string): Promise<void> {
   if (!outboundEnabled()) return;
 
-  const conv = await getBackbone().repos.conversations.findById(conversationId);
-  if (!conv || conv.welcomeImageSent) return;
+  // Claim the one-time send atomically so racing inbound messages can't double-post it.
+  const repo = getBackbone().repos.conversations;
+  if (!(await repo.claimWelcomeImageSend(conversationId))) return;
 
   try {
     await getAgentphoneClient().sendMessage({
@@ -26,8 +27,8 @@ export async function ensureWelcomeImage(toNumber: string, conversationId: strin
       body: "",
       mediaUrls: [welcomeImageMediaUrl()],
     });
-    await getBackbone().repos.conversations.markWelcomeImageSent(conversationId);
   } catch (err) {
     console.error("[ariadne] welcome image send failed", err);
+    await repo.releaseWelcomeImageSend(conversationId);
   }
 }

@@ -105,16 +105,42 @@ export class ConversationsRepository extends BaseRepository {
     await this.db.query(`UPDATE conversations SET updated_at = $1 WHERE id = $2`, [now(), id]);
   }
 
-  async markContactCardSent(id: string): Promise<void> {
+  /**
+   * Atomically claim the one-time contact-card send. The `AND contact_card_sent = FALSE`
+   * guard + RETURNING means exactly one caller wins even if several inbound messages race,
+   * so the card + intro is never sent twice. Returns true only for the winner.
+   */
+  async claimContactCardSend(id: string): Promise<boolean> {
+    const rows = await this.db.query<{ id: string }>(
+      `UPDATE conversations SET contact_card_sent = TRUE, updated_at = $1
+       WHERE id = $2 AND contact_card_sent = FALSE RETURNING id`,
+      [now(), id],
+    );
+    return rows.length > 0;
+  }
+
+  /** Release a contact-card claim so a later message retries (used only when the send failed). */
+  async releaseContactCardSend(id: string): Promise<void> {
     await this.db.query(
-      `UPDATE conversations SET contact_card_sent = TRUE, updated_at = $1 WHERE id = $2`,
+      `UPDATE conversations SET contact_card_sent = FALSE, updated_at = $1 WHERE id = $2`,
       [now(), id],
     );
   }
 
-  async markWelcomeImageSent(id: string): Promise<void> {
+  /** Atomically claim the one-time welcome-image send (see {@link claimContactCardSend}). */
+  async claimWelcomeImageSend(id: string): Promise<boolean> {
+    const rows = await this.db.query<{ id: string }>(
+      `UPDATE conversations SET welcome_image_sent = TRUE, updated_at = $1
+       WHERE id = $2 AND welcome_image_sent = FALSE RETURNING id`,
+      [now(), id],
+    );
+    return rows.length > 0;
+  }
+
+  /** Release a welcome-image claim so a later message retries (used only when the send failed). */
+  async releaseWelcomeImageSend(id: string): Promise<void> {
     await this.db.query(
-      `UPDATE conversations SET welcome_image_sent = TRUE, updated_at = $1 WHERE id = $2`,
+      `UPDATE conversations SET welcome_image_sent = FALSE, updated_at = $1 WHERE id = $2`,
       [now(), id],
     );
   }

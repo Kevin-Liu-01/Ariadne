@@ -101,4 +101,86 @@ describe("backbone services (deterministic core)", () => {
     expect(await bb.repos.partnerEvents.recordOnce(e)).toBe(true);
     expect(await bb.repos.partnerEvents.recordOnce({ ...e, id: "pe_2" })).toBe(false);
   });
+
+  it("claims the contact-card / welcome-image send at most once (no duplicate onboarding)", async () => {
+    const bb = await freshBackbone();
+    await checkIn(bb, "+1888000001", "Onboard");
+    const c = await conv(bb, "+1888000001");
+    const repo = bb.repos.conversations;
+    // Two inbound messages racing through deliver() must not both send the card.
+    expect(await repo.claimContactCardSend(c.id)).toBe(true);
+    expect(await repo.claimContactCardSend(c.id)).toBe(false);
+    // A failed send releases the claim so the next message retries.
+    await repo.releaseContactCardSend(c.id);
+    expect(await repo.claimContactCardSend(c.id)).toBe(true);
+    // The welcome image uses the same one-shot guard.
+    expect(await repo.claimWelcomeImageSend(c.id)).toBe(true);
+    expect(await repo.claimWelcomeImageSend(c.id)).toBe(false);
+  });
+});
+
+/** The quests' rejection contract: bad triangles, wrong counts, repeat partners, wrong words. */
+describe("mission edge cases", () => {
+  // Six check-ins assign all six distinct gems; amethyst (a secondary hue) solves,
+  // so the primary triangle is three OTHER guests (garnet/moonstone/aquamarine).
+  async function room(bb: Backbone) {
+    const guests: Participant[] = [];
+    for (let i = 1; i <= 6; i += 1) guests.push(await checkIn(bb, `+1333000000${i}`, `G${i}`));
+    const byGem = new Map<GemId, Participant>(guests.map((g) => [g.gem, g]));
+    const solver = byGem.get("amethyst")!;
+    return { byGem, solver, convFor: () => conv(bb, solver.phone!) };
+  }
+
+  it("rejects three colors that do not form a wheel triangle", async () => {
+    const bb = await freshBackbone();
+    const { byGem, solver, convFor } = await room(bb);
+    // red + yellow + orange mixes a secondary in, so it is no triangle.
+    const ids = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("topaz")!].map((p) => p.gameId);
+    const r = await bb.missions.submit(solver, await convFor(), ids.join(" "));
+    expect(r.kind).toBe("incorrect");
+    expect((await bb.repos.participants.findById(solver.id))?.score).toBe(0);
+  });
+
+  it("rejects the color quest when fewer than three guests are named", async () => {
+    const bb = await freshBackbone();
+    const { byGem, solver, convFor } = await room(bb);
+    const ids = [byGem.get("garnet")!, byGem.get("aquamarine")!].map((p) => p.gameId);
+    expect((await bb.missions.submit(solver, await convFor(), ids.join(" "))).kind).toBe("incorrect");
+  });
+
+  it("rejects a partner already used on a prior quest (meet new people)", async () => {
+    const bb = await freshBackbone();
+    const { byGem, solver, convFor } = await room(bb);
+    const triangle = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("aquamarine")!];
+    expect(
+      (await bb.missions.submit(solver, await convFor(), triangle.map((p) => p.gameId).join(" "))).kind,
+    ).toBe("correct");
+    // The word quest needs a *new* partner; reusing a color partner is rejected.
+    const used = byGem.get("garnet")!;
+    expect((await bb.missions.submit(solver, await convFor(), used.gameId)).kind).toBe("duplicate_partner");
+  });
+
+  it("rejects a word-quest partner named with the wrong secret word", async () => {
+    const bb = await freshBackbone();
+    const { byGem, solver, convFor } = await room(bb);
+    // Clear color first so a single-partner submission routes to the word quest.
+    const triangle = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("aquamarine")!];
+    await bb.missions.submit(solver, await convFor(), triangle.map((p) => p.gameId).join(" "));
+    const fresh = byGem.get("peridot")!;
+    const r = await bb.missions.submit(solver, await convFor(), `zzzznotaword ${fresh.gameId}`);
+    expect(r.kind).toBe("incorrect");
+  });
+
+  it("has nothing left to submit once all three quests are done", async () => {
+    const bb = await freshBackbone();
+    const { byGem, solver, convFor } = await room(bb);
+    const triangle = [byGem.get("garnet")!, byGem.get("moonstone")!, byGem.get("aquamarine")!];
+    await bb.missions.submit(solver, await convFor(), triangle.map((p) => p.gameId).join(" "));
+    const fresh = byGem.get("peridot")!;
+    await bb.missions.submit(solver, await convFor(), `${fresh.secretWord} ${fresh.gameId}`);
+    for (const riddle of riddlesForParticipant(solver.gameId)) {
+      await bb.missions.submit(solver, await convFor(), riddle.answers[0]);
+    }
+    expect((await bb.missions.submit(solver, await convFor(), "anything")).kind).toBe("no_mission");
+  });
 });
