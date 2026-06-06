@@ -17,7 +17,7 @@ export async function GET(req: Request): Promise<Response> {
   return json({ announcements: await bb.announcements.listRecent() });
 }
 
-/** Broadcast a typed announcement to every checked-in guest (paused guests excluded). */
+/** Broadcast a typed announcement to everyone who has texted the line (checked in or not; paused/STOP excluded). */
 export async function POST(req: Request): Promise<Response> {
   if (!bearerOk(req, env.operatorToken)) return problem(401, "unauthorized");
 

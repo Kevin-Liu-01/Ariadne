@@ -17,7 +17,7 @@ function timeLabel(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-/** Type a message and broadcast it to every checked-in guest (paused guests excluded). */
+/** Type a message and broadcast it to everyone who has texted the line, checked in or not (paused guests excluded). */
 export function AnnouncementsPanel({ token }: { token: string }) {
   const [body, setBody] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -85,7 +85,7 @@ export function AnnouncementsPanel({ token }: { token: string }) {
         announce to the room
       </h2>
       <p className="mt-2 text-xs text-ash">
-        Texts every checked-in guest. Guests who paused texts are skipped.
+        Texts everyone who has messaged the line, checked in or not. Guests who replied STOP are skipped.
       </p>
 
       <textarea

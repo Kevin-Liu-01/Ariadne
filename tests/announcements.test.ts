@@ -33,6 +33,25 @@ describe("AnnouncementService.broadcast", () => {
     expect(recent[0].delivered).toBe(2);
   });
 
+  it("also reaches people who texted the line but never checked in", async () => {
+    const bb = await freshBackbone();
+    await checkIn(bb, "+1000000001", "Aria");
+    // Someone texted in but never finished check-in: a conversation, no participant.
+    await bb.conversations.resolve(null, "+1000000009", "sms");
+
+    const sent: string[] = [];
+    const result = await bb.announcements.broadcast(
+      "No email needed, reply your first name to play",
+      async (phone) => {
+        sent.push(phone);
+        return true;
+      },
+    );
+
+    expect(result.recipients).toBe(2);
+    expect(sent.sort()).toEqual(["+1000000001", "+1000000009"]);
+  });
+
   it("skips guests who paused texts", async () => {
     const bb = await freshBackbone();
     await checkIn(bb, "+1000000001", "Aria");

@@ -112,6 +112,19 @@ export class ConversationsRepository extends BaseRepository {
     return rows.map(toConversation);
   }
 
+  /**
+   * Every conversation this event, including phone threads that texted in but never
+   * checked in. Used by room-wide announcements that reach the whole texting
+   * audience (listByEvent stays scoped to checked-in threads).
+   */
+  async listAllByEvent(eventId: string): Promise<Conversation[]> {
+    const rows = await this.db.query<ConversationRow>(
+      `SELECT * FROM conversations WHERE event_id = $1 ORDER BY updated_at DESC`,
+      [eventId],
+    );
+    return rows.map(toConversation);
+  }
+
   /** Stamp activity so the reminder sweep can tell who is mid-conversation and leave them alone. */
   async touch(id: string): Promise<void> {
     await this.db.query(`UPDATE conversations SET updated_at = $1 WHERE id = $2`, [now(), id]);
