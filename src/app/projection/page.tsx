@@ -7,6 +7,7 @@ import { EVENT_NAME } from "@/constants/event";
 import { sceneMeta } from "@/constants/scenes";
 import { GameLiveHeadline } from "@/components/game-live-headline";
 import { RunwayWordmark } from "@/components/runway-wordmark";
+import { TextAgentNumber } from "@/components/text-agent-number";
 import { ShaderBackdrop } from "@/components/shader-backdrop";
 import type { BoardView } from "@/app/projection/board-parts";
 import { BoardStage } from "@/app/projection/stages";
@@ -231,15 +232,16 @@ export default function ProjectionPage() {
           only the live game keeps a thin stats bar up top. */}
       {activeScene === "game" ? (
         <header className="relative z-[2] flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-b border-nyx-line pb-4">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <RunwayWordmark size="xl" />
             <span
               className={cn(
-                "mb-1 h-2.5 w-2.5 rounded-full",
+                "h-3 w-3 shrink-0 rounded-full",
                 connected ? "bg-gem-peridot animate-pulse-slow" : "bg-gem-garnet",
               )}
               title={connected ? "live" : "reconnecting"}
             />
+            <TextAgentNumber phone={eventPhone} size="xl" />
           </div>
           <div className="text-right">
             <GameLiveHeadline headline={meta.headline} />
