@@ -18,7 +18,8 @@ async function withGuest(bb: ReturnType<typeof getBackbone>, order: DrinkOrder) 
 export async function GET(req: Request): Promise<Response> {
   if (!bearerOk(req, env.operatorToken)) return problem(401, "unauthorized");
   const bb = getBackbone();
-  const [active, recent] = await Promise.all([bb.drinks.listActive(), bb.drinks.listRecent(50)]);
+  // Pull the full order history so the console can scroll every finished drink, not just the last few.
+  const [active, recent] = await Promise.all([bb.drinks.listActive(), bb.drinks.listRecent(500)]);
   return json({
     active: await Promise.all(active.map((o) => withGuest(bb, o))),
     recent: await Promise.all(recent.map((o) => withGuest(bb, o))),

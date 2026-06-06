@@ -219,9 +219,12 @@ export function DrinkQueue({ token }: { token: string }) {
       </ul>
       {recent.length > 0 ? (
         <>
-          <p className="mt-5 text-[10px] uppercase tracking-widest text-ash">recent (picked up / cancelled)</p>
-          <ul className="mt-2 space-y-2 opacity-75">
-            {recent.slice(0, 6).map((o) => (
+          <p className="mt-5 flex items-center justify-between text-[10px] uppercase tracking-widest text-ash">
+            <span>finished (picked up / cancelled)</span>
+            <span className="tabular-nums text-cloud">{recent.length}</span>
+          </p>
+          <ul className="mt-2 max-h-96 space-y-2 overflow-y-auto pr-1 opacity-75">
+            {recent.map((o) => (
               <OrderRow key={o.id} order={o} onUpdate={update} onEdit={setEditing} />
             ))}
           </ul>
