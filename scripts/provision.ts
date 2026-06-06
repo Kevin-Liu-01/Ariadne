@@ -8,8 +8,13 @@
  *      webhook + any other agents untouched),
  *   4. write the resulting ids + signing secret into .env.local.
  *
- * Usage: pnpm provision            (provisions a number if the agent has none)
- *        pnpm provision --no-number (only (re)configure agent + webhook)
+ * Usage: pnpm provision              (provisions a number if the agent has none)
+ *        pnpm provision --no-number   (only (re)configure agent + webhook)
+ *        pnpm provision --prompt-only (push name/description/system prompt/begin
+ *                                      message to the live agent ONLY; leaves the
+ *                                      number and webhook -- and its signing secret
+ *                                      -- untouched, so it is safe to run against
+ *                                      prod after a copy/prompt edit)
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { EVENT_NAME, PRODUCT_NAME } from "@/constants/event";
@@ -42,7 +47,8 @@ async function main(): Promise<void> {
   const { apiKey, baseUrl } = requireAgentphoneApi();
   const client = new AgentphoneClient(apiKey, baseUrl);
   const webhookUrl = `${env.publicBaseUrl}/api/webhooks/agentphone`;
-  const provisionNumber = !process.argv.includes("--no-number");
+  const promptOnly = process.argv.includes("--prompt-only");
+  const provisionNumber = !promptOnly && !process.argv.includes("--no-number");
 
   if (env.publicBaseUrl.includes("localhost")) {
     console.warn("⚠ ARIADNE_PUBLIC_BASE_URL is localhost — AgentPhone cannot reach it. Start a tunnel first.");
@@ -68,9 +74,23 @@ async function main(): Promise<void> {
     await client.updateAgent(existing.id, agentConfig);
     agent = existing;
     console.log(`• updated agent ${existing.id} -> ${AGENT_NAME} (prompt + begin message refreshed)`);
+  } else if (promptOnly) {
+    throw new Error(
+      "--prompt-only needs an already-provisioned agent, but none was found. Run `pnpm provision` first.",
+    );
   } else {
     agent = await client.createAgent({ voiceMode: "webhook", ...agentConfig });
     console.log(`• created agent ${agent.id} (${AGENT_NAME})`);
+  }
+
+  // Prompt-only sync: the agent's name/description/system prompt/begin message are
+  // now current. Stop before the number + webhook steps so the signing secret is
+  // never rotated -- safe to run against prod whenever the repo copy changes.
+  if (promptOnly) {
+    console.log("\n✓ synced agent name, description, system prompt, and begin message.");
+    console.log("  number + webhook left untouched (signing secret unchanged).");
+    console.log(`  agent: ${agent.id}`);
+    return;
   }
 
   let numberId = agent.numbers?.[0]?.id ?? "";

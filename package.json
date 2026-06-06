@@ -14,6 +14,7 @@
     "generate:sdf": "tsx scripts/generate-logo-sdf.ts",
     "seed": "tsx scripts/seed-demo.ts",
     "provision": "tsx scripts/provision.ts",
+    "provision:prompt": "tsx scripts/provision.ts --prompt-only",
     "smoke": "tsx scripts/smoke.ts",
     "smoke:agent": "tsx scripts/smoke-agent.ts",
     "simulate": "tsx scripts/simulate-inbound.ts",

@@ -154,6 +154,10 @@ The same env vars live in the Vercel project (`SUPABASE_DB_URL`, `DEDALUS_*`,
 stable. Re-pointing the webhook rotates the signing secret — sync the new
 `AGENTPHONE_WEBHOOK_SECRET` into Vercel and redeploy.
 
+To push **only** a prompt/copy edit (system prompt, begin message) to the live
+AgentPhone agent without re-pointing the webhook or rotating that secret, run
+`pnpm provision:prompt` (alias for `pnpm provision --prompt-only`).
+
 ### Local phone testing
 
 ```bash
