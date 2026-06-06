@@ -1,7 +1,6 @@
 import {
   allQuestsDoneCopy,
   alreadyHereCopy,
-  askEmailAfterNameCopy,
   badNameCopy,
   checkinAskNameCopy,
   checkedInCopy,
@@ -14,8 +13,8 @@ import {
   missionDuplicatePartnerCopy,
   missionPartnerInvalidCopy,
   missionWrongCopy,
-  notOnListCopy,
   pickupConfirmedCopy,
+  questsLockedCopy,
   riddleHintCopy,
   riddleProgressCopy,
   songQueuedCopy,
@@ -24,11 +23,9 @@ import {
 } from "@/constants/copy";
 import type { InboundChannel } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
-import { gameplayAllowed, runOfShowCopy } from "@/constants/show-gate";
+import { gameplayAllowed } from "@/constants/show-gate";
 import { assertNever } from "@/lib/assert";
-import { extractEmail, isEmail, normalizeEmail } from "@/domain/email";
 import { cleanDisplayName } from "@/domain/profanity";
-import { waitlistLookup } from "@/server/door/waitlist";
 import { summarizeHostIssue } from "@/server/agent/host-issue";
 import type { Conversation, Participant } from "@/domain/types";
 import type { Repositories } from "@/server/db/repositories";
@@ -122,13 +119,6 @@ function resolveName(args: Record<string, unknown>, userText: string): string | 
   return argString(args, ["name", "guest_name"]) || guessName(userText);
 }
 
-/** Pull the signup email from a tool arg or the guest's message. */
-function resolveEmail(args: Record<string, unknown>, userText: string): string | null {
-  const fromArgs = argString(args, ["email", "e_mail", "address"]);
-  if (fromArgs && isEmail(fromArgs)) return normalizeEmail(fromArgs);
-  return extractEmail(fromArgs) ?? extractEmail(userText);
-}
-
 /** Resolve the live conversation + participant for this phone, fresh each call. */
 async function resolve(
   ctx: ToolContext,
@@ -149,15 +139,15 @@ async function resolve(
 const NOT_CHECKED_IN = { error: "guest_not_checked_in", hint: "call check_in first" };
 
 /**
- * Gameplay (quests, drinks, songs) opens with the run-of-show scene, not the
- * model's judgment. Returns a locked result to hand back verbatim when the game
- * has not started, or null when play is open. Mirrors the web Live Player gate so
- * both surfaces fail closed identically regardless of which scene is live.
+ * Quests open with the run-of-show scene, not the model's judgment. Returns a locked
+ * result (a "here's what you can do" menu, never a "the game hasn't started" dead-end)
+ * when quests are still closed, or null when play is open. The bar and DJ are NOT
+ * gated here: drinks and song requests stay open in every scene. Mirrors the web Live Player.
  */
 async function gameplayLock(ctx: ToolContext): Promise<ToolResult | null> {
   const scene = await ctx.projection.scene();
   if (gameplayAllowed(scene)) return null;
-  return { status: "locked", say: runOfShowCopy(scene) };
+  return { status: "locked", say: questsLockedCopy() };
 }
 
 const checkIn: Tool = {
@@ -166,22 +156,21 @@ const checkIn: Tool = {
     function: {
       name: "check_in",
       description:
-        "Start a guest's game: assigns their color gem, secret word, game id, and first quest. Check-in is two steps: first their first name, then the email they signed up with (must be on the list). Call this as soon as you have either; it returns needs_name or needs_email to tell you what to ask next. Once you have both, pass the name AND the email together.",
+        "Start a guest's game: assigns their color gem, secret word, game id, and first quest. All it takes is their first name. Call this as soon as the guest gives a name; it returns needs_name when you still have to ask for one.",
       parameters: {
         type: "object",
         properties: {
-          email: { type: "string", description: "the email the guest signed up with (required for new check-ins)" },
-          name: { type: "string", description: "guest's first name if they offered one" },
+          name: { type: "string", description: "guest's first name" },
           category: { type: "string", description: "RSVP cohort if known (engineers/founders/artists/...)" },
         },
-        required: ["email"],
+        required: ["name"],
       },
     },
   },
   execute: async (args, ctx) => {
     const { participant: existing } = await resolve(ctx);
 
-    // Returning guest: already checked in, no email gate. Save a name if it was missing.
+    // Returning guest: already checked in. Save a name if it was missing.
     if (existing) {
       const offered = resolveName(args, ctx.userText);
       const offeredName = offered ? cleanDisplayName(offered) : null;
@@ -216,32 +205,18 @@ const checkIn: Tool = {
       };
     }
 
-    // New guest. Two steps: name first (message 1), then the waitlist email (message 2).
+    // New guest: the first name is the only thing we ask for. The phone they are
+    // texting from is their identity, so there is no email or waitlist gate.
     const name = resolveName(args, ctx.userText);
-    const email = resolveEmail(args, ctx.userText);
-
-    if (!email) {
-      if (!name) return { needs_name: true, say: checkinAskNameCopy() };
-      const cleaned = cleanDisplayName(name);
-      if (!cleaned) return { needs_name: true, say: badNameCopy() };
-      return { needs_email: true, name: cleaned, say: askEmailAfterNameCopy(cleaned) };
-    }
-
-    // Email present: the waitlist is the gate.
-    const listing = waitlistLookup(email);
-    if (!listing.onList) return { not_on_list: true, email, say: notOnListCopy() };
-
-    const rawName = name ?? listing.name;
-    const displayName = rawName ? cleanDisplayName(rawName) : null;
-    if (rawName && !displayName) return { needs_name: true, email, say: badNameCopy() };
-    if (!displayName) return { needs_name: true, email, say: checkinAskNameCopy() };
+    if (!name) return { needs_name: true, say: checkinAskNameCopy() };
+    const displayName = cleanDisplayName(name);
+    if (!displayName) return { needs_name: true, say: badNameCopy() };
 
     const result = await ctx.registration.register({
       phone: ctx.from,
       externalConversationId: ctx.externalConversationId,
       channel: ctx.channel,
       name: displayName,
-      email,
       category: pickText(args, ["category", "cohort"]) || null,
     });
     const p = result.participant;
@@ -300,8 +275,7 @@ const orderDrink: Tool = {
       });
       return NOT_CHECKED_IN;
     }
-    const locked = await gameplayLock(ctx);
-    if (locked) return locked;
+    // The bar is open in every scene; a checked-in guest can order anytime.
     const outcome = await ctx.drinks.createFromText(participant, conversation.id, text);
     const say = drinkOutcomeSay(outcome);
     return { status: outcome.kind, say: outcome.kind === "queued" ? withCommandMenu(say) : say };
@@ -474,8 +448,7 @@ const queueSong: Tool = {
       });
       return NOT_CHECKED_IN;
     }
-    const locked = await gameplayLock(ctx);
-    if (locked) return locked;
+    // The DJ is open in every scene; a checked-in guest can request a song anytime.
     if (!song) {
       return { status: "clarify", say: "Which song? Reply with a title or artist and I'll send it to the DJ." };
     }

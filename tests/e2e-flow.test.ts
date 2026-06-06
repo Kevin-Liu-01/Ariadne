@@ -1,18 +1,10 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { FLOWS } from "@/constants/event";
 import type { ChatFn, ChatResponse } from "@/server/partners/dedalus/types";
-import { setWaitlistForTests } from "@/server/door/waitlist";
 import { partnerQuestPoints } from "@/domain/scoring";
 import { freshBackbone, inbound } from "./helpers";
 
 const EVENT = "test-event";
-
-beforeAll(() => {
-  setWaitlistForTests([
-    { email: "demo@dedaluslabs.ai", name: "Demo Guest" },
-    { email: "windsor@dedaluslabs.ai", name: "Windsor Nguyen" },
-  ]);
-});
 
 function content(text: string): ChatResponse {
   return { id: "x", choices: [{ index: 0, message: { role: "assistant", content: text }, finish_reason: "stop" }] };
@@ -44,12 +36,14 @@ const chat: ChatFn = async (req) => {
     return content(r.say ?? "ok");
   }
   const user = [...req.messages].reverse().find((m) => m.role === "user")?.content ?? "";
-  const email = user.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
-  if (email) return toolCall("check_in", { email: email[0] });
   if (/grabbed|picked it up|got it/i.test(user)) return toolCall("confirm_pickup", {});
   if (/\bplay\b|\bsong\b/i.test(user)) return toolCall("queue_song", { text: user });
   if (/mule|machina|modelo|stella|claw|fizz|margar|wine|beer|red bull/i.test(user)) return toolCall("order_drink", { text: user });
   if (/help/i.test(user)) return toolCall("help", {});
+  const bare = user.trim();
+  if (/^[a-z][a-z'-]{1,30}$/i.test(bare) && !/^(yes|no|ok|okay|stop|thanks|thank|sure|yeah|help)$/i.test(bare)) {
+    return toolCall("check_in", { name: bare });
+  }
   return content("noted.");
 };
 
@@ -57,18 +51,13 @@ describe("end to end: a full night", () => {
   it("walks door, bar, songs, announcements, board, missions, and admin", async () => {
     const bb = await freshBackbone(chat);
 
-    // 1. DOOR: a stranger is refused; a waitlisted email is admitted.
-    const refused = await bb.brain.process(inbound("+15550000001", "hey it's stranger@nope.com"));
-    expect(refused.text.toLowerCase()).toContain("not on tonight's list");
-    expect(await bb.repos.participants.findByPhone(EVENT, "+15550000001")).toBeNull();
-
-    const aliceReply = await bb.brain.process(inbound("+15550000002", "demo@dedaluslabs.ai"));
+    // 1. DOOR: guests check in with just a first name (no email, no gate).
+    const aliceReply = await bb.brain.process(inbound("+15550000002", "Alice"));
     expect(aliceReply.text.toLowerCase()).toContain("checked in");
     const alice = await bb.repos.participants.findByPhone(EVENT, "+15550000002");
-    expect(alice?.email).toBe("demo@dedaluslabs.ai");
-    expect(alice?.displayName).toBe("Demo Guest"); // name pulled from the waitlist
+    expect(alice?.displayName).toBe("Alice");
 
-    await bb.brain.process(inbound("+15550000003", "windsor@dedaluslabs.ai"));
+    await bb.brain.process(inbound("+15550000003", "Bob"));
     const bob = await bb.repos.participants.findByPhone(EVENT, "+15550000003");
     expect(bob).toBeTruthy();
 

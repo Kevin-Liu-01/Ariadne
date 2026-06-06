@@ -37,10 +37,6 @@ export const env = {
       "http://localhost:3939";
     return base.replace(/\/$/, "");
   },
-  /** When set, any email can check in (multi-guest dev / rehearsal). */
-  get testMode(): boolean {
-    return process.env.ARIADNE_TEST_MODE === "1";
-  },
   /** Comma-separated emails that may skip the color quest (exemplar / staff). */
   get exemplarEmails(): ReadonlySet<string> {
     const raw = process.env.ARIADNE_EXEMPLAR_EMAILS ?? "";

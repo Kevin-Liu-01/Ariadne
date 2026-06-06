@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { normalizeEmail } from "@/domain/email";
-import { env } from "@/lib/env";
 
 /** One approved signup from the static waitlist CSV. */
 export interface WaitlistEntry {
@@ -43,14 +42,7 @@ function load(): Map<string, WaitlistEntry> {
   return map;
 }
 
-/** Whether an email is on the approved list, plus the signup name if we have one. */
-export function waitlistLookup(email: string): { onList: boolean; name: string | null } {
-  if (env.testMode) return { onList: true, name: null };
-  const entry = load().get(normalizeEmail(email));
-  return { onList: Boolean(entry), name: entry?.name ?? null };
-}
-
-/** All approved entries, for the guard door screen. */
+/** All approved entries, for the guard door screen's expected-guest roster. */
 export function waitlistEntries(): WaitlistEntry[] {
   return [...load().values()];
 }

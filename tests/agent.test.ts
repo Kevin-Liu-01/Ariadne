@@ -1,12 +1,7 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { helpCopy } from "@/constants/copy";
 import type { ChatFn, ChatResponse } from "@/server/partners/dedalus/types";
-import { setWaitlistForTests } from "@/server/door/waitlist";
 import { freshBackbone, inbound } from "./helpers";
-
-beforeAll(() => {
-  setWaitlistForTests([{ email: "demo@dedaluslabs.ai", name: "Demo Guest" }]);
-});
 
 function content(text: string): ChatResponse {
   return {
@@ -49,52 +44,50 @@ const fakeChat: ChatFn = async (req) => {
   if (/lost|stolen|hurt|someone|harass|emergency/i.test(user)) {
     return toolCall("flag_operator", { reason: user });
   }
-  const email = user.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
-  if (email) return toolCall("check_in", { email: email[0] });
   if (/drink|beer|wine|mule|machina|modelo|stella|claw|fizz|margar|red bull/i.test(user)) {
     return toolCall("order_drink", { text: user });
   }
+  // Bare greeting -> check_in with no name (the tool asks for one); a bare first
+  // name -> check_in with it. Mirrors how the real model routes the door.
   if (/\b(join|check in|hey|hello|hi)\b/i.test(user)) {
     return toolCall("check_in", {});
+  }
+  const bare = user.trim();
+  if (
+    /^[a-z][a-z'-]{1,30}$/i.test(bare) &&
+    !/^(yes|no|ok|okay|stop|thanks|thank|sure|yeah|help|mission|drink|song|status)$/i.test(bare)
+  ) {
+    return toolCall("check_in", { name: bare });
   }
   return content("tell me more.");
 };
 
-// Pre-check-in via the service (which does not gate) for tests whose subject is a
-// later action, not the door. demo@dedaluslabs.ai is on the test waitlist CSV.
+// Pre-check-in via the service for tests whose subject is a later action, not the
+// door. Check-in is name-only, so this just seeds a registered, in-game guest.
 async function seed(bb: Awaited<ReturnType<typeof freshBackbone>>, phone: string, name: string): Promise<void> {
   const { participant, conversation } = await bb.registration.register({
     phone,
     externalConversationId: `conv_${phone}`,
     channel: "sms",
     name,
-    email: `${name.toLowerCase()}@dedaluslabs.ai`,
   });
   await bb.missions.unlockGameplay(participant, conversation);
   await bb.projection.emit("scene.changed", { scene: "game" });
 }
 
 describe("conversational agent (mocked model)", () => {
-  it("threads a guest in when they give a waitlisted email", async () => {
+  it("threads a guest in when they give their first name", async () => {
     const bb = await freshBackbone(fakeChat);
-    const reply = await bb.brain.process(inbound("+1700000001", "demo@dedaluslabs.ai"));
+    const reply = await bb.brain.process(inbound("+1700000001", "Demo"));
     const guest = await bb.repos.participants.findByPhone("test-event", "+1700000001");
     expect(guest).toBeTruthy();
-    expect(guest?.email).toBe("demo@dedaluslabs.ai");
-    expect(guest?.displayName).toBe("Demo Guest"); // pulled from the waitlist
+    expect(guest?.displayName).toBe("Demo");
     expect(reply.participantId).toBe(guest?.id);
     expect(reply.text.toLowerCase()).toContain("checked in");
     expect(reply.text).toContain(guest?.gameId ?? "??");
   });
 
-  it("refuses an email that is not on the list and checks no one in", async () => {
-    const bb = await freshBackbone(fakeChat);
-    const reply = await bb.brain.process(inbound("+1700000009", "stranger@nope.com"));
-    expect(await bb.repos.participants.findByPhone("test-event", "+1700000009")).toBeNull();
-    expect(reply.text.toLowerCase()).toContain("not on tonight");
-  });
-
-  it("asks for the signup email before checking anyone in", async () => {
+  it("asks for the first name before checking anyone in", async () => {
     const bb = await freshBackbone(fakeChat);
     const reply = await bb.brain.process(inbound("+1700000005", "hey"));
     expect(await bb.repos.participants.findByPhone("test-event", "+1700000005")).toBeNull();

@@ -18,3 +18,17 @@ export function capForDisplay<T>(items: readonly T[], limit: number): Capped<T> 
   }
   return { visible: items.slice(0, limit), overflow: items.length - limit };
 }
+
+/**
+ * Cap a list to a hard `capacity` of total cells, reserving one cell for the "+N more"
+ * indicator when it overflows. Unlike `capForDisplay`, the indicator counts against the
+ * budget, so `visible.length + (overflow ? 1 : 0)` never exceeds `capacity`. Use this for
+ * a fixed grid (e.g. the projected board) where the indicator must fit, not wrap.
+ */
+export function capToCapacity<T>(items: readonly T[], capacity: number): Capped<T> {
+  if (capacity <= 0 || items.length <= capacity) {
+    return { visible: [...items], overflow: 0 };
+  }
+  const visibleCount = capacity - 1;
+  return { visible: items.slice(0, visibleCount), overflow: items.length - visibleCount };
+}

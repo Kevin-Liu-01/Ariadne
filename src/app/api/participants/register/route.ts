@@ -1,18 +1,15 @@
 import { z } from "zod";
 import { GEMS } from "@/constants/gems";
-import { normalizeEmail } from "@/domain/email";
 import { normalizePhone } from "@/domain/phone";
 import { getBackbone } from "@/server/backbone";
 import { signPlayerToken } from "@/server/play/session";
-import { waitlistLookup } from "@/server/door/waitlist";
 import { json, problem } from "@/server/http/respond";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const RegisterBody = z.object({
-  email: z.string().trim().min(3).max(120),
-  name: z.string().trim().min(1).max(80).optional(),
+  name: z.string().trim().min(1).max(80),
   phone: z.string().trim().max(32).optional(),
   category: z.string().trim().max(60).optional(),
   stationId: z.string().trim().max(60).optional(),
@@ -27,19 +24,14 @@ export async function POST(req: Request): Promise<Response> {
     return problem(422, "invalid registration");
   }
 
-  // The waitlist is the door: no approved email, no check-in.
-  const email = normalizeEmail(input.email);
-  const listing = waitlistLookup(email);
-  if (!listing.onList) return problem(403, "not on the list");
-
   const bb = getBackbone();
-  // Resume an existing guest (including one already checked in by text) by their
-  // waitlist email so a web check-in never mints a duplicate board tile.
-  const result = await bb.registration.checkInByEmail({
+  // Name-only check-in: the phone (when given) is the identity, so a re-submit from
+  // the same number resumes the same guest instead of minting a duplicate tile.
+  const result = await bb.registration.register({
     phone: input.phone ? normalizePhone(input.phone) || null : null,
+    externalConversationId: null,
     channel: input.channel ?? null,
-    name: input.name ?? listing.name ?? null,
-    email,
+    name: input.name,
     category: input.category ?? null,
     stationId: input.stationId ?? null,
   });

@@ -1,11 +1,6 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { ChatFn, ChatResponse } from "@/server/partners/dedalus/types";
-import { setWaitlistForTests } from "@/server/door/waitlist";
 import { freshBackbone, inbound } from "./helpers";
-
-beforeAll(() => {
-  setWaitlistForTests([{ email: "demo@dedaluslabs.ai", name: "Demo Guest" }]);
-});
 
 function content(text: string): ChatResponse {
   return {
@@ -33,7 +28,7 @@ function toolCall(name: string, args: object): ChatResponse {
   };
 }
 
-/** Same routing as the main agent test: email -> check_in, drink words -> order_drink. */
+/** Same routing as the main agent test: a bare first name -> check_in, drink words -> order_drink. */
 const fakeChat: ChatFn = async (req) => {
   const last = req.messages[req.messages.length - 1];
   if (last?.role === "tool") {
@@ -41,10 +36,12 @@ const fakeChat: ChatFn = async (req) => {
     return content(result.say ?? "ok");
   }
   const user = [...req.messages].reverse().find((m) => m.role === "user")?.content ?? "";
-  const email = user.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
-  if (email) return toolCall("check_in", { email: email[0] });
   if (/drink|beer|wine|mule|machina|modelo|stella|claw|fizz|margar|red bull/i.test(user)) {
     return toolCall("order_drink", { text: user });
+  }
+  const bare = user.trim();
+  if (/^[a-z][a-z'-]{1,30}$/i.test(bare) && !/^(yes|no|ok|okay|stop|thanks|thank|sure|yeah)$/i.test(bare)) {
+    return toolCall("check_in", { name: bare });
   }
   return content("tell me more.");
 };
@@ -62,7 +59,7 @@ describe("conversation memory + deferred intent", () => {
     expect(await bb.drinks.listActive()).toHaveLength(0);
 
     // 2) Checks in: the reply confirms check-in AND offers the remembered beer (not ordered yet).
-    const checkin = await bb.brain.process(inbound(phone, "demo@dedaluslabs.ai"));
+    const checkin = await bb.brain.process(inbound(phone, "Demo"));
     expect(checkin.text.toLowerCase()).toContain("checked in");
     expect(checkin.text.toLowerCase()).toContain("modelo");
     expect(await bb.drinks.listActive()).toHaveLength(0);
@@ -81,7 +78,7 @@ describe("conversation memory + deferred intent", () => {
     const bb = await freshBackbone(fakeChat);
     const phone = "+1700000021";
     await bb.brain.process(inbound(phone, "can I get a stella"));
-    await bb.brain.process(inbound(phone, "demo@dedaluslabs.ai"));
+    await bb.brain.process(inbound(phone, "Demo"));
     const no = await bb.brain.process(inbound(phone, "no"));
     expect(await bb.drinks.listActive()).toHaveLength(0);
     const conv = await bb.repos.conversations.findByPhone("test-event", phone);
@@ -92,7 +89,7 @@ describe("conversation memory + deferred intent", () => {
   it("does not double-order the same drink within the dedup window", async () => {
     const bb = await freshBackbone(fakeChat);
     const phone = "+1700000022";
-    await bb.brain.process(inbound(phone, "demo@dedaluslabs.ai"));
+    await bb.brain.process(inbound(phone, "Demo"));
     expect(await bb.repos.participants.findByPhone("test-event", phone)).toBeTruthy();
 
     // The game is live, so the bar is open (the gate is by run-of-show scene).

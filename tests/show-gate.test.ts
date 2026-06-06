@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { GAMEPLAY_SCENES, gameplayAllowed } from "@/constants/show-gate";
 import { SCENE_IDS } from "@/constants/scenes";
 import type { ChatFn, ChatResponse } from "@/server/partners/dedalus/types";
@@ -8,9 +8,10 @@ import { freshBackbone, inbound } from "./helpers";
 
 /**
  * The run-of-show gate must be decided by code on every surface, never guessed by
- * the model. These cover the SMS agent path (the one that was wrongly refusing song
- * requests during the runway): gameplay actions open in game/finale/runway and lock
- * in arrival/opening, identically for songs, drinks, and quests.
+ * the model. Quests open in game/visuals/finale and lock in arrival/opening/runway
+ * (the runway show runs before the game), but the bar and DJ stay open in every
+ * scene: a checked-in guest can order a drink or request a song anytime, even before
+ * the game starts.
  */
 
 function content(text: string): ChatResponse {
@@ -66,13 +67,14 @@ async function setScene(bb: Backbone, scene: string): Promise<void> {
   await bb.projection.emit("scene.changed", { scene });
 }
 
-describe("gameplayAllowed predicate", () => {
-  it("opens once the game is live (game, visuals, finale, runway) and locks before it", () => {
+describe("gameplayAllowed predicate (quests)", () => {
+  it("opens once the game is live (game, visuals, finale) and locks before it (arrival, opening, runway)", () => {
     expect(gameplayAllowed("game")).toBe(true);
-    // The ambient visuals break sits mid-show, so the bar and DJ stay open through it.
+    // The ambient visuals break sits mid-game; quests stay open through it.
     expect(gameplayAllowed("visuals")).toBe(true);
     expect(gameplayAllowed("finale")).toBe(true);
-    expect(gameplayAllowed("runway")).toBe(true);
+    // The runway show runs before the game, so quests are still locked during it.
+    expect(gameplayAllowed("runway")).toBe(false);
     expect(gameplayAllowed("arrival")).toBe(false);
     expect(gameplayAllowed("opening")).toBe(false);
   });
@@ -84,53 +86,46 @@ describe("gameplayAllowed predicate", () => {
   });
 });
 
-describe("SMS agent: song requests follow the run-of-show gate, not the model's guess", () => {
-  for (const scene of ["game", "finale", "runway"] as const) {
-    it(`queues a song while the scene is "${scene}"`, async () => {
-      const bb = await freshBackbone(chat);
-      const { phone } = await checkedInGuest(bb);
+describe("SMS agent: the bar and DJ are open in every scene", () => {
+  // Drinks and song requests no longer wait for the game: a checked-in guest can
+  // order in any scene, including arrival/opening before the game starts. One shared
+  // backbone (assertions are per guest) keeps this off the pglite cold-start path.
+  let bb: Backbone;
+  beforeAll(async () => {
+    bb = await freshBackbone(chat);
+  }, 30_000);
+
+  for (const scene of SCENE_IDS) {
+    it(`takes a song and a drink while the scene is "${scene}"`, async () => {
+      const { participant, phone } = await checkedInGuest(bb);
       await setScene(bb, scene);
 
-      const reply = await bb.brain.process(inbound(phone, "song One More Time by Daft Punk"));
+      const songReply = await bb.brain.process(inbound(phone, "song One More Time by Daft Punk"));
+      expect(songReply.text.toLowerCase()).toContain("sent");
+      const song = await bb.repos.songRequests.findLatestByParticipant(participant.id);
+      expect(song?.status).toBe("requested");
 
-      const songs = await bb.repos.songRequests.listByEvent(bb.eventId);
-      expect(songs).toHaveLength(1);
-      expect(songs[0]?.status).toBe("requested");
-      expect(reply.text.toLowerCase()).toContain("sent");
-    });
-  }
-
-  for (const scene of ["arrival", "opening"] as const) {
-    it(`locks a song while the scene is "${scene}" (no DJ request created)`, async () => {
-      const bb = await freshBackbone(chat);
-      const { phone } = await checkedInGuest(bb);
-      await setScene(bb, scene);
-
-      const reply = await bb.brain.process(inbound(phone, "song One More Time by Daft Punk"));
-
-      expect(await bb.repos.songRequests.listByEvent(bb.eventId)).toHaveLength(0);
-      expect(reply.text.toLowerCase()).toContain("not started");
+      await bb.brain.process(inbound(phone, "can I get a modelo"));
+      const drink = await bb.repos.drinkOrders.findLatestActiveByParticipant(participant.id);
+      expect(drink?.label).toBe("Modelo");
     });
   }
 });
 
-describe("SMS agent: drinks share the same gate", () => {
-  it("queues a drink once the game is live", async () => {
-    const bb = await freshBackbone(chat);
-    const { phone } = await checkedInGuest(bb);
-    await setScene(bb, "game");
-
-    await bb.brain.process(inbound(phone, "can I get a modelo"));
-    expect(await bb.drinks.listActive()).toHaveLength(1);
-  });
-
-  it("locks a drink before the game starts", async () => {
+describe("SMS agent: quests still gate, but never dead-end", () => {
+  it("shows what you can do (no 'game hasn't started') when MISSION is locked", async () => {
     const bb = await freshBackbone(chat);
     const { phone } = await checkedInGuest(bb);
     await setScene(bb, "arrival");
 
-    const reply = await bb.brain.process(inbound(phone, "can I get a modelo"));
-    expect(await bb.drinks.listActive()).toHaveLength(0);
-    expect(reply.text.toLowerCase()).toContain("not started");
+    const reply = await bb.brain.process(inbound(phone, "MISSION"));
+    const text = reply.text.toLowerCase();
+
+    // No quest is delivered, but we never dead-end on the game not having started.
+    expect(text).not.toContain("not started");
+    expect(text).not.toContain("hang tight");
+    // Instead, surface what the guest can do right now.
+    expect(text).toContain("drink");
+    expect(text).toContain("song");
   });
 });

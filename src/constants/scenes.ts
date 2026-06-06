@@ -19,27 +19,35 @@ export interface Scene {
   readonly accent: SceneAccent;
 }
 
-// Run-of-show order: doors, then one game board for the whole night (guests work
-// color -> word -> riddle at their own pace; the operator never switches quest
-// boards), then winners, then the runway show closes the night.
+// Run-of-show order: doors (arrival) and the opening title card, then the runway
+// show, then one game board for the rest of the night (guests work color -> word ->
+// riddle at their own pace; the operator never switches quest boards), an ambient
+// visuals break, then the winners' finale closes the night.
 export const SCENES = [
   {
     id: "arrival",
-    note: "Doors open. Guests check in by text (name, then list email) and wait. The board shows the join line and who has checked in. Gameplay opens when you pick 'game'.",
+    note: "Doors open. Guests check in by text with just their first name and wait. The board shows the join line and who has checked in. Gameplay opens later when you pick 'game'.",
     headline: "Doors are open",
-    tagline: "Check in by text. The game begins when the room is ready.",
+    tagline: "Check in by text. The show begins when the room is ready.",
     accent: "aquamarine",
   },
   {
     id: "opening",
-    note: "The Run(way)time opening: a cinematic shader title card before the game. Use it to gather the room and hype the night; no tiles, no texts. Pick 'game' to start play.",
+    note: "The Run(way)time opening: a cinematic shader title card before the runway show. Use it to gather the room and hype the night; no tiles, no texts. The runway show comes next.",
     headline: "Run(way)time",
-    tagline: "Find your place. The game begins in a moment.",
+    tagline: "Find your place. The show begins in a moment.",
     accent: "helio",
   },
   {
+    id: "runway",
+    note: "The runway show opens the night. The board goes calm and cinematic while the room watches the looks. Quests are still locked; pick 'game' when the show wraps to start the labyrinth.",
+    headline: "The runway is live",
+    tagline: "Eyes up. The room is yours.",
+    accent: "cloud",
+  },
+  {
     id: "game",
-    note: "The game is live: one board for the whole night. Every guest, the quest they're on, points, plus the color/word/riddle panels together. Guests progress color -> word -> riddle at their own pace.",
+    note: "The game is live: one board for the rest of the night. Every guest, the quest they're on, points, plus the color/word/riddle panels together. Guests progress color -> word -> riddle at their own pace.",
     headline: "The game is live",
     tagline: "Color, word, riddle. Solve at your own pace.",
     accent: "helio",
@@ -53,17 +61,10 @@ export const SCENES = [
   },
   {
     id: "finale",
-    note: "Winners crowned. Board raises a podium for the top three and celebrates the night.",
+    note: "Winners crowned. Board raises a podium for the top three and closes the night.",
     headline: "Winners of the night",
     tagline: "Take a bow.",
     accent: "garnet",
-  },
-  {
-    id: "runway",
-    note: "The runway show closes the night. The board goes calm and cinematic while the room watches.",
-    headline: "The runway is live",
-    tagline: "Eyes up. The room is yours.",
-    accent: "cloud",
   },
 ] as const satisfies readonly Scene[];
 

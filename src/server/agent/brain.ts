@@ -11,11 +11,12 @@ import {
   pauseTextsCopy,
   pendingIntentDeclinedCopy,
   pendingIntentOfferCopy,
+  questsLockedCopy,
   songPromptCopy,
   songQueuedCopy,
   statusCopy,
 } from "@/constants/copy";
-import { gameplayAllowed, runOfShowCopy } from "@/constants/show-gate";
+import { gameplayAllowed } from "@/constants/show-gate";
 import { EVENT_NAME } from "@/constants/event";
 import { GEMS } from "@/constants/gems";
 import { MISSION_BY_ID } from "@/constants/missions";
@@ -124,13 +125,11 @@ export class AgentBrain {
         return makeReply(await this.statusText(participant, conversationNow));
       }
       if (/^drink$/i.test(command)) {
-        const gate = await this.gameplayGate();
-        if (gate) return makeReply(gate);
+        // The bar is open in every scene; show the menu regardless of run-of-show.
         return makeReply(drinkMenuCopy());
       }
       if (/^song$/i.test(command)) {
-        const gate = await this.gameplayGate();
-        if (gate) return makeReply(gate);
+        // The DJ is open in every scene; show the song prompt regardless of run-of-show.
         return makeReply(songPromptCopy());
       }
       if (/^mission$/i.test(command)) {
@@ -228,10 +227,11 @@ export class AgentBrain {
     });
   }
 
-  /** Gameplay opens with the run-of-show scene; null means open. */
+  /** Quests open with the run-of-show scene; null means open. When locked, never
+   *  dead-end, hand back the "here's what you can do" menu instead. */
   private async gameplayGate(): Promise<string | null> {
     const scene = await this.projection.scene();
-    return gameplayAllowed(scene) ? null : runOfShowCopy(scene);
+    return gameplayAllowed(scene) ? null : questsLockedCopy();
   }
 
   private async tryHostRequestFlow(
@@ -381,15 +381,17 @@ export class AgentBrain {
 
   /** A grounded line for the live run-of-show state, so the model reads play state instead of guessing it. */
   private showStateLine(scene: string): string {
+    // The bar and DJ are always open once a guest is checked in; only quests wait
+    // for the run-of-show to reach a gameplay scene.
     return gameplayAllowed(scene)
       ? `SHOW STATE: scene "${scene}". The game is live: quests, bar orders, and song requests are all open.`
-      : `SHOW STATE: scene "${scene}". The game has not started. Do not run quests or take drink or song orders yet; tell the guest to hang tight.`;
+      : `SHOW STATE: scene "${scene}". Quests are not open yet, so do not run a quest. Do NOT tell the guest the game has not started or to wait, instead show them what they can do now. The bar and DJ are open: take drink orders and song requests anytime.`;
   }
 
   private grounding(participant: Participant | null, conversation: Conversation, scene: string): string {
     const showState = this.showStateLine(scene);
     if (!participant) {
-      return `${PROMPT_INJECTION_GUARD}\n${showState}\nCURRENT GUEST: not checked in. Welcome them to Dedalus ${EVENT_NAME}. Ask for first name, then signup email (list). Call check_in as you collect each. If not_on_list, say the email is not on tonight's list. After check-in they wait for staff to start the game; there is no code to enter.`;
+      return `${PROMPT_INJECTION_GUARD}\n${showState}\nCURRENT GUEST: not checked in. Welcome them to Dedalus ${EVENT_NAME}. Ask for their first name and call check_in with it; the phone they are texting from is their identity, so there is no email or list to match. After check-in there is no code to enter: the bar and DJ are open right away, and quests open later. Show them what they can do, never tell them to just wait.`;
     }
     const nameLine = participant.displayName
       ? ` Name: ${participant.displayName}.`
@@ -399,7 +401,7 @@ export class AgentBrain {
       : null;
     const missionLine = mission
       ? ` Active mission: ${mission.title}. ${this.missions.renderPrompt(mission, participant)}`
-      : " No active mission yet (assigned when the game starts).";
+      : " No active quest yet; the bar and DJ are open now.";
     const commands = `\nCommands for the guest:\n${commandsIntroCopy()}`;
     return `${PROMPT_INJECTION_GUARD}\n${showState}\nCURRENT GUEST:${nameLine} Color ${gemColorLabel(participant.gem)}, secret word "${participant.secretWord}", game id ${participant.gameId}, score ${participant.score}.${missionLine}${commands}`;
   }

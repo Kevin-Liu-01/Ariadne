@@ -23,7 +23,7 @@ export function OverflowMore({
     return (
       <div
         className={cn(
-          "flex aspect-square flex-col items-center justify-center border border-dashed border-nyx-line/70 bg-nyx/40 p-3 text-center",
+          "flex h-full w-full min-h-0 flex-col items-center justify-center border border-dashed border-nyx-line/70 bg-nyx/40 p-3 text-center",
           className,
         )}
         aria-label={`${count} more players`}

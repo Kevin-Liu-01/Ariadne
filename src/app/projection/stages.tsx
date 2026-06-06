@@ -1,14 +1,15 @@
 "use client";
 
 import { Crown, Hourglass, MessageSquare } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import type { Scene, SceneAccent } from "@/constants/scenes";
 import { CLUES } from "@/constants/clues";
 import { PEOPLE_CAP } from "@/constants/display";
 import { GEMS, GEM_IDS, type GemId } from "@/constants/gems";
 import { WORD_PAIRS } from "@/constants/missions";
 import { GEM_WHEEL_HUE } from "@/domain/gem-wheel";
-import { capForDisplay } from "@/domain/overflow";
+import { balancedCols, lastRowColSpan } from "@/domain/grid";
+import { capForDisplay, capToCapacity } from "@/domain/overflow";
 import { formatPhoneDisplay } from "@/domain/phone";
 import { GemIcon } from "@/components/gem-icon";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
@@ -16,6 +17,7 @@ import { OverflowMore } from "@/components/overflow-more";
 import { RunwayWordmark } from "@/components/runway-wordmark";
 import type { TileState } from "@/domain/projection";
 import { cn } from "@/lib/utils";
+import { useGridFit } from "@/app/projection/use-grid-fit";
 import {
   ACCENT,
   type BoardView,
@@ -24,8 +26,16 @@ import {
   initials,
 } from "@/app/projection/board-parts";
 
-const STANDINGS_GRID =
-  "grid content-start gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(132px,1fr))]";
+/** Target tile footprint (px) used to measure how many standings tiles fit the board. */
+const STANDINGS_CELL = { width: 168, height: 150, gap: 10 };
+/** How many word-bank columns the Word Quest reference packs into. */
+const WORD_COLS = 3;
+/** Tailwind column-span classes, kept literal so the compiler keeps them. */
+const COL_SPAN: Record<number, string> = {
+  1: "col-span-1",
+  2: "col-span-2",
+  3: "col-span-3",
+};
 
 type QuestId = "color" | "word" | "riddle";
 
@@ -116,7 +126,7 @@ function ArrivalStage({ view }: { view: BoardView }) {
   );
 }
 
-/** Opening: the cinematic Run(way)time title card right before the game begins. */
+/** Opening: the cinematic Run(way)time title card right before the runway show. */
 function OpeningStage({ view }: { view: BoardView }) {
   return (
     <CinematicShell>
@@ -157,17 +167,26 @@ function RunwayStage({ view }: { view: BoardView }) {
   );
 }
 
-/** A color-wheel triangle: three gems shown with their hue, for the Color Quest. */
-function TriangleCard({ title, gems, accent }: { title: string; gems: GemId[]; accent: SceneAccent }) {
+/** One color-wheel triangle (primary or secondary) as three gem boxes that fill their row.
+ *  The gem itself sits in a flex-1 well so it scales to whatever height the row gets. */
+function GemGroup({ title, gems, accent }: { title: string; gems: GemId[]; accent: SceneAccent }) {
   return (
-    <div className={cn("border bg-nyx/55 p-4", ACCENT[accent].border)}>
+    <div className="flex min-h-0 flex-1 flex-col gap-1.5">
       <p className={cn("text-[11px] uppercase tracking-[0.3em]", ACCENT[accent].text)}>{title}</p>
-      <div className="mt-3 flex items-start justify-around gap-2">
+      <div className="grid min-h-0 flex-1 grid-cols-3 gap-2">
         {gems.map((g) => (
-          <div key={g} className="flex flex-col items-center gap-1.5">
-            <GemIcon gem={g} size={54} />
-            <span className="text-base text-cloud">{GEMS[g].label}</span>
-            <span className="text-[11px] uppercase tracking-[0.2em] text-ash">{GEM_WHEEL_HUE[g]}</span>
+          <div
+            key={g}
+            className={cn(
+              "flex min-h-0 flex-col items-center justify-center gap-1 border bg-nyx/55 p-2",
+              ACCENT[accent].border,
+            )}
+          >
+            <span className="flex min-h-0 flex-1 items-center justify-center">
+              <GemIcon gem={g} size={96} className="h-full max-h-[140px] w-auto" />
+            </span>
+            <span className="text-sm text-cloud">{GEMS[g].label}</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-ash">{GEM_WHEEL_HUE[g]}</span>
           </div>
         ))}
       </div>
@@ -189,27 +208,31 @@ const QUEST_META: Record<QuestId, { title: string; accent: SceneAccent; hint: st
   riddle: {
     title: "Riddle Quest",
     accent: "topaz",
-    hint: "Everyone gets three by text. Reply with one-word answers.",
+    hint: 'Everyone gets three by text. Reply with the number and answer, like "2: cache".',
   },
 };
 
-/** Inner reference content for one quest: the gems, the word combos, or the riddles. */
+/** Inner reference content for one quest: the gems, the word combos, or the riddles.
+ *  Each body stretches to fill its card so the board never leaves dead space. */
 function QuestReferenceBody({ quest, accent }: { quest: QuestId; accent: SceneAccent }) {
   if (quest === "color") {
     return (
-      <div className="flex flex-col gap-3">
-        <TriangleCard title="primary" gems={PRIMARY_GEMS} accent={accent} />
-        <TriangleCard title="secondary" gems={SECONDARY_GEMS} accent={accent} />
+      <div className="flex h-full flex-col gap-3">
+        <GemGroup title="primary" gems={PRIMARY_GEMS} accent={accent} />
+        <GemGroup title="secondary" gems={SECONDARY_GEMS} accent={accent} />
       </div>
     );
   }
   if (quest === "word") {
     return (
-      <div className="grid grid-cols-3 gap-1.5">
-        {WORD_PAIRS.map(([a, b]) => (
+      <div className="grid min-h-full grid-cols-3 gap-1.5 [grid-auto-rows:minmax(min-content,1fr)]">
+        {WORD_PAIRS.map(([a, b], i) => (
           <span
             key={`${a}-${b}`}
-            className="flex items-center justify-center gap-1 border border-nyx-line/60 bg-nyx/55 px-2 py-1.5 text-sm text-cloud"
+            className={cn(
+              "flex items-center justify-center gap-1 border border-nyx-line/60 bg-nyx/55 px-2 py-1 text-sm text-cloud",
+              COL_SPAN[lastRowColSpan(i, WORD_PAIRS.length, WORD_COLS)],
+            )}
           >
             <span>{a}</span>
             <span className={cn("font-light", ACCENT[accent].text)}>+</span>
@@ -220,11 +243,22 @@ function QuestReferenceBody({ quest, accent }: { quest: QuestId; accent: SceneAc
     );
   }
   return (
-    <ol className="space-y-3">
+    <ol className="grid min-h-full grid-cols-2 gap-2 [grid-auto-rows:minmax(min-content,1fr)]">
       {CLUES.map((c, i) => (
-        <li key={c.id} className="flex gap-2.5 text-[15px] leading-relaxed text-cloud">
-          <span className={cn("shrink-0 font-medium tabular-nums", ACCENT[accent].text)}>{i + 1}.</span>
-          <span>{c.prompt}</span>
+        <li
+          key={c.id}
+          className="flex items-start gap-2.5 border border-nyx-line/50 bg-nyx/40 px-3 py-2"
+        >
+          <span
+            className={cn(
+              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs tabular-nums",
+              ACCENT[accent].border,
+              ACCENT[accent].text,
+            )}
+          >
+            {i + 1}
+          </span>
+          <span className="text-[13px] leading-snug text-cloud">{c.prompt}</span>
         </li>
       ))}
     </ol>
@@ -235,7 +269,12 @@ function QuestReferenceBody({ quest, accent }: { quest: QuestId; accent: SceneAc
 function QuestReferenceCard({ quest }: { quest: QuestId }) {
   const { title, accent, hint } = QUEST_META[quest];
   return (
-    <section className={cn("flex min-h-0 min-w-0 flex-col border bg-nyx-soft/70", ACCENT[accent].border)}>
+    <section
+      className={cn(
+        "flex min-h-0 min-w-0 flex-col overflow-hidden border bg-nyx-soft/70",
+        ACCENT[accent].border,
+      )}
+    >
       <header className={cn("flex items-center gap-2.5 border-b px-4 py-3", ACCENT[accent].border)}>
         <span className={cn("h-2.5 w-2.5 rounded-full", ACCENT[accent].dot)} aria-hidden />
         <p className={cn("text-base uppercase tracking-[0.3em]", ACCENT[accent].text)}>{title}</p>
@@ -248,13 +287,22 @@ function QuestReferenceCard({ quest }: { quest: QuestId }) {
   );
 }
 
-/** Live standings band: every guest as a ranked gem tile, full width below the quests. */
+/** Live standings band: every guest as a ranked gem tile, full width below the quests.
+ *
+ *  The grid is measured (the projector can't scroll), so tiles stretch to fill the row and
+ *  rows fill the band's height. "+N more" only appears once the field actually overflows
+ *  what fits; a small room just spreads a few big tiles across the whole width. */
 function StandingsBand({ view }: { view: BoardView }) {
-  // The projector can't scroll, so tiles past what fits would vanish: cap to the leaders
-  // and let a "+N more" tile stand in for the rest of the field.
-  const board = capForDisplay(view.ordered, PEOPLE_CAP.standingsTiles);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const fit = useGridFit(gridRef, STANDINGS_CELL);
+  const measured = fit.capacity > 0;
+  const board = capToCapacity(view.ordered, measured ? fit.capacity : view.ordered.length);
+  const cells = board.visible.length + (board.overflow > 0 ? 1 : 0);
+  const cols = measured ? balancedCols(cells, fit.cols) : 0;
+  const rows = cols > 0 ? Math.ceil(cells / cols) : 0;
+
   return (
-    <section className="flex max-h-[30dvh] shrink-0 flex-col border border-nyx-line bg-nyx-soft/70">
+    <section className="flex min-h-0 grow basis-0 flex-col border border-nyx-line bg-nyx-soft/70">
       <header className="flex items-center justify-between border-b border-nyx-line px-4 py-2.5">
         <p className="text-base uppercase tracking-[0.3em] text-cloud">standings</p>
         <span className="text-xs uppercase tracking-[0.2em] text-ash">
@@ -264,7 +312,21 @@ function StandingsBand({ view }: { view: BoardView }) {
       {view.ordered.length === 0 ? (
         <p className="px-4 py-6 text-sm text-ash">The first gem lands here.</p>
       ) : (
-        <div className={cn("min-h-0 flex-1 overflow-auto p-3", STANDINGS_GRID)}>
+        <div
+          ref={gridRef}
+          className={cn(
+            "grid min-h-0 flex-1 gap-2.5 overflow-hidden p-3",
+            !measured && "content-start [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]",
+          )}
+          style={
+            measured
+              ? {
+                  gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                  gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+                }
+              : undefined
+          }
+        >
           {board.visible.map((t, i) => (
             <PlayerTile
               key={t.gameId}
@@ -292,7 +354,7 @@ function StandingsBand({ view }: { view: BoardView }) {
 function GameStage({ view }: { view: BoardView }) {
   return (
     <div className="relative z-[2] flex min-h-0 flex-1 flex-col gap-4 pt-4">
-      <div className="grid min-h-0 flex-1 grid-cols-3 gap-4 [grid-template-rows:minmax(0,1fr)]">
+      <div className="grid min-h-0 grow-[2] basis-0 grid-cols-3 gap-4 [grid-template-rows:minmax(0,1fr)]">
         <QuestReferenceCard quest="color" />
         <QuestReferenceCard quest="word" />
         <QuestReferenceCard quest="riddle" />

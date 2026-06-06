@@ -20,7 +20,6 @@ export async function inGame(
     externalConversationId: `conv_${phone}`,
     channel: "sms",
     name,
-    email: `${name.toLowerCase()}@runwaytime.test`,
   });
   await bb.missions.unlockGameplay(r.participant, r.conversation);
   await bb.projection.emit("scene.changed", { scene: "game" });

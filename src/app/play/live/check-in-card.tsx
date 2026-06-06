@@ -12,12 +12,10 @@ interface RegisterResult {
   playerToken: string;
 }
 
-/** Inline web check-in for the Live Player: waitlist email in, signed token stored, screen unlocks. */
+/** Inline web check-in for the Live Player: first name in, signed token stored, screen unlocks. */
 export function CheckInCard({ onToken }: { onToken: (token: string) => void }) {
-  const emailId = useId();
   const nameId = useId();
   const phoneId = useId();
-  const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,15 +30,10 @@ export function CheckInCard({ onToken }: { onToken: (token: string) => void }) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          email: email.trim(),
-          name: name.trim() || undefined,
+          name: name.trim(),
           phone: phone.trim() || undefined,
         }),
       });
-      if (res.status === 403) {
-        setError("That email isn't on tonight's list. Double-check it, or see a door host.");
-        return;
-      }
       if (!res.ok) throw new Error(await res.text());
       const data = (await res.json()) as RegisterResult;
       setPlayerToken(data.playerToken);
@@ -74,23 +67,15 @@ export function CheckInCard({ onToken }: { onToken: (token: string) => void }) {
 
         <form onSubmit={submit} className="grid gap-3 px-6 pb-8 pt-6">
           <p className="text-center text-sm leading-relaxed text-ash">
-            Check in with the email you signed up with. You'll get your gem, secret word, and quests,
+            Check in with your first name. You'll get your gem, secret word, and quests,
             then play the whole night right here, no texting needed.
           </p>
-          <input
-            id={emailId}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            required
-            placeholder="email you signed up with"
-            className="border border-nyx-line bg-nyx px-4 py-3 text-cloud outline-none placeholder:text-ash/60 focus:border-helio/50"
-          />
           <input
             id={nameId}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="name (optional)"
+            required
+            placeholder="your first name"
             className="border border-nyx-line bg-nyx px-4 py-3 text-cloud outline-none placeholder:text-ash/60 focus:border-helio/50"
           />
           <input

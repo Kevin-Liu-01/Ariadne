@@ -38,10 +38,21 @@ function IdentityCard({ view }: { view: PlayerView }) {
   );
 }
 
-/** Arrival / opening: checked in, waiting for the game to begin. */
-function WaitingStage({ view }: { view: PlayerView }) {
+/** The bar and DJ request cards, available in every scene once a guest is checked in. */
+function Amenities({ view, act, busy }: StageProps) {
   return (
-    <div className="flex w-full flex-col items-center gap-6 text-center animate-rise">
+    <div className="flex w-full flex-col gap-3 text-left">
+      <BarCard view={view} act={act} busy={busy} />
+      <SongsCard view={view} act={act} busy={busy} />
+    </div>
+  );
+}
+
+/** Arrival / opening: checked in, waiting for the game. The bar and DJ are open while
+ *  they wait, so the order/request cards ride along under the identity. */
+function WaitingStage({ view, act, busy }: StageProps) {
+  return (
+    <div className="flex w-full max-w-md flex-col items-center gap-6 text-center animate-rise">
       <div className="flex flex-col items-center gap-3">
         <LabyrinthThread size={84} animate />
         <RunwayWordmark size="lg" />
@@ -52,9 +63,10 @@ function WaitingStage({ view }: { view: PlayerView }) {
       </div>
       <IdentityCard view={view} />
       <p className="max-w-xs text-sm leading-relaxed text-ash">
-        The game starts soon. Keep this screen open, it'll light up with your quests the moment the
-        room goes live.
+        The bar and DJ are open, grab a drink or request a song below. Your quests appear here once
+        the room goes live.
       </p>
+      <Amenities view={view} act={act} busy={busy} />
       <p className="text-xs uppercase tracking-[0.3em] text-ash">
         <span className="text-cloud">{view.totalPlayers}</span> in the labyrinth
       </p>
@@ -75,10 +87,7 @@ function CalmInterludeStage({ view, act, busy, line }: StageProps & { line: stri
         <span className="text-sm text-cloud">{p.gemLabel}</span>
         <span className="text-sm tabular-nums text-helio">{p.score} pts</span>
       </div>
-      <div className="flex w-full flex-col gap-3 text-left opacity-95">
-        <BarCard view={view} act={act} busy={busy} />
-        <SongsCard view={view} act={act} busy={busy} />
-      </div>
+      <Amenities view={view} act={act} busy={busy} />
     </div>
   );
 }
@@ -130,6 +139,6 @@ export function LiveStage({ view, act, busy }: StageProps) {
     case "finale":
       return <FinaleStage view={view} />;
     default:
-      return <WaitingStage view={view} />;
+      return <WaitingStage view={view} act={act} busy={busy} />;
   }
 }

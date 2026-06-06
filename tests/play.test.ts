@@ -6,23 +6,17 @@ import { freshBackbone } from "./helpers";
 
 /**
  * The web Live Player is a second front door onto the same backbone. These cover the
- * contract the player routes call: resume-by-email (no duplicate tiles), the live
+ * contract the player routes call: resume-by-phone (no duplicate tiles), the live
  * `me` read-model (scene-gated current quest), and that tap actions route to the
  * exact same deterministic services the text thread uses.
  */
 
-async function checkIn(
-  bb: Backbone,
-  phone: string,
-  name: string,
-  email: string,
-): Promise<Participant> {
+async function checkIn(bb: Backbone, phone: string, name: string): Promise<Participant> {
   const r = await bb.registration.register({
     phone,
     externalConversationId: `conv_${phone}`,
     channel: "sms",
     name,
-    email,
   });
   return r.participant;
 }
@@ -35,25 +29,24 @@ async function setScene(bb: Backbone, scene: string): Promise<void> {
 async function room(bb: Backbone): Promise<{ byGem: Map<GemId, Participant>; solver: Participant }> {
   const guests: Participant[] = [];
   for (let i = 1; i <= 6; i += 1) {
-    guests.push(await checkIn(bb, `+1617000000${i}`, `G${i}`, `g${i}@runwaytime.test`));
+    guests.push(await checkIn(bb, `+1617000000${i}`, `G${i}`));
   }
   const byGem = new Map<GemId, Participant>(guests.map((g) => [g.gem, g]));
   return { byGem, solver: byGem.get("amethyst")! };
 }
 
 describe("web check-in resume", () => {
-  it("resumes an existing participant by email instead of creating a duplicate", async () => {
+  it("resumes an existing participant by phone instead of creating a duplicate", async () => {
     const bb = await freshBackbone();
-    const dana = await checkIn(bb, "+15550001", "Dana", "dana@runwaytime.test");
+    const dana = await checkIn(bb, "+15550001", "Dana");
     const before = (await bb.projection.snapshot()).stats.checkedIn;
 
-    // A web check-in with the same email (any case), no phone, must resume the same guest.
-    const resumed = await bb.registration.checkInByEmail({
-      email: "DANA@runwaytime.test",
-      name: "Dana",
-      phone: null,
-      stationId: null,
+    // A web check-in from the same number (no external thread) must resume the same guest.
+    const resumed = await bb.registration.register({
+      phone: "+15550001",
+      externalConversationId: null,
       channel: null,
+      name: "Dana",
     });
 
     expect(resumed.isNew).toBe(false);
@@ -61,14 +54,13 @@ describe("web check-in resume", () => {
     expect((await bb.projection.snapshot()).stats.checkedIn).toBe(before);
   });
 
-  it("registers a genuinely new email", async () => {
+  it("registers a genuinely new guest", async () => {
     const bb = await freshBackbone();
-    const res = await bb.registration.checkInByEmail({
-      email: "new@runwaytime.test",
-      name: "New",
-      phone: null,
-      stationId: null,
+    const res = await bb.registration.register({
+      phone: "+15559999",
+      externalConversationId: null,
       channel: null,
+      name: "New",
     });
     expect(res.isNew).toBe(true);
     expect((await bb.projection.snapshot()).stats.checkedIn).toBe(1);
@@ -78,7 +70,7 @@ describe("web check-in resume", () => {
 describe("player read-model (me)", () => {
   it("returns identity and gates the current quest on the scene", async () => {
     const bb = await freshBackbone();
-    const eli = await checkIn(bb, "+15550002", "Eli", "eli@runwaytime.test");
+    const eli = await checkIn(bb, "+15550002", "Eli");
 
     // Arrival (default): identity is visible, but gameplay and the current quest are locked.
     const atArrival = await bb.player.me(eli.id);
@@ -138,18 +130,23 @@ describe("player actions mirror the text path", () => {
     expect((await bb.drinks.get(active[0].id))?.status).toBe("picked_up");
   });
 
-  it("locks mission, drink, and song until the game starts", async () => {
+  it("locks missions until the game starts, but the bar and DJ stay open", async () => {
     const bb = await freshBackbone();
-    const zo = await checkIn(bb, "+15550003", "Zo", "zo@runwaytime.test");
+    const zo = await checkIn(bb, "+15550003", "Zo");
+
+    // Missions are still gated by the run-of-show scene.
     expect((await bb.player.submitMission(zo.id, "anything"))?.result).toBe("locked");
-    expect((await bb.player.orderDrink(zo.id, "modelo"))?.status).toBe("locked");
-    expect((await bb.player.requestSong(zo.id, "song anything"))?.status).toBe("locked");
-    expect(await bb.drinks.listActive()).toHaveLength(0);
+
+    // Drinks and songs are available anytime, even at arrival before the game.
+    expect((await bb.player.orderDrink(zo.id, "modelo"))?.status).toBe("queued");
+    expect(await bb.drinks.listActive()).toHaveLength(1);
+    expect((await bb.player.requestSong(zo.id, "song anything"))?.status).toBe("queued");
+    expect((await bb.player.me(zo.id))?.song?.text).toBe("anything");
   });
 
   it("flags a host issue onto the operator alert queue", async () => {
     const bb = await freshBackbone();
-    const ada = await checkIn(bb, "+15550004", "Ada", "ada@runwaytime.test");
+    const ada = await checkIn(bb, "+15550004", "Ada");
     const res = await bb.player.flag(ada.id, "lost my jacket");
     expect(res?.flagged).toBe(true);
     expect((await bb.repos.operatorAlerts.listOpen(bb.eventId)).length).toBe(1);

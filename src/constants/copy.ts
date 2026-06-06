@@ -28,7 +28,7 @@ export function commandsIntroCopy(): string {
     `Reply with your quest answer to solve it`,
     `${CMD.mission}: current quest`,
     `${CMD.status}: color, word, ID, score, quests`,
-    `${CMD.drink}: bar menu (one cocktail voucher; beer, wine, non-alcoholic unlimited until supplies run out)`,
+    `${CMD.drink}: bar menu`,
     `${CMD.song} [track]: DJ request`,
     `${CMD.help}: this list`,
   ]);
@@ -51,18 +51,6 @@ export function checkinAskNameCopy(): string {
   return `Welcome to Dedalus ${EVENT_NAME}.\n\nWhat is your first name?`;
 }
 
-export function askEmailAfterNameCopy(name: string): string {
-  return `Thanks, ${name}.\n\nReply with the email you signed up with.`;
-}
-
-export function checkinAskEmailCopy(): string {
-  return `Welcome to Dedalus ${EVENT_NAME}.\n\nReply with the email you signed up with.`;
-}
-
-export function notOnListCopy(): string {
-  return "That email is not on tonight's list. Reply with it again to confirm, or see a door host.";
-}
-
 export function welcomeCopy(p: {
   name: string;
   gemLabel: string;
@@ -79,7 +67,7 @@ export function checkedInCopy(p: {
   word: string;
   gameId: string;
 }): string {
-  return `${p.name}, you're checked in. 🪽\n\n${gameStateBlock(p)}\n\nThe game starts soon. I'll text you the moment it begins.\n\n${commandMenuBlock()}`;
+  return `${p.name}, you're checked in. 🪽\n\n${gameStateBlock(p)}\n\nThe bar and DJ are open now.\n\n${commandMenuBlock()}`;
 }
 
 export function askNameCopy(): string {
@@ -117,7 +105,7 @@ export function statusCopy(p: {
   locked?: boolean;
 }): string {
   const head = `${gameStateBlock(p)}\n\nQuests: ${p.questsDone}/${p.questsTotal} complete`;
-  if (p.locked) return `${head}\n\nThe game has not started yet. Hang tight, I'll text you when it begins.`;
+  if (p.locked) return `${head}\n\nNo quest yet. The bar and DJ are open, reply ${CMD.drink} or ${CMD.song} anytime.`;
   return p.currentQuest ? `${head}\n\n${p.currentQuest}` : `${head}\n\nAll three quests complete. Stay near the screen.`;
 }
 
@@ -251,7 +239,7 @@ export function pickupCheckCopy(label: string): string {
 }
 
 export function nameNudgeCopy(): string {
-  return `Still there? Reply with the email you signed up with.\n\nReply ${CMD.help} anytime.`;
+  return `Still there? Reply with your first name to check in.\n\nReply ${CMD.help} anytime.`;
 }
 
 export function songQueuedCopy(text: string): string {
@@ -267,15 +255,19 @@ export function pickupConfirmedCopy(label: string): string {
 }
 
 export function notCheckedInCopy(): string {
-  return `You are not checked in yet.\n\nReply with the email you signed up with.`;
+  return `You are not checked in yet.\n\nReply with your first name to check in.`;
 }
 
 export function unknownCopy(): string {
   return `I did not catch that.\n\nReply a quest answer, ${CMD.drink}, or ${CMD.help}.`;
 }
 
-export function gameLockedCopy(): string {
-  return `The game has not started yet.\n\nHang tight, I'll text you the moment it begins.`;
+/**
+ * Quests are not open yet (pre-game). Never dead-end with "the game hasn't started":
+ * the bar and DJ are always on, so pivot straight to what the guest can do right now.
+ */
+export function questsLockedCopy(): string {
+  return `No quest right now. Here's what you can do:\n\n${commandsIntroCopy()}`;
 }
 
 export function pauseTextsCopy(): string {
@@ -312,7 +304,7 @@ export function pendingIntentDeclinedCopy(): string {
 
 /** Shown with the first vCard attachment on a guest's opening reply. */
 export function contactCardIntroCopy(): string {
-  return `Save my contact from the card above so my texts always show as ${CONTACT_NAME}.\n\nThe game starts soon. Keep this chat handy and reply here anytime.`;
+  return `Save my contact from the card above so my texts always show as ${CONTACT_NAME}.\n\nThe bar and DJ are open now. Keep this chat handy and reply here anytime.`;
 }
 
 /** Wraps an operator's typed announcement so guests see it as a venue notice, not a reply. */

@@ -1,8 +1,8 @@
 import type { DrinkStatus } from "@/constants/drinks";
 import {
-  gameLockedCopy,
   hostRequestSubmittedCopy,
   pickupConfirmedCopy,
+  questsLockedCopy,
   songPromptCopy,
   songQueuedCopy,
 } from "@/constants/copy";
@@ -162,23 +162,17 @@ export class PlayerService {
   }
 
   async orderDrink(participantId: string, text: string): Promise<PlayerActionResult | null> {
-    const [participant, scene] = await Promise.all([
-      this.repos.participants.findById(participantId),
-      this.projection.scene(),
-    ]);
+    // The bar is open in every scene; only a missing participant blocks an order.
+    const participant = await this.repos.participants.findById(participantId);
     if (!participant) return null;
-    if (!gameplayAllowed(scene)) return { status: "locked", say: gameLockedCopy() };
     const outcome = await this.drinks.createFromText(participant, null, text);
     return { status: outcome.kind, say: drinkOutcomeSay(outcome) };
   }
 
   async requestSong(participantId: string, text: string): Promise<PlayerActionResult | null> {
-    const [participant, scene] = await Promise.all([
-      this.repos.participants.findById(participantId),
-      this.projection.scene(),
-    ]);
+    // The DJ is open in every scene; only a missing participant blocks a request.
+    const participant = await this.repos.participants.findById(participantId);
     if (!participant) return null;
-    if (!gameplayAllowed(scene)) return { status: "locked", say: gameLockedCopy() };
     const song = text.trim().replace(/^song[:\s]+/i, "").trim();
     if (!song) return { status: "clarify", say: songPromptCopy() };
     await this.repos.songRequests.create(this.eventId, participant.id, song);
@@ -191,7 +185,7 @@ export class PlayerService {
       this.projection.scene(),
     ]);
     if (!participant) return null;
-    if (!gameplayAllowed(scene)) return { result: "locked", say: gameLockedCopy() };
+    if (!gameplayAllowed(scene)) return { result: "locked", say: questsLockedCopy() };
     const conversation = await this.conversations.resolveForParticipant(participant.id);
     const outcome = await this.missions.submit(participant, conversation, text);
     return { result: outcome.kind, say: missionOutcomeSay(outcome) };

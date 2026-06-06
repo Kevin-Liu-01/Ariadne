@@ -11,7 +11,7 @@ export interface Participant {
   gameId: string; // public, textable short code
   displayName: string | null;
   phone: string | null;
-  email: string | null; // the waitlist email they checked in with
+  email: string | null; // optional metadata (operator-set); not collected at check-in
   gem: GemId;
   secretWord: string;
   stationId: string | null;

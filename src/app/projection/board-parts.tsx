@@ -94,7 +94,7 @@ export function PlayerTile({
   return (
     <div
       className={cn(
-        "relative flex aspect-square flex-col items-center justify-center border border-nyx-line/70 bg-nyx-soft/80 p-3 transition-all duration-500",
+        "relative flex h-full w-full min-h-0 flex-col items-center justify-center border border-nyx-line/70 bg-nyx-soft/80 p-3 transition-all duration-500",
         vm && "tile-vm-spawn border-2 border-dashed border-helio/55 bg-helio/5 ring-1 ring-helio/25",
         rank <= 3 && !tile.eliminated && !vm && ACCENT[accent].border,
         tile.eliminated && "tile-eliminated",

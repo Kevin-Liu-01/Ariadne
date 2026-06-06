@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { capForDisplay } from "@/domain/overflow";
+import { capForDisplay, capToCapacity } from "@/domain/overflow";
 
 describe("capForDisplay", () => {
   const people = ["a", "b", "c", "d", "e"];
@@ -34,5 +34,27 @@ describe("capForDisplay", () => {
 
   it("handles an empty list", () => {
     expect(capForDisplay([], 5)).toEqual({ visible: [], overflow: 0 });
+  });
+});
+
+describe("capToCapacity", () => {
+  const people = ["a", "b", "c", "d", "e"];
+
+  it("shows everyone when they fit the capacity exactly (no reserved slot needed)", () => {
+    expect(capToCapacity(people, 5)).toEqual({ visible: people, overflow: 0 });
+  });
+
+  it("reserves one cell for the indicator so tiles + chip never exceed capacity", () => {
+    // capacity 4: 3 tiles + 1 "+2 more" cell = 4 cells total.
+    expect(capToCapacity(people, 4)).toEqual({ visible: ["a", "b", "c"], overflow: 2 });
+  });
+
+  it("treats a non-positive capacity as no cap (unmeasured container)", () => {
+    expect(capToCapacity(people, 0)).toEqual({ visible: people, overflow: 0 });
+    expect(capToCapacity(people, -1)).toEqual({ visible: people, overflow: 0 });
+  });
+
+  it("collapses everything but the indicator at capacity 1", () => {
+    expect(capToCapacity(people, 1)).toEqual({ visible: [], overflow: 5 });
   });
 });

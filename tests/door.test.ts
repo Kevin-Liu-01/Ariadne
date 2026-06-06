@@ -1,27 +1,28 @@
-import { beforeAll, describe, expect, it } from "vitest";
-import { extractEmail, normalizeEmail } from "@/domain/email";
-import { setWaitlistForTests, waitlistLookup } from "@/server/door/waitlist";
+import { describe, expect, it } from "vitest";
+import { firstNameKey, matchRosterByName } from "@/domain/door";
 
-beforeAll(() => {
-  setWaitlistForTests([
-    { email: "demo@dedaluslabs.ai", name: "Demo Guest" },
-    { email: "windsor@dedaluslabs.ai", name: "Windsor Nguyen" },
-  ]);
-});
-
-describe("waitlist door gate", () => {
-  it("matches a listed email case-insensitively and returns the signup name", () => {
-    const hit = waitlistLookup("  DEMO@Dedaluslabs.AI ");
-    expect(hit.onList).toBe(true);
-    expect(hit.name).toBe("Demo Guest");
+describe("door roster matching (by first name)", () => {
+  it("reduces a full RSVP name to its first-name key", () => {
+    expect(firstNameKey("Aashna Mehta")).toBe("aashna");
+    expect(firstNameKey("  DEMO ")).toBe("demo");
+    expect(firstNameKey(null)).toBe("");
   });
 
-  it("rejects an email that is not on the list", () => {
-    expect(waitlistLookup("stranger@nope.com").onList).toBe(false);
+  it("lights up the matching expected guest when someone checks in by first name", () => {
+    const waitlist = ["Aashna Mehta", "Windsor Nguyen", "Cathy Di"];
+    const arrivals = ["Cathy", "Aashna"];
+    expect(matchRosterByName(waitlist, arrivals)).toEqual([1, -1, 0]);
   });
 
-  it("pulls an email out of a free-text message", () => {
-    expect(extractEmail("hey it's demo@dedaluslabs.ai i think")).toBe("demo@dedaluslabs.ai");
-    expect(normalizeEmail("  Foo@Bar.COM ")).toBe("foo@bar.com");
+  it("matches one arrival to one row when first names collide", () => {
+    const waitlist = ["Aaron B", "Aaron Li", "Aaron Zhu"];
+    const arrivals = ["Aaron"]; // only one Aaron showed up
+    const matched = matchRosterByName(waitlist, arrivals);
+    expect(matched.filter((i) => i >= 0)).toHaveLength(1);
+    expect(matched[0]).toBe(0); // the first Aaron row claims the lone arrival
+  });
+
+  it("ignores arrivals that match no expected guest", () => {
+    expect(matchRosterByName(["Dana"], ["Stranger"])).toEqual([-1]);
   });
 });
