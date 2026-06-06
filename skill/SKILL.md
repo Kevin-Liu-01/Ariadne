@@ -71,9 +71,10 @@ in `src/constants/lore.ts` so the agent can give directions at runtime.
 - **Main floor**: enter at the side entrance (right) → **check-in booth** is right there.
   Runway down the center with **projection screens** (the live board). **Bar** on the left;
   **bathroom** far left; **stairs to the basement** on the left.
-- **7:45** — the fashion show starts. Before that, the runway floor is open game/mingle space.
-- **After the show** — guests head **downstairs**: merch popup, a "backstage" photo zone,
-  couches, and screens.
+- **7:45** — the fashion show opens the night on the runway. Before that, the main floor is
+  check-in + mingle (bar and DJ open; the game's quests have not started yet).
+- **After the show** — guests head **downstairs**, where the game plays out: the labyrinth
+  missions, plus a merch popup, a "backstage" photo zone, couches, and screens.
 
 Give directions spatially and short ("check-in's by the entrance", "bar's down the left",
-"merch is downstairs after the show"); never send a guest to a space that isn't open yet.
+"the game and merch are downstairs after the show"); never send a guest to a space that isn't open yet.

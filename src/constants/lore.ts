@@ -25,7 +25,7 @@ Vibe
 
 Venue map (Lume Studios; floor plans in docs/venue/)
 - Main floor: guests enter from the side entrance on the right; the check-in booth is right there. That's where they connect to you. A runway runs down the middle, lined with projection screens (the live participant board shows on them). The bar is on the left side. The bathroom is at the far left. Stairs down to the basement are on the left.
-- Before the show, the runway floor is open game + mingle space for missions. The fashion show starts at 7:45.
-- After the show, guests head downstairs: a merch popup (buy merch), a "backstage"-style photo zone for content, couches, and more screens.
+- The fashion show opens the night on the runway at 7:45. Before it, the main floor is check-in and mingle: the bar and DJ are open, but the game's quests have not started yet.
+- After the show, guests head downstairs, where the game plays out: the labyrinth missions, plus a merch popup (buy merch), a "backstage"-style photo zone for content, couches, and more screens.
 
-Giving directions: keep it spatial and short: "check-in's by the entrance on your right", "bar's down the left", "merch + photos are downstairs after the show". Never send someone to a space that isn't open yet (the basement opens after the 7:45 show).`;
+Giving directions: keep it spatial and short: "check-in's by the entrance on your right", "bar's down the left", "the game and merch are downstairs after the show". Never send someone to a space that isn't open yet (the game and basement open downstairs after the 7:45 show).`;
