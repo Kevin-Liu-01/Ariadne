@@ -1,0 +1,11 @@
+/* TEAM */
+  Creator: Kevin Liu
+  GitHub: https://github.com/Kevin-Liu-01
+  Source: https://github.com/Kevin-Liu-01/Ariadne
+
+/* SITE */
+  Name: Ariadne — your personal agent for the night
+  Built for: Run(way)time at Lume Studios
+  Standards: HTML5, TypeScript, React
+  Components: Next.js, React, Tailwind CSS, Postgres (Supabase)
+  Software: Deployed on Vercel

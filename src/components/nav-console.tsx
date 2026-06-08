@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PRODUCT_NAME } from "@/constants/event";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
+import { SiteCredit } from "@/components/site-credit";
 import { cn } from "@/lib/utils";
 
 const ROUTES: { href: string; label: string; Icon: LucideIcon }[] = [
@@ -132,6 +133,9 @@ export function NavConsole() {
               );
             })}
           </nav>
+          <div className="border-t border-nyx-line px-3 py-2.5">
+            <SiteCredit className="!justify-start !tracking-[0.15em]" />
+          </div>
         </div>
       ) : null}
 

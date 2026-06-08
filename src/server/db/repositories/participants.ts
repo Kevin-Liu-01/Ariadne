@@ -82,6 +82,16 @@ export class ParticipantsRepository extends BaseRepository {
     return rows[0] ? toParticipant(rows[0]) : null;
   }
 
+  /** Batch fetch by id, so guest-attach screens avoid an N+1 of findById calls. */
+  async findByIds(ids: string[]): Promise<Participant[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.db.query<ParticipantRow>(
+      `SELECT * FROM participants WHERE id = ANY($1)`,
+      [ids],
+    );
+    return rows.map(toParticipant);
+  }
+
   async findByGameId(eventId: string, gameId: string): Promise<Participant | null> {
     const rows = await this.db.query<ParticipantRow>(
       `SELECT * FROM participants WHERE event_id = $1 AND game_id = $2`,

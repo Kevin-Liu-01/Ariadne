@@ -3,13 +3,20 @@
 **Your personal agent for the night.** A phone-first event backbone you strap onto
 a running agent (Claude Code, OpenClaw, or AgentPhone hosted) so it can host a
 live event end-to-end: check guests in, assign color gems and secret words, issue
-labyrinth missions, take free drink orders, and drive a projected room board.
+labyrinth missions, take free drink orders, queue song requests, and drive a
+projected room board. Guests play over **SMS / iMessage / voice** or the web
+**Live Player** (`/play/live`); both paths hit the same deterministic services.
 
-Built for **Run(way)time** — Dedalus's tech-merch runway × AI × art × HCI brand
-experience at Lume Studios. Daedalus built the labyrinth; **Ariadne** knows the way
-through it and guides each guest. The mission set is literally the *Dedalus
-Labyrinth*, and the orchestration layer connects agent ↔ phone ↔ missions ↔
-projection.
+Built for and **battle-tested at Run(way)time** — Dedalus's tech-merch runway ×
+AI × art × HCI brand experience at Lume Studios (June 2026). Daedalus built the
+labyrinth; **Ariadne** knows the way through it and guides each guest. The mission
+set is literally the *Dedalus Labyrinth*, and the orchestration layer connects
+agent ↔ phone ↔ missions ↔ projection.
+
+Live deployment: [`ariadne-runway.vercel.app`](https://ariadne-runway.vercel.app)
+
+Built and maintained by **[Kevin Liu](https://github.com/Kevin-Liu-01)** · source:
+**[Kevin-Liu-01/Ariadne](https://github.com/Kevin-Liu-01/Ariadne)**
 
 > Partner: **AgentPhone** is the confirmed phone/SMS/voice surface. Fuser
 > (creative/projection visuals) is intentionally **not** a runtime dependency in
@@ -22,16 +29,38 @@ projection.
 | Scenario | Priority | Status |
 |---|---|---|
 | 1. Arrival + personal-agent check-in | **P0** | ✅ live (gem + secret word + game id + first mission) |
-| 2. Free drink ordering through the agent | **P0** | ✅ live (parse → bar queue → operator status → guest ping) |
-| 3. Dedalus Labyrinth missions | **P1** | ✅ color quest, word match, clue, puzzle — deterministic validation |
-| 4. Live projection board + tiles | **P1** | ✅ live polling board, ranks, fade/restore, operator scenes |
-| 5. Fuser room visuals | P1 | ⏸ asset registry stubbed; runtime out of scope (AgentPhone only) |
-| 6. Photo / fit battle | P1 cond. | ⏸ media plumbing present; Fuser runtime out of scope |
-| 7. Merch try-on | P1 cond. | ⏸ out of scope |
+| 2. Free drink ordering through the agent | **P0** | ✅ live (parse → bar queue → operator status → guest ping; bar open in every scene) |
+| 3. Song requests through the agent | **P0** | ✅ live (`queue_song` → DJ screen → accept/reject → guest text) |
+| 4. Dedalus Labyrinth missions | **P1** | ✅ color quest, word match, clue, puzzle — deterministic validation |
+| 5. Live projection board + tiles | **P1** | ✅ live polling board, ranks, fade/restore, operator scenes |
+| 6. Web Live Player | **P1** | ✅ `/play/live` — full game on a phone screen, no texting required |
+| 7. Fuser room visuals | P1 | ⏸ asset registry stubbed; runtime out of scope (AgentPhone only) |
+| 8. Photo / fit battle | P1 cond. | ⏸ media plumbing present; Fuser runtime out of scope |
+| 9. Merch try-on | P1 cond. | ⏸ out of scope |
 
 The non-negotiable cutline (phone-only join, agent check-in + first mission,
 drink flow, mission loop over text, real-time board) is **fully implemented and
 tested**, including a live signed round-trip against the AgentPhone API.
+
+### Run(way)time production (June 2026)
+
+One night at Lume Studios, deployed on Vercel + Supabase with an AgentPhone
+iMessage number. Stats from the live Postgres backbone (`nytw-runwaytime`):
+
+| Metric | Count |
+|---|---|
+| Guests checked in | 76 |
+| Message turns (in + out) | 1,012 across 75 conversations |
+| Drinks picked up | 47 (35 distinct guests) |
+| Missions completed | 86 (50 guests; 87 correct / 4 incorrect answers) |
+| Song requests | 7 |
+| Peak hour | 494 messages |
+| Operator alerts | 4 |
+| AgentPhone webhooks | 99.3% delivery (701 / 706) |
+
+The bar and DJ stay open in every run-of-show scene; quests gate on scene.
+Mission pass/fail and drink parsing are code, never the model. Room-wide
+announcements reach everyone who has texted the line (checked in or not).
 
 ---
 
@@ -88,8 +117,9 @@ flowchart TD
   one dialect is exercised everywhere.
 - **Conversational agent** — *ours*, an in-process LLM tool-calling loop over the
   **Dedalus gateway**. It routes and chats; the bounded **tools** (`check_in`,
-  `order_drink`, `answer_mission`, `get_status`, `flag_operator`) run the
-  deterministic services, so pass/fail and menu-matching can't be talked around.
+  `order_drink`, `queue_song`, `answer_mission`, `confirm_pickup`, `get_status`,
+  `help`, `flag_operator`) run the deterministic services, so pass/fail and
+  menu-matching can't be talked around.
   The system prompt + lore (Dedalus / venue / run-of-show / menu) + the guest's
   grounded state are injected each turn.
 - **Running agent (Dedalus Machine)** — the *optional* LLM agent (Claude Code,
@@ -129,7 +159,7 @@ recovers full state from `GET /api/projection/state` on any reload.
 pnpm install
 cp .env.example .env.local      # set SUPABASE_DB_URL, AGENTPHONE_API_KEY, DEDALUS_API_KEY + tokens
 pnpm migrate                    # apply the schema to your Supabase Postgres
-pnpm test                       # 20 tests (parsers, assignment, signature, agent + full E2E on pglite)
+pnpm test                       # 250+ vitest tests (parsers, assignment, signature, agent + full E2E on pglite)
 pnpm seed                       # populate demo participants/missions/drinks (via the live brain)
 pnpm dev                        # http://localhost:3939  (/  /join  /projection  /operator)
 ```
@@ -214,15 +244,17 @@ the SMS/voice path on its own; a strap-on agent supervises and drives the room.
 | `GET /api/projection/state` | full board snapshot |
 | `GET /api/projection/events?since=<seq>` | incremental projection events (board poll) |
 | `GET /api/operator/drink-orders` · `PATCH …/{id}` | bar queue (auth) |
+| `GET /api/operator/song-requests` | DJ queue (auth) |
 | `GET /api/operator/participants` | roster (auth) |
 | `GET /api/operator/alerts` · `PATCH …/{id}` | operator escalations (auth) |
 | `POST /api/operator/projection` | scene / eliminate / restore / emit (auth) |
 
 ## Data model
 
-`participants`, `conversations`, `partner_events` (idempotency), `missions` →
-`participant_missions` → `mission_events`, `drink_orders` → `drink_order_events`,
-`projection_events` (append-only), `fuser_assets` (stub). See
+`participants`, `conversations`, `messages` (transcript), `partner_events`
+(idempotency), `missions` → `participant_missions` → `mission_events`,
+`drink_orders` → `drink_order_events`, `song_requests`, `announcements`,
+`reminders`, `projection_events` (append-only), `fuser_assets` (stub). See
 `src/server/db/schema.ts`.
 
 ## Resilience (by design, per PRD)
@@ -231,3 +263,16 @@ Outbound is best-effort: the operator queue and projection board keep the room
 running if AgentPhone outbound is constrained. Voice degrades to text with no dead
 end. The board recovers full state on reload. Operators can override live (fade /
 restore / scene). Mission pass/fail is deterministic, never an LLM guess.
+
+---
+
+## Author
+
+**Ariadne** is built and maintained by **[Kevin Liu](https://github.com/Kevin-Liu-01)**.
+
+- GitHub: [@Kevin-Liu-01](https://github.com/Kevin-Liu-01)
+- Source: [github.com/Kevin-Liu-01/Ariadne](https://github.com/Kevin-Liu-01/Ariadne)
+- Live: [ariadne-runway.vercel.app](https://ariadne-runway.vercel.app)
+
+If you reference, cite, or build on this project, please credit Kevin Liu and link
+back to the repository.

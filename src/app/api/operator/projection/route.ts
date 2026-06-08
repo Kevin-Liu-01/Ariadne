@@ -5,13 +5,10 @@ import { env } from "@/lib/env";
 import { getBackbone } from "@/server/backbone";
 import { bearerOk } from "@/server/http/auth";
 import { json, problem } from "@/server/http/respond";
-import { sendGuestText } from "@/server/partners/agentphone/outbound";
 import type { ProjectionEventType } from "@/domain/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Scene changes text the room synchronously, so allow time beyond the default cap.
-export const maxDuration = 60;
 
 const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("scene"), scene: z.string().trim().min(1).max(40) }),
@@ -39,14 +36,10 @@ export async function POST(req: Request): Promise<Response> {
   const bb = getBackbone();
 
   switch (body.action) {
-    case "scene": {
-      // Only announce when the scene actually changes, so re-picking the same
-      // scene never re-texts the room.
-      const changed = body.scene !== (await bb.projection.scene());
-      const ev = await bb.projection.emit("scene.changed", { scene: body.scene });
-      if (changed) await bb.announcements.broadcastScene(body.scene, sendGuestText);
-      return json(ev);
-    }
+    case "scene":
+      // Board-only: run-of-show scene picks never mass-text the room. Use the
+      // announcements panel when operators want a typed room-wide notice.
+      return json(await bb.projection.emit("scene.changed", { scene: body.scene }));
     case "home_mode":
       // Purely a home-page display switch: persisted, no room broadcast.
       return json(await bb.projection.emit("home_mode.changed", { mode: body.mode }));

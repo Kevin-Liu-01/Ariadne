@@ -44,9 +44,20 @@ export function createPgDb(connectionString: string): Db {
   const local = /localhost|127\.0\.0\.1/.test(connectionString);
   const pool = new Pool({
     connectionString,
-    max: Number(process.env.ARIADNE_PG_POOL_MAX) || 3,
+    // The Supabase transaction pooler (port 6543) already multiplexes, so each
+    // serverless instance needs just one client connection. Holding more per
+    // instance multiplies across the warm Vercel fleet and trips the pooler's
+    // client-connection ceiling under event load (FATAL: EMAXCONN, limit 200).
+    // Override with ARIADNE_PG_POOL_MAX when pointing at a direct, unpooled DB.
+    max: Number(process.env.ARIADNE_PG_POOL_MAX) || 1,
     idleTimeoutMillis: 10_000,
     ssl: local ? undefined : { rejectUnauthorized: false },
+  });
+  // The pooler can drop an idle client; node-postgres surfaces that as an 'error'
+  // on the pool and, with no listener, rethrows it as an uncaught exception that
+  // takes down the whole instance. Log and let the pool replace the connection.
+  pool.on("error", (err) => {
+    console.error("[pg] idle client error:", err.message);
   });
   return new PgDb(pool);
 }

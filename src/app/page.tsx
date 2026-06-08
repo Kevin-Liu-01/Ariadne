@@ -14,6 +14,7 @@ import { IMessageLink } from "@/components/imessage-link";
 import { JoinCta } from "@/components/join-cta";
 import { HeroBentoLeft, HeroBentoRight } from "@/components/hero-bento-walls";
 import { GemIcon } from "@/components/gem-icon";
+import { SiteCredit } from "@/components/site-credit";
 import { getBackbone } from "@/server/backbone";
 import { env } from "@/lib/env";
 import { cn } from "@/lib/utils";
@@ -396,6 +397,7 @@ export default async function Home() {
 
       <footer className="border-t border-nyx-line/60 px-6 py-10 text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-ash/60">Dedalus · give your agent wings 🪽</p>
+        <SiteCredit className="mt-4" />
       </footer>
     </main>
   );

@@ -2,7 +2,16 @@
   "name": "ariadne",
   "version": "0.1.0",
   "private": true,
-  "description": "Ariadne - your personal agent for the night. A phone-first event backbone you strap onto a running agent.",
+  "description": "Phone-first event backbone: LLM agent over SMS/iMessage/voice with deterministic tools for check-in, missions, drinks, songs, and a live projection board. Built for Dedalus Run(way)time.",
+  "author": "Kevin Liu (https://github.com/Kevin-Liu-01)",
+  "homepage": "https://ariadne-runway.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kevin-Liu-01/Ariadne.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Kevin-Liu-01/Ariadne/issues"
+  },
   "scripts": {
     "dev": "next dev -p 3939",
     "build": "next build",

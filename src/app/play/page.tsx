@@ -20,6 +20,7 @@ import { SCENES } from "@/constants/scenes";
 import { GemIcon } from "@/components/gem-icon";
 import { IMessageIcon } from "@/components/imessage-icon";
 import { LabyrinthThread } from "@/components/labyrinth-thread";
+import { SiteCredit } from "@/components/site-credit";
 import { TextReminders } from "@/components/text-reminders";
 import { cn } from "@/lib/utils";
 import { env } from "@/lib/env";
@@ -349,6 +350,7 @@ export default function PlayPage() {
             <Link href="/" className="hover:text-cloud">
               home
             </Link>
+            <SiteCredit className="mt-2 w-full" />
           </footer>
         </section>
       </div>

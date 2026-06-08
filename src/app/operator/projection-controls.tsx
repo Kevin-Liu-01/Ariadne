@@ -69,7 +69,10 @@ export function ProjectionControls({ token }: { token: string }) {
         run of show
       </h2>
 
-      <p className="mt-4 text-xs text-ash">scene: sets the mood label on the projection board</p>
+      <p className="mt-4 text-xs text-ash">
+        scene: updates the projection board only (no automatic texts). Use announcements to text the
+        room.
+      </p>
       <div className="mt-3">
         <RecommendationStrip
           label="scene"

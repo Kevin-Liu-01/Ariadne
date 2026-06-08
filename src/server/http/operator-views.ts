@@ -2,6 +2,25 @@ import { GEMS } from "@/constants/gems";
 import { MISSION_BY_ID, MISSION_SEQUENCE } from "@/constants/missions";
 import type { Participant } from "@/domain/types";
 
+/** The minimal guest label the bar and DJ screens show beside an order or request. */
+export interface GuestRef {
+  gameId: string;
+  displayName: string | null;
+}
+
+/**
+ * Index participants by id so an order/request list can attach its guest with one
+ * batched `findByIds` instead of a findById per row — the N+1 those screens used to
+ * fan out held a DB connection per round-trip and, under load, exhausted the pooler.
+ */
+export function guestRefsById(participants: Participant[]): Map<string, GuestRef> {
+  const byId = new Map<string, GuestRef>();
+  for (const p of participants) {
+    byId.set(p.id, { gameId: p.gameId, displayName: p.displayName });
+  }
+  return byId;
+}
+
 /** A guest's status on one game, plus which game they're currently on. */
 export interface QuestStageView {
   id: string;

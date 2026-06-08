@@ -91,18 +91,8 @@ describe("end to end: a full night", () => {
     expect(songs[0].status).toBe("requested");
     expect((await bb.repos.songRequests.setStatus(songs[0].id, "accepted"))?.status).toBe("accepted");
 
-    // 5. SCENE ANNOUNCEMENT: flipping the scene texts the whole room immediately
-    // (on the operator action, not the cron). Reminders are the only cron texts.
-    await bb.projection.emit("scene.changed", { scene: "game" });
-    const sent: { phone: string; text: string }[] = [];
-    const spy = async (phone: string, text: string) => {
-      sent.push({ phone, text });
-      return true;
-    };
-    const scene = await bb.announcements.broadcastScene("game", spy);
-    expect(scene.recipients).toBe(2);
-    expect(scene.delivered).toBe(2);
-    expect(sent.every((s) => s.text.includes("The game is live"))).toBe(true);
+    // 5. Run-of-show scene picks update the board only; room texts use announcements
+    // (see announcements.test.ts for broadcastScene copy).
 
     // 6. MISSIONS: solve the word thread (give + wings), score lands on the board.
     const conv = await bb.repos.conversations.findByPhone(EVENT, "+15550000002");
